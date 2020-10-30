@@ -140,6 +140,7 @@ async fn main() -> io::Result<()> {
 
     // Create Juniper schema
     let schema = std::sync::Arc::new(Schema::new(Query, Mutation));
+    println!("Access service at http://localhost:8080/graphiql");
 
     // Start http server
     HttpServer::new(move || {
