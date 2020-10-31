@@ -1,16 +1,45 @@
 use juniper::FieldResult;
+use std::collections::HashMap;
+use uuid::Uuid;
 
-pub struct DatabasePool;
+pub struct Database {
+    humans: HashMap<String, Human>,
+}
 
-impl DatabasePool {
-    fn get_connection(&self) -> FieldResult<DatabasePool> {
-        Ok(DatabasePool)
+impl Database {
+    fn new() -> Self {
+        let mut humans = HashMap::new();
+
+        humans.insert(
+            "1000".to_owned(),
+            Human::new(
+                "1000",
+                "Luke Skywalker",
+                &[Episode::NewHope, Episode::Empire, Episode::Jedi],
+                "Tatooine",
+            ),
+        );
+
+        Self { humans: humans }
     }
+
     fn find_human(&self, _id: &str) -> FieldResult<Human> {
         Err("")?
     }
-    fn insert_human(&self, _human: &NewHuman) -> FieldResult<Human> {
-        Err("")?
+
+    fn insert_human(&mut self, _human: &NewHuman) -> FieldResult<Human> {
+        let id = Uuid::new_v4().to_string();
+        let cloned = _human.clone();
+        let human = Human {
+            id: id.clone(),
+            name: cloned.name,
+            appears_in: cloned.appears_in,
+            home_planet: cloned.home_planet,
+        };
+
+        self.humans.insert(id, human.clone());
+
+        Ok(human)
     }
 }
 
@@ -21,13 +50,13 @@ impl DatabasePool {
 
 pub struct Context {
     // Use your real database pool here.
-    pool: DatabasePool,
+    pub db: Database,
 }
 
 impl Context {
     pub fn new() -> Context {
         Context {
-            pool: DatabasePool {},
+            db: Database::new(),
         }
     }
 }
@@ -35,14 +64,14 @@ impl Context {
 // To make our context usable by Juniper, we have to implement a marker trait.
 impl juniper::Context for Context {}
 
-#[derive(juniper::GraphQLEnum)]
+#[derive(juniper::GraphQLEnum, Clone)]
 enum Episode {
     NewHope,
     Empire,
     Jedi,
 }
 
-#[derive(juniper::GraphQLObject)]
+#[derive(juniper::GraphQLObject, Clone)]
 #[graphql(description = "A humanoid creature in the Star Wars universe")]
 struct Human {
     id: String,
@@ -51,9 +80,20 @@ struct Human {
     home_planet: String,
 }
 
+impl Human {
+    fn new(id: &str, name: &str, appears_in: &[Episode], home_planet: &str) -> Self {
+        Self {
+            id: id.to_owned(),
+            name: name.to_owned(),
+            appears_in: appears_in.to_vec(),
+            home_planet: home_planet.to_owned(),
+        }
+    }
+}
+
 // There is also a custom derive for mapping GraphQL input objects.
 
-#[derive(juniper::GraphQLInputObject)]
+#[derive(juniper::GraphQLInputObject, Clone)]
 #[graphql(description = "A humanoid creature in the Star Wars universe")]
 struct NewHuman {
     name: String,
@@ -79,13 +119,14 @@ impl Query {
     // that is a reference to the Context type.
     // Juniper automatically injects the correct context here.
     fn human(context: &Context, id: String) -> FieldResult<Human> {
-        // Get a db connection.
-        let connection = context.pool.get_connection()?;
-        // Execute a db query.
-        // Note the use of `?` to propagate errors.
-        let human = connection.find_human(&id)?;
+        let human = context.db.find_human(&id)?;
         // Return the result.
         Ok(human)
+    }
+
+    fn humans(context: &Context) -> FieldResult<Vec<Human>> {
+        let all = context.db.humans.values().cloned().collect::<Vec<Human>>();
+        Ok(all)
     }
 }
 
@@ -97,9 +138,7 @@ pub struct Mutation;
 )]
 impl Mutation {
     fn createHuman(context: &Context, new_human: NewHuman) -> FieldResult<Human> {
-        let db = executor.context().pool.get_connection()?;
-        let human: Human = db.insert_human(&new_human)?;
-        Ok(human)
+        Err("")?
     }
 }
 
