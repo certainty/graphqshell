@@ -20,6 +20,26 @@ impl Database {
             ),
         );
 
+        humans.insert(
+            "1001".to_owned(),
+            Human::new(
+                "1001",
+                "Darth Vader",
+                &[Episode::NewHope, Episode::Empire, Episode::Jedi],
+                "LA",
+            ),
+        );
+
+        humans.insert(
+            "1002".to_owned(),
+            Human::new(
+                "1002",
+                "Yoda",
+                &[Episode::NewHope, Episode::Empire, Episode::Jedi],
+                "Dagobar",
+            ),
+        );
+
         Self { humans: humans }
     }
 

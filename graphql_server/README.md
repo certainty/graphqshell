@@ -1,6 +1,10 @@
 ## Test Graphql Server
 This server is used to test GraphQShell
 
+## Run the server
+
+`make run`
+
 ## Introspection Query
 
 ``` graphql
