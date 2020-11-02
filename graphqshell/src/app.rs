@@ -1,6 +1,4 @@
 pub mod engine;
-pub mod io;
-pub mod ui;
 use crate::app::engine::Engine;
 
 // App model

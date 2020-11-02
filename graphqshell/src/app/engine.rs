@@ -1,26 +1,32 @@
+pub mod io;
+pub mod ui;
+
 use crate::app;
 use anyhow;
 use backtrace::Backtrace;
 use crossbeam_channel::{unbounded, Receiver, Sender};
+use io::IOSystem;
 use scopeguard::defer;
 use std::sync::Arc;
-use std::{io, panic, thread, time};
+use std::{io as stdio, panic, thread, time};
+use ui::UISystem;
 
 pub struct Engine<IoEventT: Send + 'static> {
-    io_system: app::io::IOSystem<IoEventT>,
+    io_system: IOSystem<IoEventT>,
+    ui_system: UISystem<stdio::Stdout>,
 }
 
 impl<IoEventT: Send + 'static> Engine<IoEventT> {
     pub fn new() -> anyhow::Result<Self> {
-        let io_system = app::io::IOSystem::create()?;
+        let io_system = IOSystem::create()?;
+        let ui_system = UISystem::create(stdio::stdout())?;
 
-        defer! { app::ui::shutdown().expect("shutdown failed"); }
+        // defer! { ui_system.shutdown().expect("shutdown failed"); }
         Self::set_panic_handlers()?;
 
-        let ui = app::ui::start(app::ui::setup(io::stdout())?)?;
-
         Ok(Self {
-            io_system: io_system,
+            io_system,
+            ui_system,
         })
     }
 
@@ -31,7 +37,6 @@ impl<IoEventT: Send + 'static> Engine<IoEventT> {
     fn set_panic_handlers() -> anyhow::Result<()> {
         panic::set_hook(Box::new(|e| {
             let backtrace = Backtrace::new();
-            app::ui::shutdown().expect("shutdown failed inside panic");
             eprintln!("panic: {:?}\ntrace:\n{:?}", e, backtrace);
         }));
 
