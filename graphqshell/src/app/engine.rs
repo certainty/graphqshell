@@ -37,7 +37,12 @@ impl<IoEventT: Send + 'static> Engine<IoEventT> {
     pub async fn run(&mut self) -> anyhow::Result<()> {
         loop {
             self.draw_ui()?;
+
+            // TODO: collect all events
             self.handle_events()?;
+
+            //use the events to call the update function of the app
+            //update(model, events)
 
             // ok we're done here
             if self.quit {
@@ -60,6 +65,8 @@ impl<IoEventT: Send + 'static> Engine<IoEventT> {
     }
 
     pub fn handle_events(&mut self) -> anyhow::Result<()> {
+        // handle IO events
+        // handle UI events
         match self.ui_system.next_event()? {
             ui::Event::Input(key) => match key {
                 ui::Key::Char('q') => {
@@ -73,6 +80,8 @@ impl<IoEventT: Send + 'static> Engine<IoEventT> {
                 ()
             }
         }
+
+        // combine all the events
         Ok(())
     }
 
