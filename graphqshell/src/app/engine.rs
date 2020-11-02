@@ -18,8 +18,9 @@ pub struct Engine<IoEventT: Send + 'static> {
 
 impl<IoEventT: Send + 'static> Engine<IoEventT> {
     pub fn new() -> anyhow::Result<Self> {
+        let tick_rate = time::Duration::from_millis(100);
         let io_system = IOSystem::create()?;
-        let ui_system = UISystem::create(stdio::stdout())?;
+        let ui_system = UISystem::create(stdio::stdout(), tick_rate)?;
 
         // defer! { ui_system.shutdown().expect("shutdown failed"); }
         Self::set_panic_handlers()?;
