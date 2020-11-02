@@ -9,11 +9,12 @@ use std::{
     io::{self, Write},
     time,
 };
-use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use tui::backend::TermionBackend;
 use tui::Terminal;
+
+pub type Key = termion::event::Key;
 
 pub enum Event<I> {
     Input(I),
@@ -38,7 +39,7 @@ impl Default for EventsConfig {
 pub type UI<W> = Terminal<TermionBackend<W>>;
 
 pub struct UISystem<W: Write> {
-    term: UI<termion::raw::RawTerminal<W>>,
+    pub term: UI<termion::raw::RawTerminal<W>>,
     tick_thread: thread::JoinHandle<()>,
     event_thread: thread::JoinHandle<()>,
     event_tx: Arc<Sender<Event<Key>>>,
@@ -68,7 +69,7 @@ impl<W: Write> UISystem<W> {
         })
     }
 
-    pub fn next(&self) -> anyhow::Result<Event<Key>> {
+    pub fn next_event(&self) -> anyhow::Result<Event<Key>> {
         let event = self.event_rx.recv()?;
         Ok(event)
     }

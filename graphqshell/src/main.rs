@@ -10,7 +10,7 @@ struct MyIoEvents {}
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let opts = process_command_line()?;
-    let engine = AppEngine::new()?;
+    let mut engine = AppEngine::new()?;
 
     engine.run().await?;
 
