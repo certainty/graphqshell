@@ -17,10 +17,13 @@ impl<T, F: Send + FnOnce() -> T> Task<T> for F {
     }
 }
 
+pub type IoTask<T> = Task<T> + Send + 'static;
+
 // An IoCommand is a closure that returns a given event type
-pub type IoCommand<T> = Box<Task<T> + Send + 'static>;
+pub type IoCommand<T> = Box<IoTask<T>>;
 
 pub struct IOSystem<IoEvent: Send + 'static> {
+
     io_thread: thread::JoinHandle<anyhow::Result<()>>,
     io_command_rx: Arc<Receiver<IoCommand<IoEvent>>>,
     io_command_tx: Arc<Sender<IoCommand<IoEvent>>>,
@@ -29,6 +32,7 @@ pub struct IOSystem<IoEvent: Send + 'static> {
 }
 
 impl<IoEvent: Send + 'static> IOSystem<IoEvent> {
+
     pub fn create() -> anyhow::Result<Self> {
         let (io_command_tx, io_command_rx) = unbounded();
         let (io_event_tx, io_event_rx) = unbounded();
@@ -49,9 +53,9 @@ impl<IoEvent: Send + 'static> IOSystem<IoEvent> {
     }
 
     // Get the next IO event in the queue
-    pub fn next(&self) -> anyhow::Result<IoEvent> {
-        let event = self.io_event_rx.recv()?;
-        Ok(event)
+    pub fn next_event(&self) -> anyhow::Result<IoEvent> {
+       let evt = self.io_event_rx.try_recv()?;
+       Ok(evt)
     }
 
     // Dispatch a closure to the io subsystem

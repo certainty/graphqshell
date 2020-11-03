@@ -1,5 +1,5 @@
 extern crate clap;
-use graphqshell::app::AppEngine;
+use graphqshell::app::{AppEngine, GraphQShellApp};
 
 use anyhow;
 use clap::Clap;
@@ -10,7 +10,8 @@ struct MyIoEvents {}
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let opts = process_command_line()?;
-    let mut engine = AppEngine::new()?;
+    let app  = GraphQShellApp::new();
+    let mut engine = AppEngine::new(app)?;
 
     engine.run().await?;
 

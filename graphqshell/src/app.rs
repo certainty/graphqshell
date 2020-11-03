@@ -1,5 +1,6 @@
 pub mod engine;
-use crate::app::engine::Engine;
+pub mod components;
+use crate::app::engine::{Engine, Application};
 
 // App model
 pub struct Model {}
@@ -9,4 +10,24 @@ pub enum Event {
     None,
 }
 
-pub type AppEngine = Engine<Event>;
+
+pub struct GraphQShellApp {  }
+
+impl GraphQShellApp {
+    pub fn new() -> Self {
+        Self {  }
+    }
+}
+
+impl Application<Event, Model> for GraphQShellApp {
+    fn initial(&self) -> Model {
+        Model {  }
+    }
+
+    fn update(&self, model: Model) -> Model {
+       model
+    }
+}
+
+
+pub type AppEngine = Engine<Event, Model, GraphQShellApp>;

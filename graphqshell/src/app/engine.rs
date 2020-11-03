@@ -12,14 +12,29 @@ use std::{io as stdio, panic, thread, time};
 use tui::widgets::{Block, Borders, Widget};
 use ui::UISystem;
 
-pub struct Engine<IoEventT: Send + 'static> {
-    io_system: IOSystem<IoEventT>,
-    ui_system: UISystem<stdio::Stdout>,
-    quit: bool,
+pub enum Event<AppEvent: Send + 'static> {
+    Key(ui::Key),
+    Tick,
+    App(AppEvent)
 }
 
-impl<IoEventT: Send + 'static> Engine<IoEventT> {
-    pub fn new() -> anyhow::Result<Self> {
+
+pub trait Application<AppEvent: Send + 'static, AppModel> {
+    fn initial(&self) -> AppModel;
+    fn update(&self, model: AppModel) -> AppModel;
+}
+
+pub struct Engine<AppEvent: Send + 'static, AppModel,  App: Application<AppEvent, AppModel>> {
+    io_system: IOSystem<AppEvent>,
+    ui_system: UISystem<stdio::Stdout>,
+    quit: bool,
+    initial_model: AppModel,
+    app: App
+}
+
+
+impl<AppEvent: Send + 'static, AppModel: 'static, App: Application<AppEvent, AppModel>> Engine<AppEvent, AppModel, App> {
+    pub fn new(app: App) -> anyhow::Result<Self> {
         let tick_rate = time::Duration::from_millis(100);
         let io_system = IOSystem::create()?;
         let ui_system = UISystem::create(stdio::stdout(), tick_rate)?;
@@ -31,6 +46,8 @@ impl<IoEventT: Send + 'static> Engine<IoEventT> {
             io_system: io_system,
             ui_system: ui_system,
             quit: false,
+            initial_model: app.initial(),
+            app: app
         })
     }
 
@@ -39,7 +56,9 @@ impl<IoEventT: Send + 'static> Engine<IoEventT> {
             self.draw_ui()?;
 
             // TODO: collect all events
-            self.handle_events()?;
+            let events = self.next_events()?;
+
+            // now update the app
 
             //use the events to call the update function of the app
             //update(model, events)
@@ -64,25 +83,28 @@ impl<IoEventT: Send + 'static> Engine<IoEventT> {
         Ok(())
     }
 
-    pub fn handle_events(&mut self) -> anyhow::Result<()> {
-        // handle IO events
-        // handle UI events
+    pub fn next_events(&mut self) -> anyhow::Result<Vec<Event<AppEvent>>> {
+        let mut events: Vec<Event<AppEvent>> = Vec::new();
+
+        match self.io_system.next_event() {
+            Ok(io_event) => events.push(Event::App(io_event)),
+            _ => () // handle errors
+        };
+
         match self.ui_system.next_event()? {
             ui::Event::Input(key) => match key {
                 ui::Key::Char('q') => {
                     self.quit = true;
-                    return Ok(());
+                    ()
                 }
-                _ => return Ok(()),
+                evt => events.push(Event::Key(evt))
             },
             ui::Event::Tick => {
-                // handle tick
-                ()
+              events.push(Event::Tick)
             }
-        }
+        };
 
-        // combine all the events
-        Ok(())
+        Ok(events)
     }
 
     fn set_panic_handlers() -> anyhow::Result<()> {
