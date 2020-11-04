@@ -48,7 +48,7 @@ pub mod application;
 ///        // simulate a longer running action
 ///        let cmd = application::command(|| {
 ///            std::thread::sleep(std::time::Duration::from_millis(1000));
-///            Event::Increment
+///            Ok(Event::Increment)
 ///        });
 ///
 ///       // update the model when we have an Increment event
