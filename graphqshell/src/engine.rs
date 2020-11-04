@@ -55,7 +55,7 @@ impl<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone + 'static, Ap
         // view update cycle
         loop {
             // view
-            self.draw_ui(&model)?;
+            self.app.view(&mut self.ui_system.term, &model)?;
 
             // update
             for event in self.outstanding_events()?.iter() {
@@ -71,12 +71,6 @@ impl<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone + 'static, Ap
                 break;
             }
         }
-
-        Ok(())
-    }
-
-    pub fn draw_ui(&mut self, model: &AppModel) -> anyhow::Result<()> {
-        self.app.view(&mut self.ui_system.term, model)?;
 
         Ok(())
     }

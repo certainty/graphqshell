@@ -7,17 +7,19 @@ use tui::widgets::{Block, Borders, Widget};
 // App model
 #[derive(Clone)]
 pub struct Model {
+    pos: u8
 }
 
 impl Model {
     pub fn new() -> Self {
-        Self {  }
+        Self { pos: 0  }
     }
 }
 
 
 // Events that might be emitted as a result of IO actions
 pub enum Event {
+    Rotate,
     None,
 }
 
@@ -37,22 +39,34 @@ impl<W: std::io::Write> application::Application<W, Event, Model> for GraphQShel
             Event::None
         });
 
-        (Model {  }, vec!(cmd))
+        (Model::new(), vec!(cmd))
     }
 
     fn update(&self, event: &engine::Event<Event>, model: Model) -> (Model, Vec<application::Command<Event>>)  {
         let cmd = application::command(|| {
             std::thread::sleep(std::time::Duration::from_millis(1000));
-            Event::None
+            Event::Rotate
         });
 
-       (model, vec!(cmd))
+       let updated =  match event {
+           engine::Event::App(Event::Rotate) => Model { pos: (model.pos + 1) % 3 },
+             _ =>  model,
+        };
+
+
+       (updated, vec!(cmd))
     }
 
      fn view(&self, t: &mut ui::Term<W>, model: &Model) -> anyhow::Result<()> {
+         let glyph = match model.pos {
+             1 => "::",
+             2 => ":.",
+             _ => ".:",
+         };
+
          t.draw(|f| {
              let size = f.size();
-             let block = Block::default().title("GraphQShell").borders(Borders::ALL);
+             let block = Block::default().title(format!("GraphQShell <{ }>", glyph)).borders(Borders::ALL);
              f.render_widget(block, size);
          })?;
          Ok(())
