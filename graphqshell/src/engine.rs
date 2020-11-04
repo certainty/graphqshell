@@ -37,8 +37,8 @@ impl<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone + 'static, Ap
         // defer! { ui_system.shutdown().expect("shutdown failed"); }
         Self::set_panic_handlers()?;
 
-        let (initial_model, _commands) = app.initial();
-        // TODO: dispatch commands
+        let (initial_model, commands) = app.initial();
+        io_system.dispatch_many(commands);
 
         Ok(Self {
             io_system: io_system,
