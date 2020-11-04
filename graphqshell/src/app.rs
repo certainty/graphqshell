@@ -1,9 +1,11 @@
 pub mod engine;
 pub mod components;
-use crate::app::engine::{Engine, Application};
+use engine::application;
+
 
 // App model
-pub struct Model {}
+pub struct Model {
+}
 
 // Events that might be emitted as a result of IO actions
 pub enum Event {
@@ -19,15 +21,15 @@ impl GraphQShellApp {
     }
 }
 
-impl Application<Event, Model> for GraphQShellApp {
-    fn initial(&self) -> Model {
-        Model {  }
+impl application::Application<Event, Model> for GraphQShellApp {
+    fn initial(&self) -> (Model, Vec<application::Command<Event>>) {
+        (Model {  }, application::no_command())
     }
 
-    fn update(&self, model: Model) -> Model {
-       model
+    fn update(&self, event: &Event, model: Model) -> (Model, Vec<application::Command<Event>>)  {
+       (model, application::no_command())
     }
 }
 
 
-pub type AppEngine = Engine<Event, Model, GraphQShellApp>;
+pub type AppEngine = engine::Engine<Event, Model, GraphQShellApp>;

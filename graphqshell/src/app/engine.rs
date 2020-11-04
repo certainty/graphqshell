@@ -1,5 +1,6 @@
 pub mod io;
 pub mod ui;
+pub mod application;
 
 use crate::app;
 use anyhow;
@@ -11,17 +12,12 @@ use std::sync::Arc;
 use std::{io as stdio, panic, thread, time};
 use tui::widgets::{Block, Borders, Widget};
 use ui::UISystem;
+use application::Application;
 
 pub enum Event<AppEvent: Send + 'static> {
     Key(ui::Key),
     Tick,
     App(AppEvent)
-}
-
-
-pub trait Application<AppEvent: Send + 'static, AppModel> {
-    fn initial(&self) -> AppModel;
-    fn update(&self, model: AppModel) -> AppModel;
 }
 
 pub struct Engine<AppEvent: Send + 'static, AppModel,  App: Application<AppEvent, AppModel>> {
@@ -32,7 +28,6 @@ pub struct Engine<AppEvent: Send + 'static, AppModel,  App: Application<AppEvent
     app: App
 }
 
-
 impl<AppEvent: Send + 'static, AppModel: 'static, App: Application<AppEvent, AppModel>> Engine<AppEvent, AppModel, App> {
     pub fn new(app: App) -> anyhow::Result<Self> {
         let tick_rate = time::Duration::from_millis(100);
@@ -42,16 +37,21 @@ impl<AppEvent: Send + 'static, AppModel: 'static, App: Application<AppEvent, App
         // defer! { ui_system.shutdown().expect("shutdown failed"); }
         Self::set_panic_handlers()?;
 
+        let (initial_model, _commands) = app.initial();
+        // TODO: dispatch commands
+
         Ok(Self {
             io_system: io_system,
             ui_system: ui_system,
             quit: false,
-            initial_model: app.initial(),
+            initial_model: initial_model,
             app: app
         })
     }
 
     pub async fn run(&mut self) -> anyhow::Result<()> {
+        //let mut model = self.initial_model;
+
         loop {
             self.draw_ui()?;
 
@@ -60,8 +60,10 @@ impl<AppEvent: Send + 'static, AppModel: 'static, App: Application<AppEvent, App
 
             // now update the app
 
-            //use the events to call the update function of the app
-            //update(model, events)
+            // //use the events to call the update function of the app
+            // for event in events.iter() {
+            //     let model = self.app.update(&event, model);
+            // }
 
             // ok we're done here
             if self.quit {

@@ -6,27 +6,32 @@ use scopeguard::defer;
 use std::sync::Arc;
 use std::{io, panic, thread, time};
 
-// TODO: put to utils
-trait Task<T>: Send {
+
+// A Command represents code that is executed on the IO thread
+//
+// Use this for every action that has synchronous or asynchronous
+// code in it. The engine makes sure that this will not block the UI.
+
+pub trait Command<T>: Send {
     fn call(self: Box<Self>) -> T;
+
 }
 
-impl<T, F: Send + FnOnce() -> T> Task<T> for F {
+impl<T, F: Send + FnOnce() -> T> Command<T> for F {
     fn call(self: Box<F>) -> T {
         (*self)()
     }
 }
 
-pub type IoTask<T> = Task<T> + Send + 'static;
 
-// An IoCommand is a closure that returns a given event type
-pub type IoCommand<T> = Box<IoTask<T>>;
+pub type BoxedCommand<T> = Box<dyn Command<T> + Send + 'static>;
+
 
 pub struct IOSystem<IoEvent: Send + 'static> {
 
     io_thread: thread::JoinHandle<anyhow::Result<()>>,
-    io_command_rx: Arc<Receiver<IoCommand<IoEvent>>>,
-    io_command_tx: Arc<Sender<IoCommand<IoEvent>>>,
+    io_command_rx: Arc<Receiver<BoxedCommand<IoEvent>>>,
+    io_command_tx: Arc<Sender<BoxedCommand<IoEvent>>>,
     io_event_rx: Arc<Receiver<IoEvent>>,
     io_event_tx: Arc<Sender<IoEvent>>,
 }
@@ -59,16 +64,12 @@ impl<IoEvent: Send + 'static> IOSystem<IoEvent> {
     }
 
     // Dispatch a closure to the io subsystem
-    pub fn dispatch<F>(&self, f: F)
-    where
-        F: (FnOnce() -> IoEvent) + Send + 'static,
-    {
-        let cmd = Box::new(f);
+    pub fn dispatch(&self, cmd: BoxedCommand<IoEvent>) {
         self.io_command_tx.send(cmd).unwrap();
     }
 
     fn start_io_thread(
-        io_rx: Arc<Receiver<IoCommand<IoEvent>>>,
+        io_rx: Arc<Receiver<BoxedCommand<IoEvent>>>,
         io_event_tx: Arc<Sender<IoEvent>>,
     ) -> anyhow::Result<thread::JoinHandle<anyhow::Result<()>>> {
         let io_thread = thread::spawn(move || Self::handle_io_events(&*io_rx, &*io_event_tx));
@@ -77,7 +78,7 @@ impl<IoEvent: Send + 'static> IOSystem<IoEvent> {
 
     #[tokio::main]
     async fn handle_io_events(
-        io_rx: &Receiver<IoCommand<IoEvent>>,
+        io_rx: &Receiver<BoxedCommand<IoEvent>>,
         io_event_tx: &Sender<IoEvent>,
     ) -> anyhow::Result<()> {
         while let Ok(evt) = io_rx.recv() {
