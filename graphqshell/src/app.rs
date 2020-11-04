@@ -23,11 +23,21 @@ impl GraphQShellApp {
 
 impl application::Application<Event, Model> for GraphQShellApp {
     fn initial(&self) -> (Model, Vec<application::Command<Event>>) {
-        (Model {  }, application::no_command())
+        let cmd = application::command(|| {
+            std::thread::sleep(std::time::Duration::from_millis(1000));
+            Event::None
+        });
+
+        (Model {  }, vec!(cmd))
     }
 
     fn update(&self, event: &Event, model: Model) -> (Model, Vec<application::Command<Event>>)  {
-       (model, application::no_command())
+        let cmd = application::command(|| {
+            std::thread::sleep(std::time::Duration::from_millis(1000));
+            Event::None
+        });
+
+       (model, vec!(cmd))
     }
 }
 
