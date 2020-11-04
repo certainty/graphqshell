@@ -1,7 +1,6 @@
-pub mod engine;
 pub mod components;
-use engine::application;
-
+use crate::engine;
+use crate::engine::application;
 
 // App model
 pub struct Model {
