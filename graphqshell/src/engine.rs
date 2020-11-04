@@ -55,7 +55,7 @@ impl<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone + 'static, Ap
         // view update cycle
         loop {
             // view
-            self.draw_ui()?;
+            self.draw_ui(&model)?;
 
             // update
             for event in self.outstanding_events()?.iter() {
@@ -75,13 +75,8 @@ impl<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone + 'static, Ap
         Ok(())
     }
 
-    pub fn draw_ui(&mut self) -> anyhow::Result<()> {
-        // TODO: move to ui layer and just call it here
-        self.ui_system.term.draw(|f| {
-            let size = f.size();
-            let block = Block::default().title("GraphQShell").borders(Borders::ALL);
-            f.render_widget(block, size);
-        })?;
+    pub fn draw_ui(&mut self, model: &AppModel) -> anyhow::Result<()> {
+        self.app.view(&mut self.ui_system.term, model)?;
 
         Ok(())
     }
