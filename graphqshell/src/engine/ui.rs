@@ -66,7 +66,7 @@ impl<W: Write> UISystem<W> {
     }
 
     pub fn shutdown(&self) -> anyhow::Result<()> {
-       Ok(())
+        Ok(())
     }
 
     pub fn next_event(&self) -> anyhow::Result<Event<Key>> {
@@ -81,7 +81,6 @@ impl<W: Write> UISystem<W> {
                 if let Ok(key) = evt {
                     if let Err(err) = tx.send(Event::Input(key)) {
                         eprintln!("{}", err);
-                        return;
                     }
                 }
             }
@@ -95,8 +94,8 @@ impl<W: Write> UISystem<W> {
     ) -> anyhow::Result<thread::JoinHandle<()>> {
         let tick_thread = {
             thread::spawn(move || loop {
-                if tx.send(Event::Tick).is_err() {
-                    break;
+                if let Err(err) = tx.send(Event::Tick) {
+                    eprintln!("failed to send tick event: {}", err);
                 }
                 thread::sleep(tick_rate);
             })

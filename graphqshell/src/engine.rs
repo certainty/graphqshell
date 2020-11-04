@@ -1,3 +1,4 @@
+pub mod application;
 /// # TUI Engine
 ///
 /// The engine module encapsulates the application architecture which solves some core problems
@@ -120,7 +121,7 @@
 /// The type parameter `T` is used to transport user defined types that are specific to the domain
 /// of the application that is run on the engine. See the [Event](enum.Event.html) type for details.
 ///
-/// The following example shows how you can use the `Event` type in the update funtion.
+/// The following example shows how you can use the `Event` type in the update function.
 ///
 /// ```
 /// // user defined event for the app that's run
@@ -131,7 +132,7 @@
 ///
 /// //...
 ///
-/// fn update(&self, evt: &Event<StarshipEvent>, model: AppModel) -> Continuation<AppModel, Command<StarshipEvent>>) {
+/// fn update(&self, evt: &Event<StarshipEvent>, model: &AppModel) -> Continuation<AppModel, Command<StarshipEvent>>) {
 ///     evt match {
 ///       Event::Key(key) => ..., // A key was pressed
 ///       Event::Tick => ..., // a constant signal to redraw the UI if required
@@ -151,40 +152,47 @@
 /// Everything that implements the [application::Command](application/trait.Command.html) trait.
 /// You can think of it as a function that performs some action and returns an Event as a result.
 ///
-/// Commands are executed in a seperate thread and thus don't block the UI while they're running.
+/// Commands are executed in a separate thread and thus don't block the UI while they're running.
 /// You're advised to use `Command` if you have IO actions that are running longer.
 ///
 /// You can also off-load CPU intensive actions as commands. However in the future there might be
 /// a distinct way to handle CPU heavy work load.
 ///
-
 pub mod io;
 pub mod ui;
-pub mod application;
 
 use anyhow;
+use application::{Application, Continuation};
 use backtrace::Backtrace;
 use io::IOSystem;
 use std::{io as stdio, panic, time};
 use ui::UISystem;
-use application::Application;
 
 pub enum Event<AppEvent: Send + 'static> {
     Key(ui::Key),
     Tick,
-    App(AppEvent)
+    App(AppEvent),
 }
 
-
-
-pub struct Engine<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone,  App: Application<Term, AppEvent, AppModel>> {
+pub struct Engine<
+    Term: stdio::Write,
+    AppEvent: Send + 'static,
+    AppModel: Clone,
+    App: Application<Term, AppEvent, AppModel>,
+> {
     io_system: IOSystem<AppEvent>,
     ui_system: UISystem<Term>,
     initial_model: AppModel,
-    app: App
+    app: App,
 }
 
-impl<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone + 'static, App: Application<Term, AppEvent, AppModel>> Engine<Term, AppEvent, AppModel, App> {
+impl<
+        Term: stdio::Write,
+        AppEvent: Send + 'static,
+        AppModel: Clone + std::fmt::Debug + 'static,
+        App: Application<Term, AppEvent, AppModel>,
+    > Engine<Term, AppEvent, AppModel, App>
+{
     /// Initialise the engine with the `app` and the `term` to write to.
     /// Most of the time you will want `term` to be `std::io::stdout()`.
     /// However for tests it is useful to be able to provide a different `Write` implementation to write to.
@@ -204,7 +212,7 @@ impl<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone + 'static, Ap
             io_system: io_system,
             ui_system: ui_system,
             initial_model: initial_model,
-            app: app
+            app: app,
         })
     }
 
@@ -218,19 +226,31 @@ impl<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone + 'static, Ap
 
             // update
             for event in self.outstanding_events()?.iter() {
-                match self.app.update(&event, model) {
-                    application::Continuation::Continue(updated_model, commands) => {
+                match self.app.update(&event, &model) {
+                    Continuation::Update(updated_model) => {
+                        model = updated_model;
+                    }
+
+                    Continuation::Perform(commands) => {
+                        self.io_system.dispatch_many(commands);
+                    }
+
+                    Continuation::UpdateAndPerform(updated_model, commands) => {
                         model = updated_model;
                         self.io_system.dispatch_many(commands);
                     }
-                    application::Continuation::Stop => break 'outer,
-                    application::Continuation::Abort => break 'outer,
+
+                    Continuation::Noop => (),
+
+                    Continuation::Stop => break 'outer,
+
+                    Continuation::Abort => break 'outer,
                 }
             }
-
-
         }
 
+        self.io_system.shutdown()?;
+        self.ui_system.shutdown()?;
         Ok(())
     }
 
@@ -239,12 +259,12 @@ impl<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone + 'static, Ap
 
         match self.io_system.next_event() {
             Ok(io_event) => events.push(Event::App(io_event)),
-            _ => () // handle errors
+            _ => (), // handle errors
         };
 
         match self.ui_system.next_event()? {
             ui::Event::Input(key) => events.push(Event::Key(key)),
-            ui::Event::Tick => events.push(Event::Tick)
+            ui::Event::Tick => events.push(Event::Tick),
         };
 
         Ok(events)

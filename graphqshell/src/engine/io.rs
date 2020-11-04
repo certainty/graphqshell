@@ -3,26 +3,22 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use std::sync::Arc;
 use std::thread;
 
-
 /// A Command represents code that is executed on the IO thread
 ///
 /// Use this for every action that has synchronous or asynchronous
 /// code in it. The engine makes sure that this will not block the UI.
 
 pub trait Command<T>: Send {
-    fn call(self: Box<Self>) -> T;
-
+    fn call(self: Box<Self>) -> anyhow::Result<T>;
 }
 
-impl<T, F: Send + FnOnce() -> T> Command<T> for F {
-    fn call(self: Box<F>) -> T {
+impl<T, F: Send + FnOnce() -> anyhow::Result<T>> Command<T> for F {
+    fn call(self: Box<F>) -> anyhow::Result<T> {
         (*self)()
     }
 }
 
-
 pub type BoxedCommand<T> = Box<dyn Command<T> + Send + 'static>;
-
 
 /// The IOSystem encapsualtes all background IO operations
 ///
@@ -33,7 +29,6 @@ pub struct IOSystem<Event: Send + 'static> {
 }
 
 impl<Event: Send + 'static> IOSystem<Event> {
-
     pub fn create() -> anyhow::Result<Self> {
         let (io_command_tx, io_command_rx) = unbounded();
         let (io_event_tx, io_event_rx) = unbounded();
@@ -51,14 +46,13 @@ impl<Event: Send + 'static> IOSystem<Event> {
     }
 
     pub fn shutdown(&self) -> anyhow::Result<()> {
-       // join  IO thread
-       Ok(())
+        // join  IO thread
+        Ok(())
     }
 
-
     pub fn next_event(&self) -> anyhow::Result<Event> {
-       let evt = self.io_event_rx.try_recv()?;
-       Ok(evt)
+        let evt = self.io_event_rx.try_recv()?;
+        Ok(evt)
     }
 
     // TODO: add error handling
@@ -87,9 +81,13 @@ impl<Event: Send + 'static> IOSystem<Event> {
         io_event_tx: &Sender<Event>,
     ) -> anyhow::Result<()> {
         while let Ok(evt) = io_rx.recv() {
-            let event: Event = evt.call();
-            // TODO: add logging on error
-            io_event_tx.send(event).unwrap();
+            if let Ok(event) = evt.call() {
+                if let Err(err) = io_event_tx.send(event) {
+                    eprintln!("Failed to send IO event: {}", err);
+                }
+            } else {
+                eprintln!("Failed to execute command");
+            }
         }
 
         Ok(())
