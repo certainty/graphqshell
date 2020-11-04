@@ -1,12 +1,7 @@
 use crate::engine;
 
 use anyhow;
-use backtrace::Backtrace;
-use crossbeam_channel::{unbounded, Receiver, Sender};
-use scopeguard::defer;
-use std::sync::Arc;
-use std::{io as stdio, panic, thread, time};
-use tui::widgets::{Block, Borders, Widget};
+use std::{io as stdio};
 use engine::io::BoxedCommand;
 use engine::ui;
 
@@ -26,6 +21,12 @@ pub fn no_command<T>() -> Vec<Command<T>> {
     Vec::new()
 }
 
+/// Describe how the engine cycle shall continue
+///
+/// Most of the time you want to return `Continue`
+/// but if you want to stop normally or abnormally you can do
+/// so as well
+///
 pub enum Continuation<AppModel, AppEvent> {
     Continue(AppModel, Vec<Command<AppEvent>>),
     Stop,
@@ -34,6 +35,6 @@ pub enum Continuation<AppModel, AppEvent> {
 
 pub trait Application<W: stdio::Write, AppEvent: Send + 'static, AppModel> {
     fn initial(&self) -> (AppModel, Vec<Command<AppEvent>>);
-    fn update(&self, event: &Event<AppEvent>, model: AppModel) -> Continuation<AppModel, AppEvent>; //  (AppModel, Vec<Command<AppEvent>>);
+    fn update(&self, event: &Event<AppEvent>, model: AppModel) -> Continuation<AppModel, AppEvent>;
     fn view(&self, t: &mut ui::Term<W>, model: &AppModel) -> anyhow::Result<()>;
 }

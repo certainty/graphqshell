@@ -2,7 +2,7 @@ pub mod components;
 use crate::engine;
 use crate::engine::application;
 use crate::engine::ui;
-use tui::widgets::{Block, Borders, Widget};
+use tui::widgets::{Block, Borders};
 
 // App model
 #[derive(Clone)]
@@ -73,4 +73,4 @@ impl<W: std::io::Write> application::Application<W, Event, Model> for GraphQShel
 }
 
 
-pub type AppEngine<W: std::io::Write> = engine::Engine<W, Event, Model, GraphQShellApp>;
+pub type AppEngine<W> = engine::Engine<W, Event, Model, GraphQShellApp>;

@@ -43,7 +43,7 @@
 ///       (MyModel{ self.initial }, Vec::new())
 ///    }
 ///
-///    fn update(&self, event: &engine::Event<Event>, model: Model) -> (Model, Vec<application::Command<Event>>)  {
+///    fn update(&self, event: &engine::Event<Event>, model: Model) -> Continuation<Model, Event>  {
 ///        // simulate a longer running action
 ///        let cmd = application::command(|| {
 ///            std::thread::sleep(std::time::Duration::from_millis(1000));
@@ -58,7 +58,7 @@
 ///
 ///
 ///       // return the updated model but also schedule the background action
-///       (updated, vec!(cmd))
+///       Continuation::Continue(updated, vec!(cmd))
 ///    }
 ///
 ///     fn view(&self, t: &mut ui::Term<W>, model: &Model) -> anyhow::Result<()> {
@@ -131,11 +131,11 @@
 ///
 /// //...
 ///
-/// fn update(&self, evt: &Event<StarshipEvent>, model: AppModel) -> (Model, Vec<Command<StarshipEvent>>) {
+/// fn update(&self, evt: &Event<StarshipEvent>, model: AppModel) -> Continuation<AppModel, Command<StarshipEvent>>) {
 ///     evt match {
-///       Event::Key(key) => (), // A key was pressed
-///       Event::Tick => (), // a constant signal to redraw the UI if required
-///       App(StarshipEvent::Loaded) => (), // handle custom event
+///       Event::Key(key) => ..., // A key was pressed
+///       Event::Tick => ..., // a constant signal to redraw the UI if required
+///       App(StarshipEvent::Loaded) => ..., // handle custom event
 ///     }
 /// }
 /// ```
@@ -143,7 +143,8 @@
 /// #### Commands
 ///
 /// Commands can be dispatched as the result of an update to the application.
-/// The update function returns the new mode and a vector of commands.
+/// When the update function returns `Continuation::Continue` it has to provide the updated
+/// model and a vector of commands to dispatch. These commands are executed on a separate IO thread.
 ///
 /// Now what is a command exactly?
 ///
@@ -163,10 +164,8 @@ pub mod application;
 
 use anyhow;
 use backtrace::Backtrace;
-use crossbeam_channel::{unbounded, Receiver, Sender};
 use io::IOSystem;
-use std::{io as stdio, panic, thread, time};
-use tui::widgets::{Block, Borders, Widget};
+use std::{io as stdio, panic, time};
 use ui::UISystem;
 use application::Application;
 
@@ -181,7 +180,6 @@ pub enum Event<AppEvent: Send + 'static> {
 pub struct Engine<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone,  App: Application<Term, AppEvent, AppModel>> {
     io_system: IOSystem<AppEvent>,
     ui_system: UISystem<Term>,
-    quit: bool,
     initial_model: AppModel,
     app: App
 }
@@ -205,7 +203,6 @@ impl<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone + 'static, Ap
         Ok(Self {
             io_system: io_system,
             ui_system: ui_system,
-            quit: false,
             initial_model: initial_model,
             app: app
         })
