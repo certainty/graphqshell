@@ -20,6 +20,7 @@ impl Model {
 // Events that might be emitted as a result of IO actions
 pub enum Event {
     Rotate,
+    Quit,
     None,
 }
 
@@ -42,19 +43,17 @@ impl<W: std::io::Write> application::Application<W, Event, Model> for GraphQShel
         (Model::new(), vec!(cmd))
     }
 
-    fn update(&self, event: &engine::Event<Event>, model: Model) -> (Model, Vec<application::Command<Event>>)  {
+    fn update(&self, event: &engine::Event<Event>, model: Model) -> application::Continuation<Model, Event> {
         let cmd = application::command(|| {
             std::thread::sleep(std::time::Duration::from_millis(1000));
             Event::Rotate
         });
 
-       let updated =  match event {
-           engine::Event::App(Event::Rotate) => Model { pos: (model.pos + 1) % 3 },
-             _ =>  model,
-        };
-
-
-       (updated, vec!(cmd))
+        match event {
+           engine::Event::App(Event::Rotate) => application::Continuation::Continue(Model { pos: (model.pos + 1) % 3 }, vec!(cmd)),
+           engine::Event::Key(ui::Key::Char('q')) => application::Continuation::Stop,
+             _ =>  application::Continuation::Continue(model, Vec::new()),
+        }
     }
 
      fn view(&self, t: &mut ui::Term<W>, model: &Model) -> anyhow::Result<()> {

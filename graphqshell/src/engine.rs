@@ -176,6 +176,8 @@ pub enum Event<AppEvent: Send + 'static> {
     App(AppEvent)
 }
 
+
+
 pub struct Engine<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone,  App: Application<Term, AppEvent, AppModel>> {
     io_system: IOSystem<AppEvent>,
     ui_system: UISystem<Term>,
@@ -185,6 +187,10 @@ pub struct Engine<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone,
 }
 
 impl<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone + 'static, App: Application<Term, AppEvent, AppModel>> Engine<Term, AppEvent, AppModel, App> {
+    /// Initialise the engine with the `app` and the `term` to write to.
+    /// Most of the time you will want `term` to be `std::io::stdout()`.
+    /// However for tests it is useful to be able to provide a different `Write` implementation to write to.
+    ///
     pub fn new(app: App, term: Term) -> anyhow::Result<Self> {
         let tick_rate = time::Duration::from_millis(100);
         let io_system = IOSystem::create()?;
@@ -209,23 +215,23 @@ impl<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone + 'static, Ap
         let mut model = self.initial_model.clone();
 
         // view update cycle
-        loop {
+        'outer: loop {
             // view
             self.app.view(&mut self.ui_system.term, &model)?;
 
             // update
             for event in self.outstanding_events()?.iter() {
-                let (updated_model, commands) = self.app.update(&event, model);
-                model = updated_model;
-
-                self.io_system.dispatch_many(commands);
+                match self.app.update(&event, model) {
+                    application::Continuation::Continue(updated_model, commands) => {
+                        model = updated_model;
+                        self.io_system.dispatch_many(commands);
+                    }
+                    application::Continuation::Stop => break 'outer,
+                    application::Continuation::Abort => break 'outer,
+                }
             }
 
-            // ok we're done here
-            // TODO: move the decision to quit or not to the app
-            if self.quit {
-                break;
-            }
+
         }
 
         Ok(())
@@ -240,16 +246,8 @@ impl<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone + 'static, Ap
         };
 
         match self.ui_system.next_event()? {
-            ui::Event::Input(key) => match key {
-                ui::Key::Char('q') => {
-                    self.quit = true;
-                    ()
-                }
-                evt => events.push(Event::Key(evt))
-            },
-            ui::Event::Tick => {
-              events.push(Event::Tick)
-            }
+            ui::Event::Input(key) => events.push(Event::Key(key)),
+            ui::Event::Tick => events.push(Event::Tick)
         };
 
         Ok(events)

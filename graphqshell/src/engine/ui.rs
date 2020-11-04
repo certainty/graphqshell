@@ -23,14 +23,12 @@ pub enum Event<I> {
 
 #[derive(Debug, Clone, Copy)]
 pub struct EventsConfig {
-    pub exit_key: Key,
     pub tick_rate: Duration,
 }
 
 impl Default for EventsConfig {
     fn default() -> EventsConfig {
         EventsConfig {
-            exit_key: Key::Char('q'),
             tick_rate: Duration::from_millis(250),
         }
     }
@@ -42,7 +40,6 @@ pub struct UISystem<W: Write> {
     pub term: Term<W>,
     tick_thread: thread::JoinHandle<()>,
     event_thread: thread::JoinHandle<()>,
-    event_tx: Arc<Sender<Event<Key>>>,
     event_rx: Arc<Receiver<Event<Key>>>,
 }
 
@@ -64,18 +61,17 @@ impl<W: Write> UISystem<W> {
             term: terminal,
             event_thread: event_thread,
             tick_thread: tick_thread,
-            event_tx: tx_arc,
             event_rx: rx_arc,
         })
+    }
+
+    pub fn shutdown(&self) -> anyhow::Result<()> {
+       Ok(())
     }
 
     pub fn next_event(&self) -> anyhow::Result<Event<Key>> {
         let event = self.event_rx.recv()?;
         Ok(event)
-    }
-
-    pub fn shutdown(&self) -> Result<()> {
-        Ok(())
     }
 
     fn start_event_thread(tx: Arc<Sender<Event<Key>>>) -> anyhow::Result<thread::JoinHandle<()>> {

@@ -26,8 +26,14 @@ pub fn no_command<T>() -> Vec<Command<T>> {
     Vec::new()
 }
 
+pub enum Continuation<AppModel, AppEvent> {
+    Continue(AppModel, Vec<Command<AppEvent>>),
+    Stop,
+    Abort
+}
+
 pub trait Application<W: stdio::Write, AppEvent: Send + 'static, AppModel> {
     fn initial(&self) -> (AppModel, Vec<Command<AppEvent>>);
-    fn update(&self, event: &Event<AppEvent>, model: AppModel) -> (AppModel, Vec<Command<AppEvent>>);
+    fn update(&self, event: &Event<AppEvent>, model: AppModel) -> Continuation<AppModel, AppEvent>; //  (AppModel, Vec<Command<AppEvent>>);
     fn view(&self, t: &mut ui::Term<W>, model: &AppModel) -> anyhow::Result<()>;
 }
