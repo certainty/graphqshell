@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::{io as stdio, panic, thread, time};
 use tui::widgets::{Block, Borders, Widget};
 use engine::io::BoxedCommand;
+use engine::ui;
 
 // re-export for convenience
 pub use engine::Event;
@@ -25,7 +26,8 @@ pub fn no_command<T>() -> Vec<Command<T>> {
     Vec::new()
 }
 
-pub trait Application<AppEvent: Send + 'static, AppModel> {
+pub trait Application<W: stdio::Write, AppEvent: Send + 'static, AppModel> {
     fn initial(&self) -> (AppModel, Vec<Command<AppEvent>>);
-    fn update(&self, event: &AppEvent, model: AppModel) -> (AppModel, Vec<Command<AppEvent>>);
+    fn update(&self, event: &Event<AppEvent>, model: AppModel) -> (AppModel, Vec<Command<AppEvent>>);
+    fn view(&self, t: &mut ui::Term<W>, model: &AppModel) -> anyhow::Result<()>;
 }

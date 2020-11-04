@@ -36,10 +36,10 @@ impl Default for EventsConfig {
     }
 }
 
-pub type UI<W> = Terminal<TermionBackend<W>>;
+pub type Term<W> = Terminal<TermionBackend<termion::raw::RawTerminal<W>>>;
 
 pub struct UISystem<W: Write> {
-    pub term: UI<termion::raw::RawTerminal<W>>,
+    pub term: Term<W>,
     tick_thread: thread::JoinHandle<()>,
     event_thread: thread::JoinHandle<()>,
     event_tx: Arc<Sender<Event<Key>>>,

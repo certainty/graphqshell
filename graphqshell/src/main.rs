@@ -11,15 +11,10 @@ struct MyIoEvents {}
 async fn main() -> anyhow::Result<()> {
     let opts = process_command_line()?;
     let app  = GraphQShellApp::new();
-    let mut engine = AppEngine::new(app)?;
+    let mut engine = AppEngine::new(app, std::io::stdout())?;
 
     engine.run().await?;
 
-    // dispatch a command to the io thread
-    //engine.dispatch_io_action(|| {
-    //    println!("Hello from IO Action");
-    //    MyIoEvents {}
-    //});
     Ok(())
 }
 

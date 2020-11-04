@@ -20,19 +20,19 @@ pub enum Event<AppEvent: Send + 'static> {
     App(AppEvent)
 }
 
-pub struct Engine<AppEvent: Send + 'static, AppModel,  App: Application<AppEvent, AppModel>> {
+pub struct Engine<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone,  App: Application<Term, AppEvent, AppModel>> {
     io_system: IOSystem<AppEvent>,
-    ui_system: UISystem<stdio::Stdout>,
+    ui_system: UISystem<Term>,
     quit: bool,
     initial_model: AppModel,
     app: App
 }
 
-impl<AppEvent: Send + 'static, AppModel: 'static, App: Application<AppEvent, AppModel>> Engine<AppEvent, AppModel, App> {
-    pub fn new(app: App) -> anyhow::Result<Self> {
+impl<Term: stdio::Write, AppEvent: Send + 'static, AppModel: Clone + 'static, App: Application<Term, AppEvent, AppModel>> Engine<Term, AppEvent, AppModel, App> {
+    pub fn new(app: App, term: Term) -> anyhow::Result<Self> {
         let tick_rate = time::Duration::from_millis(100);
         let io_system = IOSystem::create()?;
-        let ui_system = UISystem::create(stdio::stdout(), tick_rate)?;
+        let ui_system = UISystem::create(term, tick_rate)?;
 
         // defer! { ui_system.shutdown().expect("shutdown failed"); }
         Self::set_panic_handlers()?;
@@ -50,22 +50,23 @@ impl<AppEvent: Send + 'static, AppModel: 'static, App: Application<AppEvent, App
     }
 
     pub async fn run(&mut self) -> anyhow::Result<()> {
-        //let mut model = self.initial_model;
+        let mut model = self.initial_model.clone();
 
+        // view update cycle
         loop {
+            // view
             self.draw_ui()?;
 
-            // TODO: collect all events
-            let events = self.next_events()?;
+            // update
+            for event in self.outstanding_events()?.iter() {
+                let (updated_model, commands) = self.app.update(&event, model);
+                model = updated_model;
 
-            // now update the app
-
-            // //use the events to call the update function of the app
-            // for event in events.iter() {
-            //     let model = self.app.update(&event, model);
-            // }
+                self.io_system.dispatch_many(commands);
+            }
 
             // ok we're done here
+            // TODO: move the decision to quit or not to the app
             if self.quit {
                 break;
             }
@@ -85,7 +86,7 @@ impl<AppEvent: Send + 'static, AppModel: 'static, App: Application<AppEvent, App
         Ok(())
     }
 
-    pub fn next_events(&mut self) -> anyhow::Result<Vec<Event<AppEvent>>> {
+    fn outstanding_events(&mut self) -> anyhow::Result<Vec<Event<AppEvent>>> {
         let mut events: Vec<Event<AppEvent>> = Vec::new();
 
         match self.io_system.next_event() {

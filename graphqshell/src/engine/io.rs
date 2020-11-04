@@ -63,6 +63,12 @@ impl<IoEvent: Send + 'static> IOSystem<IoEvent> {
        Ok(evt)
     }
 
+    pub fn dispatch_many(&self, commands: Vec<BoxedCommand<IoEvent>>) {
+        for command in commands {
+            self.dispatch(command);
+        }
+    }
+
     // Dispatch a closure to the io subsystem
     pub fn dispatch(&self, cmd: BoxedCommand<IoEvent>) {
         self.io_command_tx.send(cmd).unwrap();
