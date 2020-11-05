@@ -8,11 +8,11 @@ use std::thread;
 /// Use this for every action that has synchronous or asynchronous
 /// code in it. The engine makes sure that this will not block the UI.
 
-pub trait Command<T>: Send {
+pub trait Command<T>: Send + Sync {
     fn call(self: Box<Self>) -> anyhow::Result<T>;
 }
 
-impl<T, F: Send + FnOnce() -> anyhow::Result<T>> Command<T> for F {
+impl<T, F: Send + Sync + FnOnce() -> anyhow::Result<T>> Command<T> for F {
     fn call(self: Box<F>) -> anyhow::Result<T> {
         (*self)()
     }

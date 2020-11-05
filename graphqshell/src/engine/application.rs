@@ -12,9 +12,16 @@ pub type Command<T> = BoxedCommand<T>;
 // Convenience function to create command from closure
 pub fn command<F, T>(f: F) -> Command<T>
 where
-    F: (FnOnce() -> anyhow::Result<T>) + Send + 'static,
+    F: (FnOnce() -> anyhow::Result<T>) + Send + Sync + 'static,
 {
     Box::new(f)
+}
+
+pub fn wrap_command<I: 'static, O, F>(cmd: Command<I>, f: F) -> Command<O>
+where
+    F: (FnOnce(I) -> O) + Send + Sync + 'static,
+{
+    command(|| cmd.call().map(f))
 }
 
 /// Describe how the engine cycle shall continue
