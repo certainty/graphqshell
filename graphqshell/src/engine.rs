@@ -6,19 +6,21 @@ pub mod application;
 ///
 /// * A clear and simple update - render - cycle
 /// * A way to execute code outside of the UI thread, so that the UI does not block while IO is performed
-/// * An oppiniated structure to apply to your applicatiosn
+/// * An opinionated structure to apply to your application
 /// * Testability of the whole engine
 ///
 /// ### Basic Example
 ///
 /// ```
+/// extern crate tui;
 /// use anyhow;
-/// use engine;
-/// use engine::application;
+/// use graphqshell::engine;
+/// use graphqshell::engine::ui;
+/// use graphqshell::engine::application::{self, Continuation, Command};
 /// use tui::widgets::{Block, Borders};
 ///
 /// // define a very basic model that represents the application state
-///
+/// #[derive(Clone, Debug)]
 /// struct Model { counter: i32 }
 ///
 /// // We have a single event for our example
@@ -41,10 +43,10 @@ pub mod application;
 ///
 /// impl<W: std::io::Write> application::Application<W, Event, Model> for MyApp {
 ///    fn initial(&self) -> (Model, Vec<application::Command<Event>>) {
-///       (MyModel{ self.initial }, Vec::new())
+///       (Model{ counter: self.initial }, Vec::new())
 ///    }
 ///
-///    fn update(&self, event: &engine::Event<Event>, model: Model) -> Continuation<Model, Event>  {
+///    fn update(&self, event: &engine::Event<Event>, model: &Model) -> Continuation<Model, Event>  {
 ///        // simulate a longer running action
 ///        let cmd = application::command(|| {
 ///            std::thread::sleep(std::time::Duration::from_millis(1000));
@@ -52,14 +54,11 @@ pub mod application;
 ///        });
 ///
 ///       // update the model when we have an Increment event
-///       let updated =  match event {
-///           engine::Event::App(Event::Rotate) => Model { counter: (model.counter + 1) % 100 },
-///             _ =>  model,
-///        };
-///
-///
-///       // return the updated model but also schedule the background action
-///       Continuation::Continue(updated, vec!(cmd))
+///       match event {
+///           engine::Event::App(Event::Increment) =>
+///             Continuation::UpdateAndPerform(Model { counter: (model.counter + 1) % 100 }, vec![cmd]),
+///            _ =>  Continuation::Noop,
+///        }
 ///    }
 ///
 ///     fn view(&self, t: &mut ui::Term<W>, model: &Model) -> anyhow::Result<()> {
@@ -74,19 +73,6 @@ pub mod application;
 ///
 /// // define tye app type
 /// pub type AppEngine<W: std::io::Write> = engine::Engine<W, Event, Model, MyApp>;
-///
-/// // Now run the app
-///
-/// #[tokio::main]
-/// async fn main() -> anyhow::Result<()> {
-///    let app  = MyApp::default();
-///    let mut engine = AppEngine::new(app, std::io::stdout())?;
-///
-///    engine.run().await?;
-///
-///    Ok(())
-/// }
-///
 /// ```
 ///
 /// ### Important concepts
@@ -94,7 +80,7 @@ pub mod application;
 /// The engine at its core resembles the [elm architecture](https://guide.elm-lang.org/architecture/)
 /// which has proven to be a rather simple and stable way to build UI applications.
 ///
-/// The engine borrows the most imortant concepts and also follows the overall update-render cycle.
+/// The engine borrows the most important concepts and also follows the overall update-render cycle.
 ///
 /// #### Update-Render-Cycle
 ///
@@ -103,15 +89,15 @@ pub mod application;
 /// The application is the entry point for the engine and defines the implementations to render the ui and update
 /// the model. See the [Application](application/trait.Application.html) trait's documentation for more details.
 ///
-/// For technical reasons the `Application`is a trait but that doesn not mean that your entire application
+/// For technical reasons the `Application`is a trait but that doesn't not mean that your entire application
 /// needs to use objects in the same way. In fact I encourage to use modules as the unit of structure and expose
 /// the correct types and functions from there. You can wire everything together in the main `Application` implementation.
 ///
 /// #### Model
 ///
 /// The model is a user defined type that represets the entire state of the application. The underlying architecture
-/// implements a unidirectional flow of state upates and rendering steps. There is single function that is responsible
-/// for updating the model for any givent `Event`. This function returns a new model and optionally a vector commands.
+/// implements a unidirectional flow of state updates and rendering steps. There is single function that is responsible
+/// for updating the model for any given `Event`. This function returns a new model and optionally a vector commands.
 ///
 ///
 /// #### Events
@@ -124,19 +110,24 @@ pub mod application;
 /// The following example shows how you can use the `Event` type in the update function.
 ///
 /// ```
+/// use graphqshell::engine::application::{Continuation, Command, Event};
+///
+/// #[derive(Debug, Clone)]
+/// struct AppModel {  }
+///
 /// // user defined event for the app that's run
 /// enum StarshipEvent {
 ///   Loaded,
 ///   Unloaded
 /// }
 ///
-/// //...
 ///
-/// fn update(&self, evt: &Event<StarshipEvent>, model: &AppModel) -> Continuation<AppModel, Command<StarshipEvent>>) {
-///     evt match {
-///       Event::Key(key) => ..., // A key was pressed
-///       Event::Tick => ..., // a constant signal to redraw the UI if required
-///       App(StarshipEvent::Loaded) => ..., // handle custom event
+/// fn update<AppModel: Clone>(evt: &Event<StarshipEvent>, model: &AppModel) -> Continuation<AppModel, Command<StarshipEvent>> {
+///     match evt {
+///       Event::Key(key) => Continuation::Noop, // A key was pressed
+///       Event::Tick => Continuation::Noop, // a constant signal to redraw the UI if required
+///       Event::App(StarshipEvent::Loaded) => Continuation::Noop, // handle custom event
+///       _ => Continuation::Noop
 ///     }
 /// }
 /// ```
