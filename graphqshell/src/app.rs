@@ -3,10 +3,12 @@ use crate::engine;
 use crate::engine::application::{self, command, wrap_command, Continuation};
 use crate::engine::ui;
 use components::schema;
+use tui::layout::{Constraint, Layout};
 use tui::widgets::{Block, Borders};
 
 #[derive(Clone, Debug)]
 pub struct Model {
+    api_url: url::Url,
     schema: schema::Model,
 }
 
@@ -16,11 +18,13 @@ pub enum Event {
     None,
 }
 
-pub struct GraphQShellApp {}
+pub struct GraphQShellApp {
+    api_url: url::Url,
+}
 
 impl GraphQShellApp {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(api_url: url::Url) -> Self {
+        Self { api_url }
     }
 }
 
@@ -36,6 +40,7 @@ impl<W: std::io::Write> application::Application<W, Event, Model> for GraphQShel
 
         (
             Model {
+                api_url: self.api_url.clone(),
                 schema: schema_model,
             },
             commands,
@@ -56,9 +61,16 @@ impl<W: std::io::Write> application::Application<W, Event, Model> for GraphQShel
     fn view(&self, t: &mut ui::Term<W>, model: &Model) -> anyhow::Result<()> {
         t.draw(|f| {
             let size = f.size();
-            let block = Block::default().title("GraphQShell ").borders(Borders::ALL);
-            f.render_widget(block, size);
+            let chunks = Layout::default()
+                .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
+                .split(size);
+
+            let headline = Block::default().title("GraphQShell ").borders(Borders::ALL);
+            let headline2 = Block::default().title("GraphQShell ").borders(Borders::ALL);
+            f.render_widget(headline, chunks[0]);
+            f.render_widget(headline2, chunks[1]);
         })?;
+
         Ok(())
     }
 }
