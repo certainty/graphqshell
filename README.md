@@ -6,9 +6,9 @@ Let's see what happens
 
 ### Engine
 
-- [ ] layout TUI engine
-- [ ] document engine 
-- [ ] establish end-to-end spike using the engine (simple widget + io actions in background)
+- [x] layout TUI engine
+- [x] document engine 
+- [x] establish end-to-end spike using the engine (simple widget + io actions in background)
 
 ### General
 

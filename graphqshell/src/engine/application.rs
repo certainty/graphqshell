@@ -17,11 +17,6 @@ where
     Box::new(f)
 }
 
-// Convenience function to return no command
-pub fn no_command<T>() -> Vec<Command<T>> {
-    Vec::new()
-}
-
 /// Describe how the engine cycle shall continue
 ///
 /// Most of the time you want to return `Continue`
