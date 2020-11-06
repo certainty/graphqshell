@@ -1,6 +1,5 @@
 module Main where
-
-import Lib
+import Shell.Main (runShell)
 
 main :: IO ()
-main = someFunc
+main = runShell "http://foo.bar"

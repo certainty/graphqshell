@@ -3,9 +3,16 @@
 module Shell.Main(runShell) where
 import Control.Monad (void)
 import Brick
-import Brick.Main
-import Brick.BChan
-import Brick.Widgets.Border
+  ( App(..), BrickEvent(..), EventM, Next, Widget
+  , neverShowCursor
+  , continue
+  , padRight, Padding(..)
+  , attrMap
+  , (<+>)
+  , str
+  , defaultMain
+  )
+import qualified Brick.Widgets.Center as C
 import qualified Graphics.Vty as V
 
 
@@ -17,7 +24,9 @@ data GQShellState = GQShellState {
 } deriving (Eq, Show)
 
 -- Application Events
-data GQShellEvent = SchemaEvent
+data GQShellEvent =
+    SchemaEvent |
+    Tick
   deriving (Eq, Ord, Show)
 
 
@@ -37,8 +46,8 @@ application = App {   appDraw = draw
 handleEvent :: GQShellState -> BrickEvent n GQShellEvent -> EventM n (Next GQShellState)
 handleEvent s (AppEvent _) = continue s
 
-draw :: GQShellState -> [Widget ()]
-draw = undefined
+draw :: GQShellState -> [Widget n]
+draw _ = [str "Hello World"]
 
 
 
