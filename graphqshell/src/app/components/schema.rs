@@ -1,6 +1,6 @@
-use crate::engine::application::{self, Command, Continuation};
+use crate::app::{Command, CommandContext, Continuation};
+use crate::engine::application;
 use crate::engine::ui;
-use crate::graphql::api;
 use crate::graphql::schema::Schema;
 use anyhow;
 use tui::widgets::{Block, Borders};
@@ -14,7 +14,7 @@ pub enum Event {
     SchemaLoaded(Schema),
 }
 
-pub fn initial() -> (Model, Vec<Command<Event>>) {
+pub fn initial() -> (Model, Vec<application::Command<CommandContext, Event>>) {
     (Model { schema: None }, Vec::new())
 }
 

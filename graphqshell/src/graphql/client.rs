@@ -48,7 +48,7 @@ pub enum Error {
     HttpError(#[from] reqwest::Error),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Client {
     settings: ClientSettings,
     client: reqwest::blocking::Client,

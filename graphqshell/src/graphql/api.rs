@@ -1,7 +1,7 @@
 use crate::graphql::client::Client;
 use crate::graphql::schema::introspection;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Api {
     client: Client,
 }

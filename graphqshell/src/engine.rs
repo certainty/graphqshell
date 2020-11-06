@@ -167,11 +167,12 @@ pub enum Event<AppEvent: Send + 'static> {
 
 pub struct Engine<
     Term: stdio::Write,
+    Ctx: Send + 'static,
     AppEvent: Send + 'static,
     AppModel: Clone,
-    App: Application<Term, AppEvent, AppModel>,
+    App: Application<Term, Ctx, AppEvent, AppModel>,
 > {
-    io_system: IOSystem<AppEvent>,
+    io_system: IOSystem<Ctx, AppEvent>,
     ui_system: UISystem<Term>,
     initial_model: AppModel,
     app: App,
@@ -179,10 +180,11 @@ pub struct Engine<
 
 impl<
         Term: stdio::Write,
+        Ctx: Send + 'static,
         AppEvent: Send + 'static,
         AppModel: Clone + std::fmt::Debug + 'static,
-        App: Application<Term, AppEvent, AppModel>,
-    > Engine<Term, AppEvent, AppModel, App>
+        App: Application<Term, Ctx, AppEvent, AppModel>,
+    > Engine<Term, Ctx, AppEvent, AppModel, App>
 {
     /// Initialise the engine with the `app` and the `term` to write to.
     /// Most of the time you will want `term` to be `std::io::stdout()`.
@@ -190,7 +192,7 @@ impl<
     ///
     pub fn new(app: App, term: Term) -> anyhow::Result<Self> {
         let tick_rate = time::Duration::from_millis(100);
-        let io_system = IOSystem::create()?;
+        let io_system = IOSystem::create(app.create_context())?;
         let ui_system = UISystem::create(term, tick_rate)?;
 
         // defer! { ui_system.shutdown().expect("shutdown failed"); }
