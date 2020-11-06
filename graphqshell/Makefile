@@ -1,31 +1,19 @@
-COLOR ?= always # Valid COLOR options: {always, auto, never}
-CARGO = cargo --color $(COLOR)
 
-.PHONY: build check clean doc install publish run test update
+.PHONY: all bench build check clean doc install publish run test update
 
-.DEFAULT_GOAL := build
+all: build
 
 build:
-	$(CARGO) build
-
-run:
-	$(CARGO) run
-
-check:
-	$(CARGO) check
+	stack build	
 
 clean:
-	$(CARGO) clean
+	stack clean
 
-doc:
-	$(CARGO) doc
+install: build
+	stack install
 
-publish:
-	$(CARGO) publish
+run: build
+	stack run 
 
-test: build
-	$(CARGO) test -- --nocapture
-
-update:
-	$(CARGO) update
-
+test: 
+	stack test
