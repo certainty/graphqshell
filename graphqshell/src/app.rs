@@ -5,11 +5,10 @@ use crate::engine::ui;
 use crate::graphql::api;
 use crate::graphql::client;
 use components::schema;
-use tui::layout::{Constraint, Layout, Direction, Alignment};
-use tui::widgets::{Block, Borders, Tabs, Paragraph};
-use tui::text::{Spans, Span};
-use tui::style::{Style, Color, Modifier};
-
+use tui::layout::{Alignment, Constraint, Direction, Layout};
+use tui::style::{Color, Modifier, Style};
+use tui::text::{Span, Spans};
+use tui::widgets::{Block, Borders, Paragraph, Tabs};
 
 #[derive(Clone, Debug)]
 pub struct Model {
@@ -49,8 +48,7 @@ impl<W: std::io::Write> application::Application<W, CommandContext, Event, Model
     for GraphQShellApp
 {
     fn create_context(&self) -> anyhow::Result<CommandContext> {
-        let client =
-            client::Client::new(client::ClientSettings::default(self.api_url.clone()))?;
+        let client = client::Client::new(client::ClientSettings::default(self.api_url.clone()))?;
 
         Ok(CommandContext {
             graphql_api: api::Api::new(client),
@@ -70,18 +68,13 @@ impl<W: std::io::Write> application::Application<W, CommandContext, Event, Model
             Model {
                 api_url: self.api_url.clone(),
                 schema: schema_model,
-                selected_tab: 0,
+                selected_tab: 1,
             },
-
             commands,
         )
     }
 
-    fn update(
-        &self,
-        event: &engine::Event<Event>,
-        model: &Model,
-    ) -> Continuation<Model, Event> {
+    fn update(&self, event: &engine::Event<Event>, model: &Model) -> Continuation<Model, Event> {
         match event {
             engine::Event::Key(ui::Key::Char('q')) => Continuation::Stop,
             _ => Continuation::Noop,
@@ -92,13 +85,23 @@ impl<W: std::io::Write> application::Application<W, CommandContext, Event, Model
         t.draw(|f| {
             let size = f.size();
             let areas = Layout::default()
-                .constraints([Constraint::Length(3), Constraint::Min(0), Constraint::Length(2)].as_ref())
-                .margin(0)
+                .constraints(
+                    [
+                        Constraint::Length(3), // top bar,
+                        Constraint::Length(2), // tabs,
+                        Constraint::Min(0),    // main window,
+                        Constraint::Length(2), // status line,
+                    ]
+                    .as_ref(),
+                )
                 .split(size);
 
-            let top_widget = Paragraph::new(vec![Spans::from(format!("GraphQShell connected to: { }", model.api_url.as_str()))])
-                .block(Block::default().borders(Borders::ALL))
-                .alignment(Alignment::Left);
+            let top_widget = Paragraph::new(vec![Spans::from(format!(
+                "GraphQShell connected to: { }",
+                model.api_url.as_str()
+            ))])
+            .block(Block::default().borders(Borders::ALL))
+            .alignment(Alignment::Left);
 
             // TODO: render context-sensitive help in status line
             let status_line = Paragraph::new(vec![Spans::from("Hello")])
@@ -109,20 +112,20 @@ impl<W: std::io::Write> application::Application<W, CommandContext, Event, Model
             // main window
             let titles = vec![Spans::from("Query"), Spans::from("Schema")];
             let tabs = Tabs::new(titles)
-                .block(Block::default().borders(Borders::ALL))
+                .block(Block::default().borders(Borders::BOTTOM))
                 .highlight_style(Style::default().fg(Color::Yellow))
                 .select(model.selected_tab);
 
             f.render_widget(top_widget, areas[0]);
             f.render_widget(tabs, areas[1]);
-            f.render_widget(status_line, areas[2]);
 
             match model.selected_tab {
-                0 => (), // render query
-                1 => (), // render schema
-                _ => ()
+                0 => (),                                                            // render schema
+                1 => components::schema::view(f, areas[2], &model.schema).unwrap(), // render query
+                _ => (),
             }
 
+            f.render_widget(status_line, areas[3]);
         })?;
 
         Ok(())
