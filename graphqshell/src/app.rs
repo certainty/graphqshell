@@ -5,13 +5,17 @@ use crate::engine::ui;
 use crate::graphql::api;
 use crate::graphql::client;
 use components::schema;
-use tui::layout::{Constraint, Layout};
-use tui::widgets::{Block, Borders};
+use tui::layout::{Constraint, Layout, Direction, Alignment};
+use tui::widgets::{Block, Borders, Tabs, Paragraph};
+use tui::text::{Spans, Span};
+use tui::style::{Style, Color, Modifier};
+
 
 #[derive(Clone, Debug)]
 pub struct Model {
     api_url: url::Url,
     schema: schema::Model,
+    selected_tab: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -66,7 +70,9 @@ impl<W: std::io::Write> application::Application<W, CommandContext, Event, Model
             Model {
                 api_url: self.api_url.clone(),
                 schema: schema_model,
+                selected_tab: 0,
             },
+
             commands,
         )
     }
@@ -85,14 +91,38 @@ impl<W: std::io::Write> application::Application<W, CommandContext, Event, Model
     fn view(&self, t: &mut ui::Term<W>, model: &Model) -> anyhow::Result<()> {
         t.draw(|f| {
             let size = f.size();
-            let chunks = Layout::default()
-                .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
+            let areas = Layout::default()
+                .constraints([Constraint::Length(3), Constraint::Min(0), Constraint::Length(2)].as_ref())
+                .margin(0)
                 .split(size);
 
-            let headline = Block::default().title("GraphQShell ").borders(Borders::ALL);
-            let headline2 = Block::default().title("GraphQShell ").borders(Borders::ALL);
-            f.render_widget(headline, chunks[0]);
-            f.render_widget(headline2, chunks[1]);
+            let top_widget = Paragraph::new(vec![Spans::from(format!("GraphQShell connected to: { }", model.api_url.as_str()))])
+                .block(Block::default().borders(Borders::ALL))
+                .alignment(Alignment::Left);
+
+            // TODO: render context-sensitive help in status line
+            let status_line = Paragraph::new(vec![Spans::from("Hello")])
+                .block(Block::default().borders(Borders::NONE))
+                .style(Style::default().add_modifier(Modifier::BOLD))
+                .alignment(Alignment::Left);
+
+            // main window
+            let titles = vec![Spans::from("Query"), Spans::from("Schema")];
+            let tabs = Tabs::new(titles)
+                .block(Block::default().borders(Borders::ALL))
+                .highlight_style(Style::default().fg(Color::Yellow))
+                .select(model.selected_tab);
+
+            f.render_widget(top_widget, areas[0]);
+            f.render_widget(tabs, areas[1]);
+            f.render_widget(status_line, areas[2]);
+
+            match model.selected_tab {
+                0 => (), // render query
+                1 => (), // render schema
+                _ => ()
+            }
+
         })?;
 
         Ok(())
