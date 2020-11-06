@@ -11,6 +11,7 @@ use std::{
 };
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
+use termion::screen::AlternateScreen;
 use tui::backend::TermionBackend;
 use tui::Terminal;
 
@@ -34,7 +35,7 @@ impl Default for EventsConfig {
     }
 }
 
-pub type Term<W> = Terminal<TermionBackend<termion::raw::RawTerminal<W>>>;
+pub type Term<W> = Terminal<TermionBackend<termion::screen::AlternateScreen<termion::raw::RawTerminal<W>>>>;
 
 pub struct UISystem<W: Write> {
     pub term: Term<W>,
@@ -46,6 +47,7 @@ pub struct UISystem<W: Write> {
 impl<W: Write> UISystem<W> {
     pub fn create(buf: W, tick_rate: time::Duration) -> Result<UISystem<W>> {
         let raw_buf = buf.into_raw_mode()?;
+        let raw_buf = AlternateScreen::from(raw_buf);
         let backend = TermionBackend::new(raw_buf);
         let mut terminal = Terminal::new(backend)?;
         terminal.hide_cursor()?;
