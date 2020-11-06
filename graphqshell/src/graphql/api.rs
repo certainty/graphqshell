@@ -1,5 +1,6 @@
 use crate::graphql::client::Client;
 use crate::graphql::schema::introspection;
+use crate::graphql::schema::Schema;
 
 #[derive(Debug, Clone)]
 pub struct Api {
@@ -11,7 +12,9 @@ impl Api {
         Self { client: client }
     }
 
-    pub fn schema(&self) -> Result<introspection::Schema, introspection::Error> {
-        introspection::introspect(&self.client)
+    pub fn schema(&self) -> Result<Schema, introspection::Error> {
+        let schema = introspection::introspect(&self.client)?;
+
+        Ok(Schema::from(schema))
     }
 }
