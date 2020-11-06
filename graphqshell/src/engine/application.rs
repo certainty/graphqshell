@@ -40,7 +40,7 @@ pub enum Continuation<Ctx, AppModel, AppEvent> {
 }
 
 pub trait Application<W: stdio::Write, Ctx: Send + 'static, AppEvent: Send + 'static, AppModel> {
-    fn create_context(&self) -> Ctx;
+    fn create_context(&self) -> anyhow::Result<Ctx>;
 
     fn initial(&self) -> (AppModel, Vec<Command<Ctx, AppEvent>>);
 

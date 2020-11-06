@@ -192,7 +192,7 @@ impl<
     ///
     pub fn new(app: App, term: Term) -> anyhow::Result<Self> {
         let tick_rate = time::Duration::from_millis(100);
-        let io_system = IOSystem::create(app.create_context())?;
+        let io_system = IOSystem::create(app.create_context()?)?;
         let ui_system = UISystem::create(term, tick_rate)?;
 
         // defer! { ui_system.shutdown().expect("shutdown failed"); }

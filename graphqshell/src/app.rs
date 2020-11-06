@@ -1,7 +1,6 @@
 pub mod components;
 use crate::engine;
 use crate::engine::application::{self, wrap_command};
-use crate::engine::io;
 use crate::engine::ui;
 use crate::graphql::api;
 use crate::graphql::client;
@@ -36,23 +35,26 @@ impl GraphQShellApp {
     }
 }
 
-pub type Command<T> = dyn io::Command<CommandContext, T>;
+// Expose types to be used in components
+pub type Command<T> = application::Command<CommandContext, T>;
+
 pub type Continuation<M, T> = application::Continuation<CommandContext, M, T>;
 
+// Finally we can wire up our application
 impl<W: std::io::Write> application::Application<W, CommandContext, Event, Model>
     for GraphQShellApp
 {
-    fn create_context(&self) -> CommandContext {
+    fn create_context(&self) -> anyhow::Result<CommandContext> {
         let client =
-            client::Client::new(client::ClientSettings::default(self.api_url.clone())).unwrap();
+            client::Client::new(client::ClientSettings::default(self.api_url.clone()))?;
 
-        CommandContext {
+        Ok(CommandContext {
             graphql_api: api::Api::new(client),
-        }
+        })
     }
 
-    fn initial(&self) -> (Model, Vec<application::Command<CommandContext, Event>>) {
-        let mut commands: Vec<application::Command<CommandContext, Event>> = Vec::new();
+    fn initial(&self) -> (Model, Vec<Command<Event>>) {
+        let mut commands: Vec<Command<Event>> = Vec::new();
         let (schema_model, schema_commands) = schema::initial();
 
         // adapt commands
@@ -73,7 +75,7 @@ impl<W: std::io::Write> application::Application<W, CommandContext, Event, Model
         &self,
         event: &engine::Event<Event>,
         model: &Model,
-    ) -> application::Continuation<CommandContext, Model, Event> {
+    ) -> Continuation<Model, Event> {
         match event {
             engine::Event::Key(ui::Key::Char('q')) => Continuation::Stop,
             _ => Continuation::Noop,
