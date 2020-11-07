@@ -16,6 +16,8 @@
 
 module Main where
 
+import Data.Maybe (fromMaybe)
+import System.Environment (lookupEnv)
 import Data.ByteString.Lazy
 import Data.Morpheus.Types (RootResolver (..), Undefined (..))
 import Data.Text (Text)
@@ -174,4 +176,6 @@ api :: ByteString -> IO ByteString
 api = runApp app 
 
 main :: IO ()
-main = scotty 3000 $ post "/api" $ raw =<< (liftIO . api =<< body)
+main = do
+  port <- lookupEnv "GQL_SERVER_PORT" 
+  scotty (fromMaybe 3000 (read <$> port)) $ post "/graphql" $ raw =<< (liftIO . api =<< body)
