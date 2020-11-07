@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 74f246d13e4745dea0e888c1068df789eba34fac2f627ebcb07cf61ebd6dd863
+-- hash: a999fd4f64ab8fbdf8aa5a193935091dc0faf2b90b6c1822a6c89d1b65d7fe06
 
 name:           graphqshell
 version:        0.1.0.0
@@ -41,7 +41,7 @@ library
     , vty >=5.2
   default-language: Haskell2010
 
-executable graphql_demo_server
+executable demo_server
   main-is: Main.hs
   other-modules:
       Paths_graphqshell

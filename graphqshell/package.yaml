@@ -42,7 +42,7 @@ executables:
     dependencies:
     - graphqshell
 
-  graphql_demo_server:
+  demo_server:
     main: Main.hs
     source-dirs: demo_server
     ghc-options:
