@@ -20,6 +20,8 @@ description: Please see the README on GitHub at <https://github.com/certainty/gr
 
 dependencies:
 - base >= 4.7 && < 5
+- bytestring
+- text
 
 library:
   source-dirs: src
@@ -39,6 +41,18 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - graphqshell
+
+  graphql_demo_server:
+    main: Main.hs
+    source-dirs: demo_server
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - morpheus-graphql
+      - scotty
+    
 
 tests:
   graphqshell-test:
