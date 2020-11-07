@@ -25,7 +25,6 @@ install:
 # Build dependencies
 - stack --no-terminal --install-ghc test --only-dependencies
 
-before_script: cd graphqshell
 
 script:
 # Build the package, its tests, and its docs and run the tests
