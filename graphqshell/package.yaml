@@ -64,6 +64,10 @@ library:
     - brick 
     - vty 
     - async 
+    - raw-strings-qq
+    - aeson
+    - exceptions
+    - safe-exceptions
 
 
 executables:

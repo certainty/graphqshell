@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9abeef57abc799e8abff210a95df12e4e04aaa31fd7e142338b1c3574ab8f9a5
+-- hash: 7c1497459fe660f625f59440d90216882103031ff8f4dc1507d6b1aacd79efc2
 
 name:           graphqshell
 version:        0.1.0.0
@@ -26,6 +26,9 @@ source-repository head
 
 library
   exposed-modules:
+      GraphQL.API
+      GraphQL.Introspection
+      GraphQL.Types
       Shell.Main
   other-modules:
       Paths_graphqshell
@@ -35,10 +38,13 @@ library
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   ld-options: -pthread
   build-depends:
-      async
+      aeson
+    , async
     , base >=4.7 && <5
     , brick
     , bytestring
+    , exceptions
+    , raw-strings-qq
     , relude
     , safe-exceptions
     , text
