@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0c5c5182519f0c9d3830a6a91ded3aa20460f5d0be69a8b9e0895c5b4ecedda1
+-- hash: a999fd4f64ab8fbdf8aa5a193935091dc0faf2b90b6c1822a6c89d1b65d7fe06
 
 name:           graphqshell
 version:        0.1.0.0
@@ -43,6 +43,21 @@ library
     , vty
   default-language: Haskell2010
 
+executable demo_server
+  main-is: Main.hs
+  other-modules:
+      Paths_graphqshell
+  hs-source-dirs:
+      demo_server
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , morpheus-graphql
+    , scotty
+    , text
+  default-language: Haskell2010
+
 executable graphqshell-exe
   main-is: Main.hs
   other-modules:
@@ -54,6 +69,7 @@ executable graphqshell-exe
   ld-options: -pthread
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , graphqshell
     , relude
     , safe-exceptions
@@ -71,6 +87,7 @@ test-suite graphqshell-test
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , graphqshell
     , hedgehog
     , relude

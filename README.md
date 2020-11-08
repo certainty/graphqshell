@@ -1,18 +1,4 @@
-Let's see what happens
+# GraphQL Client TUI 
 
+[![Build Status](https://travis-ci.com/certainty/graphqshell.svg?branch=main)](https://travis-ci.com/certainty/graphqshell)
 
-## Todo
-
-
-### Engine
-
-- [x] layout TUI engine
-- [x] document engine 
-- [x] establish end-to-end spike using the engine (simple widget + io actions in background)
-- [ ] use alternate screen to restore 
-### General
-
-- [x] create test server to interact with
-- [ ] list all the feature ideas in read-me
-
-## Ideas
