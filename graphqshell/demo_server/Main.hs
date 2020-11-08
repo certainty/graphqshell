@@ -15,7 +15,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module Main where
-
+import Relude hiding (Undefined, ByteString)
 import Data.Maybe (fromMaybe)
 import System.Environment (lookupEnv)
 import Data.ByteString.Lazy
@@ -177,5 +177,5 @@ api = runApp app
 
 main :: IO ()
 main = do
-  port <- lookupEnv "GQL_SERVER_PORT" 
-  scotty (fromMaybe 3000 (read <$> port)) $ post "/graphql" $ raw =<< (liftIO . api =<< body)
+  port <- lookupEnv "GQL_SERVER_PORT" >>= \p -> pure $ p >>= readMaybe
+  scotty (fromMaybe 3000 port) $ post "/graphql" $ raw =<< (liftIO . api =<< body)

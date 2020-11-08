@@ -54,6 +54,7 @@ dependencies:
   - relude
   - safe-exceptions
   - bytestring
+  - text
 
 library:
   source-dirs: src
@@ -78,6 +79,18 @@ executables:
     dependencies:
     - graphqshell
 
+  demo_server:
+    main: Main.hs
+    source-dirs: demo_server
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - morpheus-graphql
+      - scotty
+ 
+
 benchmarks:
   graphshell-benchmark:
     main: Main.hs
@@ -89,18 +102,6 @@ benchmarks:
     dependencies:
     - graphqshell
     - gauge
-
-  demo_server:
-    main: Main.hs
-    source-dirs: demo_server
-    ghc-options:
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
-    dependencies:
-      - morpheus-graphql
-      - scotty
-    
 
 tests:
   graphqshell-test:

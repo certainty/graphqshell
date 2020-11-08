@@ -1,0 +1,23 @@
+version: "3.8"
+services:
+  tui:
+    image: graphqshell_demo
+    environment:
+      GQL_SERVER_PORT: 5000
+    tty: true 
+    stdin_open: true
+    command: ["~/.local/bin/graphqshell-exe"]
+    links:
+      - demo_server
+  
+  demo_server:
+    build: 
+      context: ../
+      dockerfile: docker/Dockerfile
+    image: graphqshell_demo
+    ports:
+      - "5000:5000"
+    environment:
+      GQL_SERVER_PORT: 5000
+    command: ["stack", "exec", "demo_server"]
+  
