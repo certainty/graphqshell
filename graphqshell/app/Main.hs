@@ -1,4 +1,5 @@
 module Main where
+import Relude
 import Shell.Main (runShell)
 
 main :: IO ()

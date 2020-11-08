@@ -18,15 +18,51 @@ extra-source-files:
 # common to point users to the README.md file.
 description: Please see the README on GitHub at <https://github.com/certainty/graphqshell#readme>
 
+ghc-options:
+  - -Wall
+  - -Wcompat
+  - -Wincomplete-record-updates
+  - -Wincomplete-uni-patterns
+  - -Wredundant-constraints
+
+default-extensions:
+  - NoImplicitPrelude
+  - ConstraintKinds
+  - DeriveGeneric
+  - DerivingStrategies
+  - GeneralizedNewtypeDeriving
+  - InstanceSigs
+  - KindSignatures
+  - LambdaCase
+  - OverloadedStrings
+  - RecordWildCards
+  - ScopedTypeVariables
+  - StandaloneDeriving
+  - TupleSections
+  - TypeApplications
+  - ViewPatterns
+  - ApplicativeDo
+  - DeriveFoldable
+  - DeriveFunctor
+  - DeriveGeneric
+  - DeriveLift
+  - DeriveTraversable
+  - DerivingStrategies
+
 dependencies:
-- base >= 4.7 && < 5
+  - base >= 4.7 && < 5
+  - relude
+  - safe-exceptions
+
 
 library:
   source-dirs: src
+  ld-options: 
+    - -pthread
   dependencies:
-    - brick >= 0.5
-    - vty >= 5.2
-    - async >= 2.2 && < 3
+    - brick 
+    - vty 
+    - async 
 
 
 executables:
@@ -37,8 +73,22 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    ld-options: 
+    - -pthread
     dependencies:
     - graphqshell
+
+benchmarks:
+  graphshell-benchmark:
+    main: Main.hs
+    source-dirs: benchmark
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - graphqshell
+    - gauge
 
 tests:
   graphqshell-test:
@@ -49,4 +99,9 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - hedgehog
+    - tasty 
+    - tasty-hedgehog
+    - tasty-discover 
+    - tasty-hspec 
     - graphqshell

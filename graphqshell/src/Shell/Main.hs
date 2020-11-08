@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Shell.Main(runShell) where
+import Relude
 import Control.Monad (void)
 import Brick
   ( App(..), BrickEvent(..), EventM, Next, Widget
