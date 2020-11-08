@@ -6,7 +6,7 @@ services:
       GQL_SERVER_PORT: 5000
     tty: true 
     stdin_open: true
-    command: ["~/.local/bin/graphqshell-exe"]
+    command: ["/bin/bash", "--init-file", "./entrypoint.sh"]
     links:
       - demo_server
   

@@ -6,3 +6,4 @@ WORKDIR /mnt/build
 COPY ./graphqshell /mnt/build
 RUN stack install  
 
+COPY ./docker/entrypoint.sh /mnt/build
