@@ -24,7 +24,7 @@ data OutputType = OutputType {
     , name :: Text
     , description :: Maybe Text
     , fields :: Maybe [Field]
-    , inputFields :: Maybe [TypeRef]
+    , inputFields :: Maybe [InputType]
     , interfaces ::  Maybe [TypeRef]
     , enumValues :: Maybe [EnumValues]
     , possibleTypes :: Maybe [TypeRef]
@@ -49,11 +49,11 @@ data Field = Field {
 data TypeRef = TypeRef {
     kind :: Text
   , name :: Maybe Text
-  , ofType :: TypeRef
+  , ofType :: Maybe TypeRef
 } deriving (Show, Eq, Generic, FromJSON)
 
 data InputType = InputType {
-   name :: Text
+    name :: Text
   , description :: Maybe Text
   , typeRef :: TypeRef
   , defaultValue :: Maybe Text

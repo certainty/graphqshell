@@ -1,24 +1,26 @@
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module GraphQL.Schema.Introspection (schemaFromIntrospectionResponse, introspectionQuery, Schema) where
-import Relude hiding (ByteString)
+import Relude
 import Data.Either.Combinators (mapLeft)
 import Text.RawString.QQ
-import Data.ByteString.Lazy
 import Data.Aeson (eitherDecode)
 import GraphQL.Schema.Introspection.Internal
 data IntrospectionError = IntrospectionError String deriving (Eq, Show, Exception)
+
+
 
 newtype Schema = Schema {
   internal :: IntrospectionSchema
 } deriving (Eq, Show)
 
 
-schemaFromIntrospectionResponse ::  ByteString -> Either IntrospectionError Schema
+schemaFromIntrospectionResponse :: LByteString -> Either IntrospectionError Schema
 schemaFromIntrospectionResponse jsonResponse = Schema <$> parseResponse 
  where
    parseResponse :: Either IntrospectionError IntrospectionSchema
-   parseResponse = mapLeft IntrospectionError (eitherDecode jsonResponse)
+   parseResponse = schema <$> mapLeft IntrospectionError (eitherDecode jsonResponse)
 
 introspectionQuery :: Text
 introspectionQuery = [r|

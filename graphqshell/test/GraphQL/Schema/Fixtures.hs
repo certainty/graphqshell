@@ -1,13 +1,13 @@
 {-# LANGUAGE QuasiQuotes #-}
 
 module GraphQL.Schema.Fixtures where
-import Relude
+import Relude 
 import Text.RawString.QQ
 
-successResponse :: Text
-successResponse = [r|
+-- Fetched from: https://rickandmortyapi.com/graphql
+introspectionSuccessResponse :: LByteString
+introspectionSuccessResponse = [r|
 {
-  "data": {
     "schema": {
       "queryType": {
         "name": "Query"
@@ -1928,6 +1928,5 @@ successResponse = [r|
       ]
     }
   }
-}
 |]
 
