@@ -19,7 +19,6 @@ schemaFromIntrospectionResponse jsonResponse = Schema <$> parseResponse
  where
    parseResponse :: Either IntrospectionError IntrospectionSchema
    parseResponse = mapLeft IntrospectionError (eitherDecode jsonResponse)
-  
 
 introspectionQuery :: Text
 introspectionQuery = [r|

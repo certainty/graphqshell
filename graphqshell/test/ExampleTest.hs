@@ -3,7 +3,6 @@ module ExampleTest where
 import Relude
 import Test.Tasty ()
 import Test.Tasty.Hspec
-import Test.Tasty.Hedgehog 
 import Hedgehog
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range

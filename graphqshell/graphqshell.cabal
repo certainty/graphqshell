@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f69d4865d4d6980598464a85e075fe29a65c081a254c640188b3c2552d30ac02
+-- hash: c26f8e81cd176f28e26aed6357922311cbb1d1b77b0165e2296e4d733ec9269c
 
 name:           graphqshell
 version:        0.1.0.0
@@ -94,6 +94,7 @@ test-suite graphqshell-test
   main-is: Spec.hs
   other-modules:
       ExampleTest
+      GraphQL.Schema.IntrospectionTest
       Paths_graphqshell
   hs-source-dirs:
       test
