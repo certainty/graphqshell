@@ -6,9 +6,9 @@ import Test.Tasty.Hspec
 import GraphQL.Schema.Introspection
 import GraphQL.Schema.Fixtures (introspectionSuccessResponse)
 
-spec_prelude :: Spec
-spec_prelude = do
-  describe "parse schema from introspection response" $ do
-    it "returns schema when it succeeds" $ do
+spec_introspection :: Spec
+spec_introspection = do
+  describe "when a successful response is provided" $ do
+    it "returns schema" $ do
       schemaFromIntrospectionResponse introspectionSuccessResponse `shouldSatisfy` isRight
 
