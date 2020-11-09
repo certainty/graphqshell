@@ -123,3 +123,4 @@ tests:
     - tasty-discover 
     - tasty-hspec 
     - graphqshell
+    - raw-strings-qq

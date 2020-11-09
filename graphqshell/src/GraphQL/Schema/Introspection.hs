@@ -1,4 +1,4 @@
-{-# LANGUAGE QuasiQuotes, DuplicateRecordFields, DeriveAnyClass #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module GraphQL.Schema.Introspection (schemaFromIntrospectionResponse, introspectionQuery, Schema) where
 import Relude hiding (ByteString)
@@ -69,6 +69,7 @@ fragment FullType on __Type {
   interfaces {
     ...TypeRef
   }
+  
   enumValues(includeDeprecated: true) {
     name
     description
@@ -79,6 +80,7 @@ fragment FullType on __Type {
     ...TypeRef
   }
 }
+
 fragment InputValue on __InputValue {
   name
   description
@@ -87,6 +89,7 @@ fragment InputValue on __InputValue {
   }
   defaultValue
 }
+
 fragment TypeRef on __Type {
   kind
   name

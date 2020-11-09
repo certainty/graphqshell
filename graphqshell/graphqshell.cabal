@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c26f8e81cd176f28e26aed6357922311cbb1d1b77b0165e2296e4d733ec9269c
+-- hash: 4e514448b22dcd19f739c5f60507e3f373ea5faef584f010c3ff878b43d6c820
 
 name:           graphqshell
 version:        0.1.0.0
@@ -105,6 +105,7 @@ test-suite graphqshell-test
     , bytestring
     , graphqshell
     , hedgehog
+    , raw-strings-qq
     , relude
     , safe-exceptions
     , tasty
