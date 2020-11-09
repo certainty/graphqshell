@@ -4,9 +4,20 @@ module GraphQL.Schema.Fixtures where
 import Relude 
 import Text.RawString.QQ
 
+
+introspectionInvalidResponse :: LByteString
+introspectionInvalidResponse =  [r|
+{
+  "schema": {
+    "queryType": null
+  }
+}
+|]
+
+
 -- Fetched from: https://rickandmortyapi.com/graphql
-introspectionSuccessResponse :: LByteString
-introspectionSuccessResponse = [r|
+introspectionValidResponse :: LByteString
+introspectionValidResponse = [r|
 {
     "schema": {
       "queryType": {

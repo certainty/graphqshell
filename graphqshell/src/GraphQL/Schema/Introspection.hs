@@ -1,14 +1,14 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
-module GraphQL.Schema.Introspection (schemaFromIntrospectionResponse, introspectionQuery, Schema) where
+module GraphQL.Schema.Introspection (schemaFromIntrospectionResponse, introspectionQuery, Schema, IntrospectionError(..)) where
 import Relude
 import Data.Either.Combinators (mapLeft)
 import Text.RawString.QQ
 import Data.Aeson (eitherDecode)
 import GraphQL.Schema.Introspection.Internal
-data IntrospectionError = IntrospectionError String deriving (Eq, Show, Exception)
 
+data IntrospectionError = IntrospectionError String deriving (Eq, Show, Exception)
 
 
 newtype Schema = Schema {
