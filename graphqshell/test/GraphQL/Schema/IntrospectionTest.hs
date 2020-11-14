@@ -16,3 +16,14 @@ spec_introspection = do
     it "returns an introspection error" $ do
       schemaFromIntrospectionResponse introspectionInvalidResponse `shouldBe` (Left (IntrospectionError "Error in $.schema.queryType: parsing GraphQL.Schema.Introspection.Internal.RootTypeName(RootTypeName) failed, expected Object, but encountered Null"))
 
+spec_introspectionSchema :: Spec
+spec_introspectionSchema = do
+  describe "queryType" $ do
+    it "finds the query" $ do
+      (queryType validSchema) `shouldSatisfy` isJust
+
+
+validSchema :: Schema
+validSchema = case schemaFromIntrospectionResponse introspectionValidResponse of
+  (Right s) -> s
+  _ -> error "Schema schould be valid"

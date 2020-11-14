@@ -13,15 +13,19 @@ module GraphQL.Schema.Introspection (
   , UnionType(..)
   , InterfaceType(..)
   , EnumValue
+  , TypeReference(..)
   , I.introspectionQuery
+  , derefType
+  , queryType
   ) where
-import Relude
+import Relude hiding (length, drop)
 import Data.Either.Combinators (mapLeft)
 import Data.Aeson (eitherDecode)
+import qualified Data.FuzzySet as FS
 import qualified Data.HashMap.Strict as M
 import qualified GraphQL.Schema.Introspection.Internal as I
 
-data IntrospectionError = IntrospectionError String deriving (Eq, Show, Exception)
+data IntrospectionError = IntrospectionError Text deriving (Eq, Show, Exception)
 
 type GraphQLType = Either InputType OutputType
 
@@ -29,38 +33,39 @@ data Schema = Schema
   { query        :: TypeReference,
     mutation     :: Maybe TypeReference,
     subscription :: Maybe TypeReference,
-    universe     :: M.HashMap String GraphQLType 
+    universe     :: M.HashMap Text GraphQLType,
+    fuzzTypes    :: FS.FuzzySet
                  -- ^ The type universe of the schema
   } deriving (Eq, Show)
 
 data TypeInformation a = TypeInformation a deriving (Eq, Show)
   
 data ScalarType      = ScalarType
-  { stName :: String, stDescription :: Maybe String }
+  { stName :: Text, stDescription :: Maybe Text }
   deriving (Eq,Show)
 
 data ObjectType      = ObjectType
-  { otName :: String, otDescription :: Maybe String, otFields :: [FieldType], otInterfaces :: [TypeReference] }
+  { otName :: Text, otDescription :: Maybe Text, otFields :: [FieldType], otInterfaces :: [TypeReference] }
   deriving (Eq, Show)
 
 data UnionType       = UnionType
-  { utName :: String, utDescription :: Maybe String, utPossibleTypes :: [TypeReference] }
+  { utName :: Text, utDescription :: Maybe Text, utPossibleTypes :: [TypeReference] }
   deriving (Eq, Show)
 
 data InterfaceType   = InterfaceType
-  { itName :: String, itDescription :: Maybe String, itFields :: [FieldType], itPossibleTypes :: [TypeReference] }
+  { itName :: Text, itDescription :: Maybe Text, itFields :: [FieldType], itPossibleTypes :: [TypeReference] }
   deriving (Eq, Show)
 
 data EnumType        = EnumType
-  { etName :: String, etDescription :: Maybe String, etValues :: [EnumValue] }
+  { etName :: Text, etDescription :: Maybe Text, etValues :: [EnumValue] }
   deriving (Eq, Show)
 
 data InputObjectType = InputObjectType
-  { ioName :: String, ioDescription :: Maybe String, ioFields :: [InputValue] }
+  { ioName :: Text, ioDescription :: Maybe Text, ioFields :: [InputValue] }
   deriving (Eq, Show)
 
 data FieldType       = FieldType
-  { ftName :: String, ftDescription :: Maybe String, ftIsDeprecated :: Bool, ftDeprecationReason :: Maybe String, ftType :: TypeReference, ftArgs :: [InputValue] }
+  { ftName :: Text, ftDescription :: Maybe Text, ftIsDeprecated :: Bool, ftDeprecationReason :: Maybe Text, ftType :: TypeReference, ftArgs :: [InputValue] }
   deriving (Eq, Show)
 
 data OutputType = ScalarOutputType ScalarType
@@ -79,21 +84,20 @@ data InputType = ObjectInputType InputObjectType
 
 data TypeReference = ListOf TypeReference
                    | NonNullOf TypeReference
-                   | NamedType String
+                   | NamedType Text
                    | UnnamedType
                    deriving (Eq, Show)
 
 data InputValue = InputValue
-  { ivName :: String, ivDescription :: Maybe String, ivType :: TypeReference, ivDefaultValue :: Maybe String }
+  { ivName :: Text, ivDescription :: Maybe Text, ivType :: TypeReference, ivDefaultValue :: Maybe Text }
   deriving (Eq, Show)
 
 data EnumValue  = EnumValue
-  { evName :: String, evDescription :: Maybe String, evIsDeprecated :: Bool, evDeprecationReason :: Maybe String }
+  { evName :: Text, evDescription :: Maybe Text, evIsDeprecated :: Bool, evDeprecationReason :: Maybe Text }
   deriving (Eq, Show)
 
 class HasName a where
-  name :: a -> String
-
+  name :: a -> Text
 
 instance HasName ScalarType where
   name = stName
@@ -138,12 +142,12 @@ schemaFromIntrospectionResponse :: LByteString -> Either IntrospectionError Sche
 schemaFromIntrospectionResponse jsonResponse = parseResponse >>= makeSchema
  where
    parseResponse :: Either IntrospectionError I.IntrospectionResponse
-   parseResponse = mapLeft IntrospectionError (eitherDecode jsonResponse)
+   parseResponse = mapLeft (IntrospectionError . toText) (eitherDecode jsonResponse)
 
 makeSchema :: I.IntrospectionResponse -> Either IntrospectionError Schema
 makeSchema resp = do
   allTypes <- (makeTypeMap <$> (traverse makeType (I.types schema)))
-  pure (Schema queryTypeRef mutationTypeRef subscriptionTypeRef allTypes)
+  pure (Schema queryTypeRef mutationTypeRef subscriptionTypeRef allTypes (FS.fromList (M.keys allTypes)))
   where
     queryTypeRef        = NamedType (I.irName . I.queryType $ schema)
     mutationTypeRef     = NamedType <$> I.irName <$> (I.mutationType  schema)
@@ -208,8 +212,21 @@ makeFieldType I.Field { I.ifName = fieldName, I.ifDescription = description, I.i
   where
     inputArgs = (map makeInputValue) args
 
-makeTypeMap :: [(Either InputType OutputType)] ->  M.HashMap String (Either InputType OutputType)
+makeTypeMap :: [(Either InputType OutputType)] ->  M.HashMap Text (Either InputType OutputType)
 makeTypeMap = foldl' insertInfo M.empty
   where
     insertInfo hashMap (Left tpe)  = M.insert (name tpe) (Left tpe) hashMap
     insertInfo hashMap (Right tpe) = M.insert (name tpe) (Right tpe) hashMap
+
+
+
+--- Get information about the schema
+
+derefType :: TypeReference -> Schema -> Maybe GraphQLType
+derefType (NamedType ref) schema = M.lookup ref (universe schema)
+derefType (ListOf ref) schema = derefType ref schema
+derefType (NonNullOf ref) schema = derefType ref schema
+derefType _ _ = Nothing
+
+queryType :: Schema -> Maybe GraphQLType
+queryType schema = derefType (query schema) schema

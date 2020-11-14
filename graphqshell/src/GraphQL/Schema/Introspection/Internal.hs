@@ -18,15 +18,15 @@ data IntrospectionSchema = IntrospectionSchema {
   , directives :: [Directive]
 }  deriving (Show, Eq, Generic, FromJSON)
 
-data RootTypeName = RootTypeName { irName :: String } deriving (Show, Eq, Generic)
+data RootTypeName = RootTypeName { irName :: Text } deriving (Show, Eq, Generic)
 
 instance FromJSON RootTypeName where
   parseJSON = J.genericParseJSON (aesonOptions "ir")
 
 data Type = Type {
-      itpeKind :: String
-    , itpeName :: String
-    , itpeDescription :: Maybe String
+      itpeKind :: Text
+    , itpeName :: Text
+    , itpeDescription :: Maybe Text
     , itpeFields :: Maybe [Field]
     , itpeInputFields :: Maybe [InputType]
     , itpeInterfaces ::  Maybe [TypeRef]
@@ -38,10 +38,10 @@ instance FromJSON Type where
   parseJSON = J.genericParseJSON (aesonOptions "itpe")
 
 data EnumValues = EnumValues {
-    ievName :: String
-  , ievDescription :: Maybe String
+    ievName :: Text
+  , ievDescription :: Maybe Text
   , ievIsDeprecated :: Bool
-  , ievDeprecationReason :: Maybe String
+  , ievDeprecationReason :: Maybe Text
 } deriving (Show, Eq, Generic)
 
 
@@ -49,11 +49,11 @@ instance FromJSON EnumValues where
   parseJSON = J.genericParseJSON (aesonOptions "iev")
 
 data Field = Field {
-      ifName :: String
-    , ifDescription :: Maybe String
+      ifName :: Text
+    , ifDescription :: Maybe Text
     , ifArgs :: [InputType]
     , ifIsDeprecated :: Bool
-    , ifDeprecationReason :: Maybe String
+    , ifDeprecationReason :: Maybe Text
     , ifTypeRef :: TypeRef
 } deriving (Show, Eq, Generic)
 
@@ -61,8 +61,8 @@ instance FromJSON Field where
   parseJSON = J.genericParseJSON (aesonOptions "if")
 
 data TypeRef = TypeRef {
-    itrKind :: String
-  , itrName :: Maybe String
+    itrKind :: Text
+  , itrName :: Maybe Text
   , itrOfType :: Maybe TypeRef
 } deriving (Show, Eq, Generic)
 
@@ -70,19 +70,19 @@ instance FromJSON TypeRef where
   parseJSON = J.genericParseJSON (aesonOptions "itr")
 
 data InputType = InputType {
-    iiName :: String
-  , iiDescription :: Maybe String
+    iiName :: Text
+  , iiDescription :: Maybe Text
   , iiTypeRef :: TypeRef
-  , iiDefaultValue :: Maybe String
+  , iiDefaultValue :: Maybe Text
 } deriving (Show, Eq, Generic)
 
 instance FromJSON InputType where
   parseJSON = J.genericParseJSON (aesonOptions "ii")
 
 data Directive = Directive {
-    idName :: String
-  , idDescription :: Maybe String
-  , idLocations :: [String]
+    idName :: Text
+  , idDescription :: Maybe Text
+  , idLocations :: [Text]
   , idArgs :: Maybe [InputType]
 } deriving (Show, Eq, Generic)
 
@@ -97,8 +97,8 @@ rewriteFieldName :: String -> String -> String
 rewriteFieldName prefix fieldName = case (drop (length prefix) fieldName) of
   (front:rear) -> (toLower front) : rear
   _            -> fieldName 
-
-introspectionQuery :: String
+    
+introspectionQuery :: Text
 introspectionQuery = [r|
 query Introspection {
   schema: __schema {

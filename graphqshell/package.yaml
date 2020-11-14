@@ -70,6 +70,7 @@ library:
     - safe-exceptions
     - either
     - unordered-containers
+    - fuzzyset
 
 
 executables:
