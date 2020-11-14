@@ -2,8 +2,9 @@
 
 module GraphQL.Schema.Introspection.Internal where
 import Relude hiding (ByteString, Type)
-import Data.Aeson.Types (FromJSON)
+import Data.Aeson as J
 import Text.RawString.QQ
+import Data.Char (toLower)
 
 data IntrospectionResponse = IntrospectionResponse {
   schema :: IntrospectionSchema 
@@ -17,57 +18,87 @@ data IntrospectionSchema = IntrospectionSchema {
   , directives :: [Directive]
 }  deriving (Show, Eq, Generic, FromJSON)
 
-data RootTypeName = RootTypeName { name :: Text } deriving (Show, Eq, Generic, FromJSON)
+data RootTypeName = RootTypeName { irName :: String } deriving (Show, Eq, Generic)
+
+instance FromJSON RootTypeName where
+  parseJSON = J.genericParseJSON (aesonOptions "ir")
 
 data Type = Type {
-      kind :: Text
-    , name :: Text
-    , description :: Maybe Text
-    , fields :: Maybe [Field]
-    , inputFields :: Maybe [InputType]
-    , interfaces ::  Maybe [TypeRef]
-    , enumValues :: Maybe [EnumValues]
-    , possibleTypes :: Maybe [TypeRef]
-} deriving (Show, Eq, Generic, FromJSON)
+      itpeKind :: String
+    , itpeName :: String
+    , itpeDescription :: Maybe String
+    , itpeFields :: Maybe [Field]
+    , itpeInputFields :: Maybe [InputType]
+    , itpeInterfaces ::  Maybe [TypeRef]
+    , itpeEnumValues :: Maybe [EnumValues]
+    , itpePossibleTypes :: Maybe [TypeRef]
+} deriving (Show, Eq, Generic)
 
+instance FromJSON Type where
+  parseJSON = J.genericParseJSON (aesonOptions "itpe")
 
 data EnumValues = EnumValues {
-    name :: Text
-  , description :: Maybe Text
-  , isDeprecated :: Bool
-} deriving (Show, Eq, Generic, FromJSON)
+    ievName :: String
+  , ievDescription :: Maybe String
+  , ievIsDeprecated :: Bool
+  , ievDeprecationReason :: Maybe String
+} deriving (Show, Eq, Generic)
+
+
+instance FromJSON EnumValues where
+  parseJSON = J.genericParseJSON (aesonOptions "iev")
 
 data Field = Field {
-      name :: Text
-    , description :: Maybe Text
-    , args :: [InputType]
-    , isDeprecated :: Bool
-    , deprecationReason :: Maybe Text
-    , typeRef :: TypeRef
-} deriving (Show, Eq, Generic, FromJSON)
+      ifName :: String
+    , ifDescription :: Maybe String
+    , ifArgs :: [InputType]
+    , ifIsDeprecated :: Bool
+    , ifDeprecationReason :: Maybe String
+    , ifTypeRef :: TypeRef
+} deriving (Show, Eq, Generic)
+
+instance FromJSON Field where
+  parseJSON = J.genericParseJSON (aesonOptions "if")
 
 data TypeRef = TypeRef {
-    kind :: Text
-  , name :: Maybe Text
-  , ofType :: Maybe TypeRef
-} deriving (Show, Eq, Generic, FromJSON)
+    itrKind :: String
+  , itrName :: Maybe String
+  , itrOfType :: Maybe TypeRef
+} deriving (Show, Eq, Generic)
+
+instance FromJSON TypeRef where
+  parseJSON = J.genericParseJSON (aesonOptions "itr")
 
 data InputType = InputType {
-    name :: Text
-  , description :: Maybe Text
-  , typeRef :: TypeRef
-  , defaultValue :: Maybe Text
-} deriving (Show, Eq, Generic, FromJSON)
+    iiName :: String
+  , iiDescription :: Maybe String
+  , iiTypeRef :: TypeRef
+  , iiDefaultValue :: Maybe String
+} deriving (Show, Eq, Generic)
+
+instance FromJSON InputType where
+  parseJSON = J.genericParseJSON (aesonOptions "ii")
 
 data Directive = Directive {
-    name :: Text
-  , description :: Maybe Text
-  , locations :: [Text]
-  , args :: Maybe [InputType]
-} deriving (Show, Eq, Generic, FromJSON)
+    idName :: String
+  , idDescription :: Maybe String
+  , idLocations :: [String]
+  , idArgs :: Maybe [InputType]
+} deriving (Show, Eq, Generic)
 
 
-introspectionQuery :: Text
+instance FromJSON Directive where
+  parseJSON = J.genericParseJSON (aesonOptions "id")
+
+aesonOptions :: String -> Options
+aesonOptions prefix = J.defaultOptions { J.fieldLabelModifier = (rewriteFieldName prefix)  }
+
+rewriteFieldName :: String -> String -> String
+rewriteFieldName prefix fieldName = case (drop (length prefix) fieldName) of
+  (front:rear) -> (toLower front) : rear
+  _            -> fieldName 
+
+introspectionQuery :: String
 introspectionQuery = [r|
 query Introspection {
   schema: __schema {
