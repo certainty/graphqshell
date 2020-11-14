@@ -3,4 +3,4 @@ import Relude
 import Shell.Main (runShell)
 
 main :: IO ()
-main = runShell "http://foo.bar"
+main = runShell "https://graphql-weather-api.herokuapp.com/"

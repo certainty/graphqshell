@@ -17,6 +17,7 @@ module GraphQL.Schema.Introspection (
   , I.introspectionQuery
   , derefType
   , queryType
+  , searchType
   ) where
 import Relude hiding (length, drop)
 import Data.Either.Combinators (mapLeft)
@@ -34,8 +35,9 @@ data Schema = Schema
     mutation     :: Maybe TypeReference,
     subscription :: Maybe TypeReference,
     universe     :: M.HashMap Text GraphQLType,
-    fuzzTypes    :: FS.FuzzySet
                  -- ^ The type universe of the schema
+    fuzzTypes    :: FS.FuzzySet
+                 -- ^ Fuzzy index of fields
   } deriving (Eq, Show)
 
 data TypeInformation a = TypeInformation a deriving (Eq, Show)
@@ -230,3 +232,9 @@ derefType _ _ = Nothing
 
 queryType :: Schema -> Maybe GraphQLType
 queryType schema = derefType (query schema) schema
+
+-- | fuzzy search for types
+searchType :: Text -> Schema -> [(Double, TypeReference)]
+searchType needle schema = map (\(score, tpeName) ->  (score, NamedType tpeName)) matches
+  where
+    matches = FS.get (fuzzTypes schema) needle
