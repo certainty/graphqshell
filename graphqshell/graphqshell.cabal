@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: fc303dc12624fd4a9d80a0afb19b596de039311ae8940e195435d83911d089fd
+-- hash: 7bc37d1ab24ffe0c8dbd1b3bb4767966028e434dbaf120e86da29dc4e6d703c2
 
 name:           graphqshell
 version:        0.1.0.0
@@ -50,6 +50,7 @@ library
     , relude
     , safe-exceptions
     , text
+    , unordered-containers
     , vty
   default-language: Haskell2010
 

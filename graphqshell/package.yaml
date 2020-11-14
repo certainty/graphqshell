@@ -69,6 +69,7 @@ library:
     - exceptions
     - safe-exceptions
     - either
+    - unordered-containers
 
 
 executables:

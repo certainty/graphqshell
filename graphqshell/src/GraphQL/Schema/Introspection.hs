@@ -1,198 +1,85 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module GraphQL.Schema.Introspection (
     schemaFromIntrospectionResponse
   , Schema
   , IntrospectionError(..)
-  , HasDeprecation
-  , isDeprecated
-  , deprecationReason
-  , HasDescription
-  , description
-  , HasName
-  , name
-  , GraphQLType
-  , GraphQLValue
-  , ObjectType(..)
-  , ObjectLikeType
-  , InputObjectType(..)
   , InputValue(..)
   , ScalarType(..)
-  , AbstractType
-  , possibleTypes
   , UnionType(..)
   , InterfaceType(..)
-  , Directive(..)
   , EnumValue
-  , Field
   , I.introspectionQuery
   ) where
 import Relude
 import Data.Either.Combinators (mapLeft)
 import Data.Aeson (eitherDecode)
+import qualified Data.HashMap.Strict as M
 import qualified GraphQL.Schema.Introspection.Internal as I
 
 data IntrospectionError = IntrospectionError String deriving (Eq, Show, Exception)
 
-newtype Schema = Schema {
-  internal :: I.IntrospectionSchema
-} deriving (Eq, Show)
+data Schema = Schema
+  { query        :: TypeInformation OutputType,
+    mutation     :: Maybe (TypeInformation OutputType),
+    subscription :: Maybe (TypeInformation OutputType),
+    allTypes     :: M.HashMap String (TypeInformation (Either InputType OutputType))
+  } deriving (Eq, Show)
 
-class GraphQLType a
-class GraphQLValue a
-
-class HasName a where
-  name :: a -> String
+data TypeInformation a = TypeInformation a deriving (Eq, Show)
   
-class HasDescription a where
-  description :: a -> Maybe String
+data ScalarType      = ScalarType
+  { stName :: String, stDescription :: Maybe String }
+  deriving (Eq,Show)
 
-class HasDeprecation a where
-  isDeprecated :: a -> Bool
-  deprecationReason :: a -> Maybe String
+data ObjectType      = ObjectType
+  { otName :: String, otDescription :: Maybe String, otFields :: [FieldType], otInterfaces :: [InterfaceType] }
+  deriving (Eq, Show)
 
-data WrapperType a = ListOf a | NonNull a deriving (Eq, Show, Generic)
+data UnionType       = UnionType
+  { utName :: String, utDescription :: Maybe String, utPossibleTypes :: [ObjectType] }
+  deriving (Eq, Show)
 
-class (GraphQLType a) => AbstractType a where
-  possibleTypes :: (GraphQLType b) => a -> [b]
+data InterfaceType   = InterfaceType
+  { itName :: String, itDescription :: Maybe String, itFields :: [FieldType], itPossibleTypes :: [ObjectType] }
+  deriving (Eq, Show)
 
-class ObjectLikeType a
+data EnumType        = EnumType
+  { etName :: String, etDescription :: Maybe String, etValues :: [EnumValue] }
+  deriving (Eq, Show)
 
-data ObjectType = ObjectType {
-    otName :: String 
-  , otDescription :: Maybe String
-  , otFields :: [Field]
-  , otInterfaces :: [InterfaceType]
-} deriving (Eq, Show, Generic, ObjectLikeType)
+data InputObjectType = InputObjectType
+  { ioName :: String, ioDescription :: Maybe String, ioFields :: [InputValue] }
+  deriving (Eq, Show)
 
-instance HasName ObjectType where
-  name = otName
+data FieldType       = FieldType
+  { ftName :: String, ftDescription :: Maybe String, ftIsDeprecated :: Bool, ftDeprecationReason :: Maybe String, ftType :: OutputType, ftArgs :: [InputType] }
+  deriving (Eq, Show)
 
-instance HasDescription ObjectType where
-  description = otDescription
+data OutputType = ScalarOutputType ScalarType
+                | ObjectOututType ObjectType
+                | EnumOutputType EnumType
+                | InterfaceOutputType InterfaceType
+                | UnionOutputType UnionType
+                | NonNnullOuputType OutputType
+                | ListOutputType OutputType
+                deriving (Eq, Show)
 
-data InputObjectType = InputObjectType {
-    itName :: String
-  , itDescription :: Maybe String
-  , itFields :: [InputValue]
-} deriving (Eq, Show, Generic)
+data InputType = ObjectInputType InputObjectType
+               | ScalarInputType ScalarType
+               | EnumInputType EnumType
+               deriving (Eq, Show)
 
-instance HasName InputObjectType where
-  name = itName
+data InputValue = InputObjectValue
+  { ivName :: String, ivDescription :: Maybe String, ivType :: InputType, ivDefaultValue :: Maybe String }
+  deriving (Eq, Show)
 
-instance HasDescription InputObjectType where
-  description = itDescription
-
-data InterfaceType = InterfaceType {
-    ifName :: String
-  , ifDescription :: Maybe String
-  , ifPossibleTypes :: [ObjectType]
-  , ifFields :: [Field]
-} deriving (Eq, Show, Generic, ObjectLikeType)
-
-instance HasName InterfaceType where
-  name = ifName
-
-instance HasDescription InterfaceType where
-  description = ifDescription
-  
-data UnionType = UnionType {
-    utName :: String
-  , utDescription :: Maybe String
-  , utPossibleTypes :: [ObjectType]
-} deriving (Eq, Show, Generic, ObjectLikeType)
-
-instance HasName UnionType where
-  name = utName
-
-instance HasDescription UnionType where
-  description = utDescription
-
-
-data ScalarType = ScalarType {
-    stName :: String
-  , stDescription :: Maybe String
-} deriving (Eq, Show, Generic)
-
-instance HasName ScalarType where
-  name = stName
-
-instance HasDescription ScalarType where
-  description = stDescription
-
-data EnumType = EnumType {
-    etName :: String
-  , etDescription :: Maybe String
-  , etValues :: [EnumValue]
-} deriving (Eq, Show, Generic)
-
-instance HasName EnumType where
-  name = etName
-
-instance HasDescription EnumType where
-  description = etDescription
-
-data Field = Field {
-    fName :: String
-  , fDescription :: Maybe String
-  , fArgs :: [InputValue]
-  , fIsDeprecated :: Bool
-  , fDeprecationReason :: Maybe String
-} deriving (Eq, Show, Generic)
-
-instance HasName Field where
-  name = fName
-
-instance HasDescription Field where
-  description = fDescription
-
-instance HasDeprecation Field where
-  isDeprecated = fIsDeprecated
-  deprecationReason = fDeprecationReason
-
-
-data InputValue = InputValue {
-    ivName :: String
-  , ivDescription :: Maybe String
-  , ivType :: Either ScalarType InputObjectType 
-  , ivDefaultValue :: String
-} deriving (Eq, Show, Generic)
-
-instance GraphQLValue InputValue
-
-instance HasName InputValue where
-  name = ivName
-
-instance HasDescription InputValue where
-  description = ivDescription
-
-data EnumValue = EnumValue {
-    evName :: String
-  , evDescription :: Maybe String
-  , evIsDeprecated :: Bool
-  , evDeprecationReason :: Maybe String
-} deriving (Eq, Show, Generic)
-
-instance GraphQLValue EnumValue
-
-instance HasName EnumValue where
-  name = evName
-
-instance HasDescription EnumValue where
-  description = evDescription
-
-instance HasDeprecation EnumValue where
-  isDeprecated = evIsDeprecated
-  deprecationReason = evDeprecationReason
-
-data Directive = Directive {
-    dName :: String
-  , dDescription :: Maybe String
-  , dlocations :: [String]
-  , dArgs :: [InputValue]
-} deriving (Eq, Show, Generic)
+data EnumValue  = EnumValue
+  { evName :: String, evDescription :: Maybe String, evIsDeprecated :: Bool, evDeprecationReason :: Maybe String }
+  deriving (Eq, Show)
 
 schemaFromIntrospectionResponse :: LByteString -> Either IntrospectionError Schema
 schemaFromIntrospectionResponse jsonResponse = makeSchema <$> parseResponse 
@@ -201,4 +88,26 @@ schemaFromIntrospectionResponse jsonResponse = makeSchema <$> parseResponse
    parseResponse = mapLeft IntrospectionError (eitherDecode jsonResponse)
 
 makeSchema :: I.IntrospectionResponse -> Schema
-makeSchema = undefined
+makeSchema resp = Schema query mutation subscription allTypes 
+  where
+    allTypes      = M.fromList (map makeTypeInfo (I.types . I.schema $ resp))
+    query         = makeRootTypeInfo ((M.!) allTypes "query")
+    mutation      = makeRootTypeInfo <$> (M.lookup "mutation" allTypes)
+    subscription  = makeRootTypeInfo <$> (M.lookup "subscription" allTypes)
+
+makeTypeInfo :: I.Type -> (String, TypeInformation (Either InputType OutputType))
+makeTypeInfo I.Type { I.name = "SCALAR", ..} = undefined
+makeTypeInfo I.Type { I.name = "OBJECT", ..} = undefined
+makeTypeInfo I.Type { I.name = "INTERFACE", ..} = undefined
+makeTypeInfo I.Type { I.name = "UNION", ..} = undefined
+makeTypeInfo I.Type { I.name = "ENUM", ..} = undefined
+makeTypeInfo I.Type { I.name = "INPUT_OBJECT", ..} = undefined
+makeTypeInfo I.Type { I.name = "LIST", ..} = undefined
+makeTypeInfo I.Type { I.name = "NON_NULL", ..} = undefined
+
+makeRootTypeInfo :: TypeInformation (Either InputType OutputType) -> TypeInformation OutputType
+makeRootTypeInfo (TypeInformation (Right outputType)) = makeTypeInformation outputType
+makeRootTypeInfo _ = error "Can not extract RootType"
+
+makeTypeInformation :: a -> TypeInformation a
+makeTypeInformation tpe = TypeInformation tpe

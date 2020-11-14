@@ -1,7 +1,7 @@
 {-# LANGUAGE QuasiQuotes, DuplicateRecordFields, DeriveAnyClass #-}
 
 module GraphQL.Schema.Introspection.Internal where
-import Relude hiding (ByteString)
+import Relude hiding (ByteString, Type)
 import Data.Aeson.Types (FromJSON)
 import Text.RawString.QQ
 
@@ -13,13 +13,13 @@ data IntrospectionSchema = IntrospectionSchema {
     queryType :: RootTypeName
   , mutationType :: Maybe RootTypeName
   , subscriptionType :: Maybe RootTypeName
-  , types :: [OutputType]
+  , types :: [Type]
   , directives :: [Directive]
 }  deriving (Show, Eq, Generic, FromJSON)
 
 data RootTypeName = RootTypeName { name :: Text } deriving (Show, Eq, Generic, FromJSON)
 
-data OutputType = OutputType {
+data Type = Type {
       kind :: Text
     , name :: Text
     , description :: Maybe Text
