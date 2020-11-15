@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 17f68fcabaae6d6f1fe43488b4f7221ad66edf77f5c80525b75ec75b9f6102b7
+-- hash: a04b5d78060971e5aa97750366b13b11dd5915bdcb8e302fc7f8a0d52e73f655
 
 name:           graphqshell
 version:        0.1.0.0
@@ -27,6 +27,8 @@ source-repository head
 library
   exposed-modules:
       GraphQL.API
+      GraphQL.Client
+      GraphQL.Internal
       GraphQL.Schema.Introspection
       GraphQL.Schema.Introspection.Internal
       GraphQL.Types
@@ -48,8 +50,10 @@ library
     , either
     , exceptions
     , fuzzyset
+    , modern-uri
     , raw-strings-qq
     , relude
+    , req
     , safe-exceptions
     , text
     , unordered-containers

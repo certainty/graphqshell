@@ -4,7 +4,7 @@ module GraphQL.Schema.Introspection.Internal where
 import Relude hiding (ByteString, Type)
 import Data.Aeson as J
 import Text.RawString.QQ
-import Data.Char (toLower)
+import GraphQL.Internal (aesonOptions)
 
 data IntrospectionResponse = IntrospectionResponse {
   schema :: IntrospectionSchema 
@@ -90,14 +90,6 @@ data Directive = Directive {
 instance FromJSON Directive where
   parseJSON = J.genericParseJSON (aesonOptions "id")
 
-aesonOptions :: String -> Options
-aesonOptions prefix = J.defaultOptions { J.fieldLabelModifier = (rewriteFieldName prefix)  }
-
-rewriteFieldName :: String -> String -> String
-rewriteFieldName prefix fieldName = case (drop (length prefix) fieldName) of
-  (front:rear) -> (toLower front) : rear
-  _            -> fieldName 
-    
 introspectionQuery :: Text
 introspectionQuery = [r|
 query Introspection {

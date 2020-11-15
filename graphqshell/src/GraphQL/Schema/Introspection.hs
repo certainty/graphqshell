@@ -6,6 +6,7 @@
 
 module GraphQL.Schema.Introspection (
     schemaFromIntrospectionResponse
+  , makeSchema
   , Schema
   , IntrospectionError(..)
   , InputValue(..)

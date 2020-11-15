@@ -71,6 +71,8 @@ library:
     - either
     - unordered-containers
     - fuzzyset
+    - req
+    - modern-uri
 
 
 executables:
