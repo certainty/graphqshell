@@ -20,14 +20,16 @@ module GraphQL.Schema.Introspection (
   , queryType
   , searchType
   ) where
-import Relude hiding (length, drop)
-import Data.Either.Combinators (mapLeft)
-import Data.Aeson (eitherDecode)
+import Relude hiding (length, drop, isPrefixOf)
 import qualified Data.FuzzySet as FS
 import qualified Data.HashMap.Strict as M
 import qualified GraphQL.Schema.Introspection.Internal as I
+import GraphQL.Types (GraphQLResponse(..), GraphQLError)
+import Data.Text (isPrefixOf)
 
-data IntrospectionError = IntrospectionError Text deriving (Eq, Show, Exception)
+data IntrospectionError = IntrospectionError Text
+      | PartialResult [GraphQLError]
+      deriving (Eq, Show, Exception)
 
 type GraphQLType = Either InputType OutputType
 
@@ -141,22 +143,28 @@ instance (HasName a, HasName b) => HasName (Either a b) where
   name (Right t) = name t
   name (Left t) = name t
 
-schemaFromIntrospectionResponse :: LByteString -> Either IntrospectionError Schema
-schemaFromIntrospectionResponse jsonResponse = parseResponse >>= makeSchema
- where
-   parseResponse :: Either IntrospectionError I.IntrospectionResponse
-   parseResponse = mapLeft (IntrospectionError . toText) (eitherDecode jsonResponse)
+schemaFromIntrospectionResponse :: GraphQLResponse I.IntrospectionResponse -> Either IntrospectionError Schema
+schemaFromIntrospectionResponse (GraphQLResponse (Just resp) Nothing) = makeSchema resp
+schemaFromIntrospectionResponse (GraphQLResponse _ (Just errors))     = Left (PartialResult errors) 
+schemaFromIntrospectionResponse (GraphQLResponse _ _)                 = Left (IntrospectionError "Empty Result")  -- TODO: wrap GraphQLError
 
 makeSchema :: I.IntrospectionResponse -> Either IntrospectionError Schema
 makeSchema resp = do
-  allTypes <- (makeTypeMap <$> (traverse makeType (I.types schema)))
+  allTypes <- (makeTypeMap <$> (traverse makeType consideredTypes))
   pure (Schema queryTypeRef mutationTypeRef subscriptionTypeRef allTypes (FS.fromList (M.keys allTypes)))
   where
     queryTypeRef        = NamedType (I.irName . I.queryType $ schema)
     mutationTypeRef     = NamedType <$> I.irName <$> (I.mutationType  schema)
     subscriptionTypeRef = NamedType <$> I.irName <$> (I.subscriptionType schema)
     schema              = I.schema resp
+    consideredTypes     = filterTypes (I.types schema)
 
+filterTypes :: [I.Type] -> [I.Type]
+filterTypes = filter considerForIntrospection
+  where
+    considerForIntrospection tpe = not . isPrefixOf "__" $ I.itpeName  tpe
+
+-- | TODO: ignore all types that start with __
 makeType :: I.Type -> Either IntrospectionError GraphQLType 
 makeType tpe = case I.itpeKind tpe of
   "SCALAR"       -> Right $ makeScalarType tpe
@@ -220,8 +228,6 @@ makeTypeMap = foldl' insertInfo M.empty
   where
     insertInfo hashMap (Left tpe)  = M.insert (name tpe) (Left tpe) hashMap
     insertInfo hashMap (Right tpe) = M.insert (name tpe) (Right tpe) hashMap
-
-
 
 --- Get information about the schema
 

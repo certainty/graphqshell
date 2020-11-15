@@ -5,15 +5,19 @@ import Relude
 import Brick
 import Brick.Widgets.Border
 import Brick.Widgets.Border.Style
+import Text.URI (renderStr)
 import qualified Graphics.Vty as V
 import qualified Shell.Components.Introspection as Intro
+import GraphQL.Schema.Introspection (Schema)
+import qualified GraphQL.API as API
 
 
 data Name = SchemaView deriving (Eq, Ord, Show)
 
 -- Welcome the app-state
 data GQShellState = GQShellState {
-  _url :: String
+    _schema :: Schema 
+  , _api    :: API.API
 } deriving (Eq, Show)
 
 -- Application Events
@@ -21,9 +25,11 @@ data GQShellEvent = SchemaEvent | Tick
   deriving (Eq, Ord, Show)
 
 runShell :: String -> IO ()
-runShell url = void $ defaultMain makeApplication state
-  where
-    state = GQShellState url
+runShell url = do
+  api    <- (API.mkAPI (toText url))
+  schema <- API.introspect api
+  print schema
+  void $ defaultMain makeApplication (GQShellState schema api)
 
 makeApplication :: App GQShellState GQShellEvent ()
 makeApplication = App
@@ -39,7 +45,9 @@ handleEvent :: GQShellState -> BrickEvent n GQShellEvent -> EventM n (Next GQShe
 handleEvent s (AppEvent _) = continue s
 
 draw :: GQShellState -> [Widget ()]
-draw st = [ui (_url st)]
+draw st = [ui uriStr]
+  where
+    uriStr = renderStr . API.endpointURI . _api $ st
 
 topBar :: String -> Widget n 
 topBar url = hBox [ padRight Max $ str $ "connected to " ++ url ]

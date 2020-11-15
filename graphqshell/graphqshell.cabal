@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a04b5d78060971e5aa97750366b13b11dd5915bdcb8e302fc7f8a0d52e73f655
+-- hash: 28bfaeebb711450ee816d2931cf2ce1b196a97ee57a47d08ee88a1a12060c285
 
 name:           graphqshell
 version:        0.1.0.0
@@ -108,7 +108,8 @@ test-suite graphqshell-test
   default-extensions: NoImplicitPrelude ConstraintKinds DeriveGeneric DerivingStrategies GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase OverloadedStrings RecordWildCards ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications ViewPatterns ApplicativeDo DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , graphqshell
     , hedgehog

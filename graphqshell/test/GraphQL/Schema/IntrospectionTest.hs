@@ -14,7 +14,7 @@ spec_introspection = do
       
   describe "when the data can't be parsed" $ do
     it "returns an introspection error" $ do
-      schemaFromIntrospectionResponse introspectionInvalidResponse `shouldBe` (Left (IntrospectionError "Error in $.schema.queryType: parsing GraphQL.Schema.Introspection.Internal.RootTypeName(RootTypeName) failed, expected Object, but encountered Null"))
+      schemaFromIntrospectionResponse introspectionInvalidResponse `shouldBe` (Left (PartialResult []))
 
 spec_introspectionSchema :: Spec
 spec_introspectionSchema = do

@@ -128,3 +128,4 @@ tests:
     - tasty-hspec 
     - graphqshell
     - raw-strings-qq
+    - aeson

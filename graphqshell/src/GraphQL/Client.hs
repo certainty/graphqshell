@@ -2,8 +2,9 @@ module GraphQL.Client
   (
    Client
   , ClientError (..)
+  , clientEndpoint
   , mkClient
-  , runRequest 
+  , runRequest
    ) where
 import Relude hiding (Option)
 import qualified Data.Aeson as J
@@ -14,7 +15,7 @@ import Control.Monad.Catch (MonadThrow)
 import Control.Exception.Safe (throw)
 
 data Client = Client {
-  endpoint :: URI.URI
+  clientEndpoint :: URI.URI
 } deriving (Eq, Show)
 
 mkClient :: (MonadThrow m) => Text -> m Client
@@ -38,7 +39,7 @@ runRequest client query variables = do
     (Right r) -> pure r
     
   where
-    endpointURI = (endpoint client)
+    endpointURI = (clientEndpoint client)
     requestBody = GraphQLBody query variables
     
 -- | Low level request 
@@ -51,3 +52,4 @@ runRequest' url body = runReq defaultHttpConfig $ do
 
 decodeGraphQLResponse :: (J.FromJSON resp) => ByteString -> Either String (GraphQLResponse resp)
 decodeGraphQLResponse = J.eitherDecodeStrict
+
