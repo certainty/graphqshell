@@ -26,4 +26,4 @@ spec_introspectionSchema = do
 validSchema :: Schema
 validSchema = case schemaFromIntrospectionResponse introspectionValidResponse of
   (Right s) -> s
-  _ -> error "Schema schould be valid"
+  _ -> error "Schema should be valid"
