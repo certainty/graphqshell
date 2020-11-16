@@ -4,6 +4,7 @@ import Relude
 import Test.Tasty ()
 import Test.Tasty.Hspec
 import GraphQL.Introspection.Schema.Types
+import GraphQL.Introspection.Schema
 import GraphQL.Schema.Fixtures 
 
 spec_introspection :: Spec

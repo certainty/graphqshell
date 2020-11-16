@@ -7,7 +7,7 @@
 module GraphQL.Introspection.Schema.Types (
     schemaFromIntrospectionResponse
   , makeSchema
-  , Schema
+  , Schema(..)
   , IntrospectionError(..)
   , InputValue(..)
   , ScalarType(..)
@@ -15,10 +15,8 @@ module GraphQL.Introspection.Schema.Types (
   , InterfaceType(..)
   , EnumValue
   , TypeReference(..)
+  , GraphQLType
   , I.introspectionQuery
-  , derefType
-  , queryType
-  , searchType
   ) where
 import Relude hiding (length, drop, isPrefixOf)
 import qualified Data.FuzzySet as FS
@@ -144,6 +142,7 @@ instance (HasName a, HasName b) => HasName (Either a b) where
   name (Right t) = name t
   name (Left t) = name t
 
+-- TODO: move to GraphQL.Introspection
 schemaFromIntrospectionResponse :: GraphQLResponse I.IntrospectionResponse -> Either IntrospectionError Schema
 schemaFromIntrospectionResponse (GraphQLResponse (Just resp) Nothing) = makeSchema resp
 schemaFromIntrospectionResponse (GraphQLResponse _ (Just errors))     = Left (PartialResult errors) 
@@ -230,19 +229,3 @@ makeTypeMap = foldl' insertInfo M.empty
     insertInfo hashMap (Left tpe)  = M.insert (name tpe) (Left tpe) hashMap
     insertInfo hashMap (Right tpe) = M.insert (name tpe) (Right tpe) hashMap
 
---- Get information about the schema
-
-derefType :: TypeReference -> Schema -> Maybe GraphQLType
-derefType (NamedType ref) schema = M.lookup ref (universe schema)
-derefType (ListOf ref) schema = derefType ref schema
-derefType (NonNullOf ref) schema = derefType ref schema
-derefType _ _ = Nothing
-
-queryType :: Schema -> Maybe GraphQLType
-queryType schema = derefType (query schema) schema
-
--- | fuzzy search for types
-searchType :: Text -> Schema -> [(Double, TypeReference)]
-searchType needle schema = map (\(score, tpeName) ->  (score, NamedType tpeName)) matches
-  where
-    matches = FS.get (fuzzTypes schema) needle
