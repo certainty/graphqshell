@@ -22,121 +22,99 @@ import Relude hiding (length, drop, isPrefixOf)
 import qualified Data.FuzzySet as FS
 import qualified Data.HashMap.Strict as M
 import Data.Text (isPrefixOf)
-
 import qualified GraphQL.Introspection.Marshalling.Types as I
 import GraphQL.Client.Types (GraphQLResponse(..), GraphQLError)
+import Data.Vector
 
 data IntrospectionError = IntrospectionError Text
       | PartialResult [GraphQLError]
       deriving (Eq, Show, Exception)
 
-type GraphQLType = Either InputType OutputType
+-- Schema
+type TypeUniverse = M.HashMap Text Type
 
 data Schema = Schema
-  { query        :: TypeReference,
-    mutation     :: Maybe TypeReference,
-    subscription :: Maybe TypeReference,
-    universe     :: M.HashMap Text GraphQLType,
-                 -- ^ The type universe of the schema
-    fuzzTypes    :: FS.FuzzySet
-                 -- ^ Fuzzy index of fields
+  {   query        :: TypeReference
+    , mutation     :: Maybe TypeReference
+    , subscription :: Maybe TypeReference
+    , universe     :: TypeUniverse 
+                   -- ^ The type universe of the schema
+    , fuzzTypes    :: FS.FuzzySet
+                  -- ^ Fuzzy index of fields
   } deriving (Eq, Show)
 
-data TypeInformation a = TypeInformation a deriving (Eq, Show)
-  
-data ScalarType      = ScalarType
-  { stName :: Text, stDescription :: Maybe Text }
-  deriving (Eq,Show)
+-- Type wrapper
+data GraphQLType = Scalar ScalarType
+                 | Object ObjectType
+                 | Input InputObjectType
+                 | Enum EnumType
+                 | Interface InterfaceType
+                 | Union UnionType
+                 deriving (Eq, Show)
 
-data ObjectType      = ObjectType
-  { otName :: Text, otDescription :: Maybe Text, otFields :: [FieldType], otInterfaces :: [TypeReference] }
-  deriving (Eq, Show)
+-- Individual types
+type Name                = Text
+type Description         = Maybe Text
+type Fields              = Vector FieldType
+type InputFields         = Vector InputValue
+type Interfaces          = Vector TypeReference
+type PossibleTypes       = Vector TypeReference
+type EnumVariants        = Vector EnumValue
+type Arguments           = Vector InputValue
+type DeprecationFlag     = Bool 
+type DeprecationReason   = Maybe Text
+type OutputTypeReference = TypeReference
+type InputTypeReference  = TypeReference
+type DefaultValue        = Maybe Text
 
-data UnionType       = UnionType
-  { utName :: Text, utDescription :: Maybe Text, utPossibleTypes :: [TypeReference] }
-  deriving (Eq, Show)
+data ScalarType      = ScalarType Name Description deriving (Eq,Show)
+data ObjectType      = ObjectType Name Description Fields Interfaces deriving (Eq, Show)
+data UnionType       = UnionType Name Description PossibleTypes deriving (Eq, Show)
+data InterfaceType   = InterfaceType Name Description Fields PossibleTypes deriving (Eq, Show)
+data EnumType        = EnumType Name Description EnumVariants deriving (Eq, Show)
+data InputObjectType = InputObjectType Name Description InputFields deriving (Eq, Show)
+data FieldType       = FieldType Name Description DeprecationFlag DeprecationReason Arguments OutputTypeReference deriving (Eq, Show)
+data EnumValue       = EnumValue Name Description DeprecationFlag DeprecationReason deriving (Eq, Show)
+data InputValue      = InputValue Name Description InputTypeReference DefaultValue  deriving (Eq, Show)
+data TypeReference   = ListOf TypeReference
+                     | NonNullOf TypeReference
+                     | NamedType Name
+                     | UnnamedType
+                     deriving (Eq, Show)
 
-data InterfaceType   = InterfaceType
-  { itName :: Text, itDescription :: Maybe Text, itFields :: [FieldType], itPossibleTypes :: [TypeReference] }
-  deriving (Eq, Show)
-
-data EnumType        = EnumType
-  { etName :: Text, etDescription :: Maybe Text, etValues :: [EnumValue] }
-  deriving (Eq, Show)
-
-data InputObjectType = InputObjectType
-  { ioName :: Text, ioDescription :: Maybe Text, ioFields :: [InputValue] }
-  deriving (Eq, Show)
-
-data FieldType       = FieldType
-  { ftName :: Text, ftDescription :: Maybe Text, ftIsDeprecated :: Bool, ftDeprecationReason :: Maybe Text, ftType :: TypeReference, ftArgs :: [InputValue] }
-  deriving (Eq, Show)
-
-data OutputType = ScalarOutputType ScalarType
-                | ObjectOututType ObjectType
-                | EnumOutputType EnumType
-                | InterfaceOutputType InterfaceType
-                | UnionOutputType UnionType
-                | NonNullOuputType OutputType
-                | ListOutputType OutputType
-                deriving (Eq, Show)
-
-data InputType = ObjectInputType InputObjectType
-               | ScalarInputType ScalarType
-               | EnumInputType EnumType
-               deriving (Eq, Show)
-
-data TypeReference = ListOf TypeReference
-                   | NonNullOf TypeReference
-                   | NamedType Text
-                   | UnnamedType
-                   deriving (Eq, Show)
-
-data InputValue = InputValue
-  { ivName :: Text, ivDescription :: Maybe Text, ivType :: TypeReference, ivDefaultValue :: Maybe Text }
-  deriving (Eq, Show)
-
-data EnumValue  = EnumValue
-  { evName :: Text, evDescription :: Maybe Text, evIsDeprecated :: Bool, evDeprecationReason :: Maybe Text }
-  deriving (Eq, Show)
+-- Common functionality is exposed via type classes
 
 class HasName a where
   name :: a -> Text
 
 instance HasName ScalarType where
-  name = stName
+  name (ScalarType n _) = n 
 
 instance HasName ObjectType where
-  name = otName
+  name (ObjectType n _ _ _) = n
 
 instance HasName UnionType where
-  name = utName
+  name (UnionType n _ _ ) = n
 
 instance HasName InterfaceType where
-  name = itName
+  name (InterfaceType n _ _ _)= n
 
 instance HasName EnumType where
-  name = etName
+  name (EnumType n _ _) = n
 
 instance HasName InputObjectType where
-  name = ioName
+  name (InputObjectType n _ _) = n
 
 instance HasName FieldType where
-  name = ftName
+  name (FieldType n _ _ _ _ _) = n
 
-instance  HasName OutputType where
-  name (ScalarOutputType t) = name t
-  name (ObjectOututType t) = name t
-  name (EnumOutputType t) = name t
-  name (InterfaceOutputType t) = name t
-  name (UnionOutputType t) = name t
-  name (NonNullOuputType t) = name t
-  name (ListOutputType t) = name t
-
-instance HasName InputType where
-  name (ObjectInputType t) = name t
-  name (ScalarInputType t) = name t
-  name (EnumInputType t) = name t
+instance  HasName GraphQLType where
+  name (Scalar t) = name t
+  name (Object t) = name t
+  name (Enum t) = name t
+  name (Interface t) = name t
+  name (Union t) = name t
+  name (Input t) = name t
 
 instance (HasName a, HasName b) => HasName (Either a b) where
   name (Right t) = name t

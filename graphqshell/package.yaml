@@ -73,6 +73,7 @@ library:
     - fuzzyset
     - req
     - modern-uri
+    - vector
 
 
 executables:

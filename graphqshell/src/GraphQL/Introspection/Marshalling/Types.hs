@@ -7,88 +7,96 @@ import Text.RawString.QQ
 import GraphQL.Marshalling.Utils (aesonOptions)
 
 data IntrospectionResponse = IntrospectionResponse {
-  schema :: IntrospectionSchema 
-} deriving (Show, Eq, Generic, FromJSON)
+  introspectionResponsSchema :: IntrospectionSchema 
+} deriving (Show, Eq, Generic)
+
+instance FromJSON IntrospectionResponse where
+  parseJSON = J.genericParseJSON (aesonOptions "introspectionResponse")
 
 data IntrospectionSchema = IntrospectionSchema {
-    queryType :: RootTypeName
-  , mutationType :: Maybe RootTypeName
-  , subscriptionType :: Maybe RootTypeName
-  , types :: [Type]
-  , directives :: [Directive]
-}  deriving (Show, Eq, Generic, FromJSON)
+    introspectionSchemaQueryType :: RootTypeName
+  , introspectionSchemaMutationType :: Maybe RootTypeName
+  , introspectionSchemaSubscriptionType :: Maybe RootTypeName
+  , introspectionSchemaTypes :: [Type]
+  , introspectionSchemaDirectives :: [Directive]
+}  deriving (Show, Eq, Generic)
 
-data RootTypeName = RootTypeName { irName :: Text } deriving (Show, Eq, Generic)
+instance FromJSON IntrospectionSchema where
+  parseJSON = J.genericParseJSON (aesonOptions "introspectionSchema")
+
+data RootTypeName = RootTypeName {
+  introspectionRootTypeName :: Text
+} deriving (Show, Eq, Generic)
 
 instance FromJSON RootTypeName where
-  parseJSON = J.genericParseJSON (aesonOptions "ir")
+  parseJSON = J.genericParseJSON (aesonOptions "introspectionRootType")
 
 data Type = Type {
-      itpeKind :: Text
-    , itpeName :: Text
-    , itpeDescription :: Maybe Text
-    , itpeFields :: Maybe [Field]
-    , itpeInputFields :: Maybe [InputType]
-    , itpeInterfaces ::  Maybe [TypeRef]
-    , itpeEnumValues :: Maybe [EnumValues]
-    , itpePossibleTypes :: Maybe [TypeRef]
+      typeKind :: Text
+    , typeName :: Text
+    , typeDescription :: Maybe Text
+    , typeFields :: Maybe [Field]
+    , typeInputFields :: Maybe [InputType]
+    , typeInterfaces ::  Maybe [TypeRef]
+    , typeEnumValues :: Maybe [EnumValue]
+    , typePossibleTypes :: Maybe [TypeRef]
 } deriving (Show, Eq, Generic)
 
 instance FromJSON Type where
-  parseJSON = J.genericParseJSON (aesonOptions "itpe")
+  parseJSON = J.genericParseJSON (aesonOptions "type")
 
-data EnumValues = EnumValues {
-    ievName :: Text
-  , ievDescription :: Maybe Text
-  , ievIsDeprecated :: Bool
-  , ievDeprecationReason :: Maybe Text
+data EnumValue = EnumValue {
+    enumValueName :: Text
+  , enumValueDescription :: Maybe Text
+  , enumValueIsDeprecated :: Bool
+  , enumValueDeprecationReason :: Maybe Text
 } deriving (Show, Eq, Generic)
 
 
-instance FromJSON EnumValues where
-  parseJSON = J.genericParseJSON (aesonOptions "iev")
+instance FromJSON EnumValue where
+  parseJSON = J.genericParseJSON (aesonOptions "enumValue")
 
 data Field = Field {
-      ifName :: Text
-    , ifDescription :: Maybe Text
-    , ifArgs :: [InputType]
-    , ifIsDeprecated :: Bool
-    , ifDeprecationReason :: Maybe Text
-    , ifTypeRef :: TypeRef
+      fieldName :: Text
+    , fieldDescription :: Maybe Text
+    , fieldArgs :: [InputType]
+    , fieldIsDeprecated :: Bool
+    , fieldDeprecationReason :: Maybe Text
+    , fieldTypeRef :: TypeRef
 } deriving (Show, Eq, Generic)
 
 instance FromJSON Field where
-  parseJSON = J.genericParseJSON (aesonOptions "if")
+  parseJSON = J.genericParseJSON (aesonOptions "field")
 
 data TypeRef = TypeRef {
-    itrKind :: Text
-  , itrName :: Maybe Text
-  , itrOfType :: Maybe TypeRef
+    typeRefKind :: Text
+  , typeRefName :: Maybe Text
+  , typeRefOfType :: Maybe TypeRef
 } deriving (Show, Eq, Generic)
 
 instance FromJSON TypeRef where
-  parseJSON = J.genericParseJSON (aesonOptions "itr")
+  parseJSON = J.genericParseJSON (aesonOptions "typeRef")
 
 data InputType = InputType {
-    iiName :: Text
-  , iiDescription :: Maybe Text
-  , iiTypeRef :: TypeRef
-  , iiDefaultValue :: Maybe Text
+    inputTypeName :: Text
+  , inputTypeDescription :: Maybe Text
+  , inputTypeTypeRef :: TypeRef
+  , inputTypeDefaultValue :: Maybe Text
 } deriving (Show, Eq, Generic)
 
 instance FromJSON InputType where
-  parseJSON = J.genericParseJSON (aesonOptions "ii")
+  parseJSON = J.genericParseJSON (aesonOptions "inputType")
 
 data Directive = Directive {
-    idName :: Text
-  , idDescription :: Maybe Text
-  , idLocations :: [Text]
-  , idArgs :: Maybe [InputType]
+    directiveName :: Text
+  , directiveDescription :: Maybe Text
+  , directiveLocations :: [Text]
+  , directiveArgs :: Maybe [InputType]
 } deriving (Show, Eq, Generic)
 
 
 instance FromJSON Directive where
-  parseJSON = J.genericParseJSON (aesonOptions "id")
+  parseJSON = J.genericParseJSON (aesonOptions "directive")
 
 introspectionQuery :: Text
 introspectionQuery = [r|

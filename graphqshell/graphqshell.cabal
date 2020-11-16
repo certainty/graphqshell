@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a7ddcc38e7324dfc2589bf6d8deaa180bdf8d83e0894bda03d320656431ddd0d
+-- hash: d5fac074226c024b51bab6a0cde612d1111abf37c96289cf70498bd25e689cfe
 
 name:           graphqshell
 version:        0.1.0.0
@@ -29,6 +29,7 @@ library
       GraphQL.API
       GraphQL.Client
       GraphQL.Client.Types
+      GraphQL.Introspection
       GraphQL.Introspection.Marshalling.Types
       GraphQL.Introspection.Schema
       GraphQL.Introspection.Schema.Types
@@ -58,6 +59,7 @@ library
     , safe-exceptions
     , text
     , unordered-containers
+    , vector
     , vty
   default-language: Haskell2010
 
