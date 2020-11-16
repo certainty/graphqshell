@@ -9,10 +9,10 @@ import Relude
 import Control.Monad.Catch (MonadThrow)
 import Control.Exception.Safe (throw)
 import qualified Text.URI as URI
-import GraphQL.Types
+import GraphQL.Client.Types
 import GraphQL.Client
-import GraphQL.Schema.Introspection (Schema, introspectionQuery, schemaFromIntrospectionResponse)
-import qualified GraphQL.Schema.Introspection.Internal as I
+import GraphQL.Introspection.Schema.Types (Schema, introspectionQuery, schemaFromIntrospectionResponse)
+import qualified GraphQL.Introspection.Marshalling.Types as I 
 
 data API = API {
    client :: Client

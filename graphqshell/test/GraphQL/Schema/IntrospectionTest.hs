@@ -3,7 +3,7 @@ module GraphQL.Schema.IntrospectionTest where
 import Relude
 import Test.Tasty ()
 import Test.Tasty.Hspec
-import GraphQL.Schema.Introspection
+import GraphQL.Introspection.Schema.Types
 import GraphQL.Schema.Fixtures 
 
 spec_introspection :: Spec

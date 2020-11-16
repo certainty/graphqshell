@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module GraphQL.Types(
+module GraphQL.Client.Types(
    GraphQLQuery(..)
   , Location(..)
   , GraphQLError(..)
@@ -11,7 +11,7 @@ module GraphQL.Types(
 
 import Relude
 import qualified Data.Aeson as J
-import GraphQL.Internal (aesonOptions)
+import GraphQL.Marshalling.Utils (aesonOptions)
 
 -- Request portion
 newtype GraphQLQuery = GraphQLQuery { unGraphQLQuery :: Text }
@@ -66,3 +66,5 @@ data GraphQLResponse a = GraphQLResponse
 
 instance J.FromJSON a => J.FromJSON (GraphQLResponse a) where
   parseJSON = J.genericParseJSON $ aesonOptions "GraphQLResponse"
+
+

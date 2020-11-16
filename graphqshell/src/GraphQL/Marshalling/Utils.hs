@@ -1,13 +1,10 @@
--- | Internal shared utilities and types for the GraphQL interaction
-
-module GraphQL.Internal
+module GraphQL.Marshalling.Utils
   (
     aesonOptions 
   ) where
 import Relude
 import Data.Aeson as J
 import Data.Char (toLower)
-
 
 -- | Aeson options that strip field prefixes
 
@@ -20,8 +17,8 @@ import Data.Char (toLower)
 --   
 --
 aesonOptions :: String -> Options
-aesonOptions prefix = J.defaultOptions { J.fieldLabelModifier = (rewriteFieldName prefix)  }
+aesonOptions prefix = J.defaultOptions { J.fieldLabelModifier = rewriteFieldName }
   where
-    rewriteFieldName prefix fieldName = case (drop (length prefix) fieldName) of
+    rewriteFieldName fieldName = case (drop (length prefix) fieldName) of
       (front:rear) -> (toLower front) : rear
       _            -> fieldName 

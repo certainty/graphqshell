@@ -8,7 +8,7 @@ import Brick.Widgets.Border.Style
 import Text.URI (renderStr)
 import qualified Graphics.Vty as V
 import qualified Shell.Components.Introspection as Intro
-import GraphQL.Schema.Introspection (Schema)
+import GraphQL.Introspection.Schema.Types (Schema)
 import qualified GraphQL.API as API
 
 

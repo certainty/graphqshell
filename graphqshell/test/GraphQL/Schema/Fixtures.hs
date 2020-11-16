@@ -3,10 +3,9 @@
 module GraphQL.Schema.Fixtures where
 import Relude 
 import Text.RawString.QQ
-import GraphQL.Types
-import qualified GraphQL.Schema.Introspection.Internal as I
+import GraphQL.Client.Types
+import qualified GraphQL.Introspection.Marshalling.Types as I
 import qualified Data.Aeson as J
-
 
 
 introspectionInvalidResponse :: GraphQLResponse I.IntrospectionResponse

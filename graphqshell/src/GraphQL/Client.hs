@@ -10,9 +10,9 @@ import Relude hiding (Option)
 import qualified Data.Aeson as J
 import Network.HTTP.Req
 import qualified Text.URI as URI
-import GraphQL.Types
-import Control.Monad.Catch (MonadThrow)
-import Control.Exception.Safe (throw)
+import Control.Exception.Safe (MonadThrow, throw)
+
+import GraphQL.Client.Types
 
 data Client = Client {
   clientEndpoint :: URI.URI

@@ -4,7 +4,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module GraphQL.Schema.Introspection (
+module GraphQL.Introspection.Schema.Types (
     schemaFromIntrospectionResponse
   , makeSchema
   , Schema
@@ -23,9 +23,10 @@ module GraphQL.Schema.Introspection (
 import Relude hiding (length, drop, isPrefixOf)
 import qualified Data.FuzzySet as FS
 import qualified Data.HashMap.Strict as M
-import qualified GraphQL.Schema.Introspection.Internal as I
-import GraphQL.Types (GraphQLResponse(..), GraphQLError)
 import Data.Text (isPrefixOf)
+
+import qualified GraphQL.Introspection.Marshalling.Types as I
+import GraphQL.Client.Types (GraphQLResponse(..), GraphQLError)
 
 data IntrospectionError = IntrospectionError Text
       | PartialResult [GraphQLError]

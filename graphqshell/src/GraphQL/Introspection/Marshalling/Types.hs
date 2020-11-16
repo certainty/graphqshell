@@ -1,10 +1,10 @@
 {-# LANGUAGE QuasiQuotes, DuplicateRecordFields, DeriveAnyClass #-}
 
-module GraphQL.Schema.Introspection.Internal where
+module GraphQL.Introspection.Marshalling.Types where
 import Relude hiding (ByteString, Type)
 import Data.Aeson as J
 import Text.RawString.QQ
-import GraphQL.Internal (aesonOptions)
+import GraphQL.Marshalling.Utils (aesonOptions)
 
 data IntrospectionResponse = IntrospectionResponse {
   schema :: IntrospectionSchema 
