@@ -66,24 +66,36 @@ fromMarshalledType' "SCALAR" tpe = Right $ Scalar (ScalarType name description)
     name        = (introspectionTypeName tpe)
     description = (introspectionTypeDescription tpe)
 
+fromMarshalledType' "OBJECT" tpe = Right $ Object (ObjectType name description fields interfaces)
+  where
+    name        = undefined
+    description = undefined
+    fields      = undefined
+    interfaces  = undefined
+      
+
+fromMarshalledType' "INTERFACE" tpe = Right $ Interface (InterfaceType name description fields possibleTypes)
+  where
+    name          = undefined
+    description   = undefined
+    fields        = undefined
+    possibleTypes = undefined
+   
+
+fromMarshalledType' "UNION" tpe = Right $ Union (UnionType name description possibleTypes)
+  where
+    name          = undefined
+    description   = undefined
+    possibleTypes = undefined
+
+
+fromMarshalledType' "ENUM" tpe = undefined
+
+fromMarshalledType' "INPUT_OBJECT" tpe = undefined
+
+fromMarshalledType' kind _ = Left (IntrospectionError ("Unexpectd TypeKind: " <> kind))
+
 {-
-makeSchema :: Marshalled.IntrospectionResponse -> Either IntrospectionError Schema
-makeSchema resp = do
-  allTypes <- (makeTypeMap <$> (traverse makeType consideredTypes))
-  pure (Schema queryTypeRef mutationTypeRef subscriptionTypeRef allTypes (FS.fromList (M.keys allTypes)))
-  where
-    queryTypeRef        = NamedType (I.irName . I.queryType $ schema)
-    mutationTypeRef     = NamedType <$> I.irName <$> (I.mutationType  schema)
-    subscriptionTypeRef = NamedType <$> I.irName <$> (I.subscriptionType schema)
-    schema              = I.schema resp
-    consideredTypes     = filterTypes (I.types schema)
-
-filterTypes :: [I.Type] -> [I.Type]
-filterTypes = filter considerForIntrospection
-  where
-    considerForIntrospection tpe = not . isPrefixOf "__" $ I.itpeName  tpe
-
--- | TODO: ignore all types that start with __
 makeType :: I.Type -> Either IntrospectionError GraphQLType 
 makeType tpe = case I.itpeKind tpe of
   "SCALAR"       -> Right $ makeScalarType tpe
