@@ -1,4 +1,12 @@
-{-# LANGUAGE QuasiQuotes, DuplicateRecordFields, DeriveAnyClass #-}
+{-|
+This module provides types to represent introspection data
+as sent by a GraphQL server implementation.
+
+You should not need use it directly but instead interact with
+the schema with the higher level 'GraphQL.Introspection.Schema' API.
+-}
+
+{-# LANGUAGE QuasiQuotes #-}
 
 module GraphQL.Introspection.Marshalling.Types where
 import Relude hiding (ByteString, Type)
@@ -14,89 +22,88 @@ instance FromJSON IntrospectionResponse where
   parseJSON = J.genericParseJSON (aesonOptions "introspectionResponse")
 
 data IntrospectionSchema = IntrospectionSchema {
-    introspectionSchemaQueryType :: RootTypeName
-  , introspectionSchemaMutationType :: Maybe RootTypeName
-  , introspectionSchemaSubscriptionType :: Maybe RootTypeName
-  , introspectionSchemaTypes :: [Type]
-  , introspectionSchemaDirectives :: [Directive]
+    introspectionSchemaQueryType :: IntrospectionRootTypeName
+  , introspectionSchemaMutationType :: Maybe IntrospectionRootTypeName
+  , introspectionSchemaSubscriptionType :: Maybe IntrospectionRootTypeName
+  , introspectionSchemaTypes :: [IntrospectionType]
+  , introspectionSchemaDirectives :: [IntrospectionDirective]
 }  deriving (Show, Eq, Generic)
 
 instance FromJSON IntrospectionSchema where
   parseJSON = J.genericParseJSON (aesonOptions "introspectionSchema")
 
-data RootTypeName = RootTypeName {
+data IntrospectionRootTypeName = RootTypeName {
   introspectionRootTypeName :: Text
 } deriving (Show, Eq, Generic)
 
-instance FromJSON RootTypeName where
+instance FromJSON IntrospectionRootTypeName where
   parseJSON = J.genericParseJSON (aesonOptions "introspectionRootType")
 
-data Type = Type {
-      typeKind :: Text
-    , typeName :: Text
-    , typeDescription :: Maybe Text
-    , typeFields :: Maybe [Field]
-    , typeInputFields :: Maybe [InputType]
-    , typeInterfaces ::  Maybe [TypeRef]
-    , typeEnumValues :: Maybe [EnumValue]
-    , typePossibleTypes :: Maybe [TypeRef]
+data IntrospectionType = IntrospectionType {
+      introspectionTypeKind :: Text
+    , introspectionTypeName :: Text
+    , introspectionTypeDescription :: Maybe Text
+    , introspectionTypeFields :: Maybe [IntrospectionField]
+    , introspectionTypeInputFields :: Maybe [IntrospectionInputType]
+    , introspectionTypeInterfaces ::  Maybe [IntrospectionTypeRef]
+    , introspectionTypeEnumValues :: Maybe [IntrospectionEnumValue]
+    , introspectionTypePossibleTypes :: Maybe [IntrospectionTypeRef]
 } deriving (Show, Eq, Generic)
 
-instance FromJSON Type where
-  parseJSON = J.genericParseJSON (aesonOptions "type")
+instance FromJSON IntrospectionType where
+  parseJSON = J.genericParseJSON (aesonOptions "introspectionType")
 
-data EnumValue = EnumValue {
-    enumValueName :: Text
-  , enumValueDescription :: Maybe Text
-  , enumValueIsDeprecated :: Bool
-  , enumValueDeprecationReason :: Maybe Text
-} deriving (Show, Eq, Generic)
-
-
-instance FromJSON EnumValue where
-  parseJSON = J.genericParseJSON (aesonOptions "enumValue")
-
-data Field = Field {
-      fieldName :: Text
-    , fieldDescription :: Maybe Text
-    , fieldArgs :: [InputType]
-    , fieldIsDeprecated :: Bool
-    , fieldDeprecationReason :: Maybe Text
-    , fieldTypeRef :: TypeRef
-} deriving (Show, Eq, Generic)
-
-instance FromJSON Field where
-  parseJSON = J.genericParseJSON (aesonOptions "field")
-
-data TypeRef = TypeRef {
-    typeRefKind :: Text
-  , typeRefName :: Maybe Text
-  , typeRefOfType :: Maybe TypeRef
-} deriving (Show, Eq, Generic)
-
-instance FromJSON TypeRef where
-  parseJSON = J.genericParseJSON (aesonOptions "typeRef")
-
-data InputType = InputType {
-    inputTypeName :: Text
-  , inputTypeDescription :: Maybe Text
-  , inputTypeTypeRef :: TypeRef
-  , inputTypeDefaultValue :: Maybe Text
-} deriving (Show, Eq, Generic)
-
-instance FromJSON InputType where
-  parseJSON = J.genericParseJSON (aesonOptions "inputType")
-
-data Directive = Directive {
-    directiveName :: Text
-  , directiveDescription :: Maybe Text
-  , directiveLocations :: [Text]
-  , directiveArgs :: Maybe [InputType]
+data IntrospectionEnumValue = IntrospectionEnumValue {
+    introspectionEnumValueName :: Text
+  , introspectionEnumValueDescription :: Maybe Text
+  , introspectionEnumValueIsDeprecated :: Bool
+  , introspectionEnumValueDeprecationReason :: Maybe Text
 } deriving (Show, Eq, Generic)
 
 
-instance FromJSON Directive where
-  parseJSON = J.genericParseJSON (aesonOptions "directive")
+instance FromJSON IntrospectionEnumValue where
+  parseJSON = J.genericParseJSON (aesonOptions "introspectionEnumValue")
+
+data IntrospectionField = IntrospectionField {
+      introspectionFieldName :: Text
+    , introspectionFieldDescription :: Maybe Text
+    , introspectionFieldArgs :: [IntrospectionInputType]
+    , introspectionFieldIsDeprecated :: Bool
+    , introspectionFieldDeprecationReason :: Maybe Text
+    , introspectionFieldTypeRef :: IntrospectionTypeRef
+} deriving (Show, Eq, Generic)
+
+instance FromJSON IntrospectionField where
+  parseJSON = J.genericParseJSON (aesonOptions "introspectionField")
+
+data IntrospectionTypeRef = IntrospectionTypeRef {
+    introspectionTypeRefKind :: Text
+  , introspectionTypeRefName :: Maybe Text
+  , introspectionTypeRefOfType :: Maybe IntrospectionTypeRef
+} deriving (Show, Eq, Generic)
+
+instance FromJSON IntrospectionTypeRef where
+  parseJSON = J.genericParseJSON (aesonOptions "introspectionTypeRef")
+
+data IntrospectionInputType = IntrospectionInputType {
+    introspectionInputTypeName :: Text
+  , introspectionInputTypeDescription :: Maybe Text
+  , introspectionInputTypeTypeRef :: IntrospectionTypeRef
+  , introspectionInputTypeDefaultValue :: Maybe Text
+} deriving (Show, Eq, Generic)
+
+instance FromJSON IntrospectionInputType where
+  parseJSON = J.genericParseJSON (aesonOptions "introspectionInputType")
+
+data IntrospectionDirective = IntrospectionDirective {
+    introspectionDirectiveName :: Text
+  , introspectionDirectiveDescription :: Maybe Text
+  , introspectionDirectiveLocations :: [Text]
+  , introspectionDirectiveArgs :: Maybe [IntrospectionInputType]
+} deriving (Show, Eq, Generic)
+
+instance FromJSON IntrospectionDirective where
+  parseJSON = J.genericParseJSON (aesonOptions "introspectionDirective")
 
 introspectionQuery :: Text
 introspectionQuery = [r|
