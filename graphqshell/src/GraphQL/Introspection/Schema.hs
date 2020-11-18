@@ -23,6 +23,7 @@ import qualified Data.HashMap.Strict as Dict
 import Data.Text (isPrefixOf)
 import GraphQL.Introspection.Marshalling.Types
 import GraphQL.Introspection.Schema.Types
+import qualified Data.Vector as Vector
 
 
 --- Get information about the schema
@@ -54,110 +55,87 @@ fromMarshalledSchema schema = do
     subscriptionTypeRef = NamedType . introspectionRootTypeName <$> introspectionSchemaSubscriptionType schema
     consideredTypes     = filter (not . (isPrefixOf "__") . introspectionTypeName) (introspectionSchemaTypes schema)
     typeSearchSet types = FS.fromList (Dict.keys types)
-    makeTypeDict        = undefined
+    makeTypeDict        = Dict.fromList (map byName universe)
+    byName e            = ((name e), e)
 
 fromMarshalledType :: IntrospectionType -> Either IntrospectionError GraphQLType
 fromMarshalledType tpe = fromMarshalledType' (introspectionTypeKind tpe) tpe
 
 fromMarshalledType' :: Text -> IntrospectionType -> Either IntrospectionError GraphQLType
-
 fromMarshalledType' "SCALAR" tpe = Right $ Scalar (ScalarType name description)
   where
-    name        = (introspectionTypeName tpe)
-    description = (introspectionTypeDescription tpe)
+    name        = introspectionTypeName tpe
+    description = introspectionTypeDescription tpe
 
 fromMarshalledType' "OBJECT" tpe = Right $ Object (ObjectType name description fields interfaces)
   where
-    name        = undefined
-    description = undefined
-    fields      = undefined
-    interfaces  = undefined
+    name        = introspectionTypeName tpe
+    description = introspectionTypeDescription tpe
+    fields      = fromMarshalledFields (introspectionTypeFields tpe) 
+    interfaces  = fromMarshalledTypeRefs (introspectionTypeInterfaces tpe)
       
 
 fromMarshalledType' "INTERFACE" tpe = Right $ Interface (InterfaceType name description fields possibleTypes)
   where
-    name          = undefined
-    description   = undefined
-    fields        = undefined
-    possibleTypes = undefined
+    name          = introspectionTypeName tpe
+    description   = introspectionTypeDescription tpe
+    fields        = mapOrEmpty fromMarshalledFieldType (introspectionTypeFields tpe) 
+    possibleTypes = mapOrEmpty fromMarshalledTypeRef (introspectionTypePossibleTypes tpe)
    
 
 fromMarshalledType' "UNION" tpe = Right $ Union (UnionType name description possibleTypes)
   where
-    name          = undefined
-    description   = undefined
-    possibleTypes = undefined
+    name          = introspectionTypeName tpe
+    description   = introspectionTypeDescription tpe
+    possibleTypes = mapOrEmpty fromMarshalledTypeRef (introspectionTypePossibleTypes tpe)
 
+fromMarshalledType' "ENUM" tpe = Right $ Enum (EnumType name description variants)
+  where
+    name        = introspectionTypeName tpe
+    description = introspectionTypeDescription tpe
+    variants    = mapOrEmpty fromMarshalledEnumValue (introspectionTypeEnumValues tpe)
 
-fromMarshalledType' "ENUM" tpe = undefined
+fromMarshalledType' "INPUT_OBJECT" tpe = Right $ Input (InputObjectType name description fields)
+  where
+    name        = introspectionTypeName tpe
+    description = introspectionTypeDescription tpe
+    fields      = mapOrEmpty fromMarshalledInputValue (introspectionTypeInputFields tpe)
 
-fromMarshalledType' "INPUT_OBJECT" tpe = undefined
+fromMarshalledType' kind _ = Left (IntrospectionError ("Unexpected Kind for GraphQL Type: " <> kind))
 
-fromMarshalledType' kind _ = Left (IntrospectionError ("Unexpectd TypeKind: " <> kind))
-
-{-
-makeType :: I.Type -> Either IntrospectionError GraphQLType 
-makeType tpe = case I.itpeKind tpe of
-  "SCALAR"       -> Right $ makeScalarType tpe
-  "OBJECT"       -> Right $ makeObjectType tpe
-  "INTERFACE"    -> Right $ makeInterfaceType tpe
-  "UNION"        -> Right $ makeUnionType tpe
-  "ENUM"         -> Right $ makeEnumType tpe
-  "INPUT_OBJECT" -> Right $ makeInputObject tpe
-  _              -> Left (IntrospectionError "Unknown output type")
+fromMarshalledFieldType :: IntrospectionField -> FieldType
+fromMarshalledFieldType field = FieldType name description deprecation arguments outputTypeRef
+  where
+    name              = introspectionFieldName field
+    description       = introspectionFieldDescription field
+    deprecation       = if isDeprecated then (Deprecated deprecationReason) else NotDeprecated
+    isDeprecated      = introspectionFieldIsDeprecated field
+    deprecationReason = introspectionFieldDeprecationReason field
+    arguments         = mapOrEmpty fromMarshalledInputValue (introspectionFieldArgs field)
+    outputTypeRef     = fromMarshalledTypeRef (introspectionFieldTypeRef field)
   
-makeScalarType :: I.Type -> Either InputType OutputType
-makeScalarType I.Type { I.itpeName = typeName, I.itpeDescription = description, .. } = (Right (ScalarOutputType (ScalarType typeName description)))
-
-makeObjectType :: I.Type -> Either InputType OutputType
-makeObjectType I.Type { I.itpeName = typeName, I.itpeDescription = description, I.itpeFields = fields, I.itpeInterfaces = interfaces, .. } = (Right (ObjectOututType (ObjectType typeName description fieldTypes interfaceTypes)))
+fromMarshalledInputValue :: IntrospectionInputType -> InputValue
+fromMarshalledInputValue inp = InputValue name description typeRef defaultValue
   where
-    fieldTypes     =  fromMaybe [] ((map makeFieldType) <$> fields)
-    interfaceTypes =  fromMaybe [] ((map makeTypeRef) <$> interfaces)
+    name         = introspectionInputTypeName inp
+    description  = introspectionInputTypeDescription inp
+    typeRef      = fromMarshalledTypeRef (introspectionInputTypeTypeRef inp)
+    defaultValue = introspectionInputTypeDefaultValue inp
 
-makeInterfaceType :: I.Type -> Either InputType OutputType
-makeInterfaceType I.Type { I.itpeName = typeName, I.itpeDescription = description, I.itpeFields = fields, I.itpePossibleTypes = possibleTypes, .. } = (Right (InterfaceOutputType (InterfaceType typeName description fieldTypes possibleTypeRefs)))
+fromMarshalledTypeRef :: IntrospectionTypeRef -> TypeReference
+fromMarshalledTypeRef (IntrospectionTypeRef "NON_NULL" _ ofType) = NonNullOf (fromMarshalledTypeRef ofType)
+fromMarshalledTypeRef (IntrospectionTypeRef "LIST" _ ofType)     = ListOf (fromMarshalledTypeRef ofType)
+fromMarshalledTypeRef (IntrospectionTypeRef _ (Just name) _)     = NamedType name 
+fromMarshalledTypeRef _                                          = UnnamedType
+
+fromMarshalledEnumValue :: IntrospectionEnumValue -> EnumValue
+fromMarshalledEnumValue enum = EnumValue name description deprecation
   where
-    fieldTypes       = fromMaybe [] ((map makeFieldType) <$> fields)
-    possibleTypeRefs = fromMaybe [] ((map makeTypeRef) <$> possibleTypes)
+    name              = introspectionEnumValueName enum
+    description       = introspectionEnumValueDescription enum
+    deprecation       = if isDeprecated then (Deprecated deprecationReason) else NotDeprecated
+    isDeprecated      = introspectionEnumValueIsDeprecated enum
+    deprecationReason = introspectionEnumValueDeprecationReason enum
 
-makeUnionType :: I.Type -> Either InputType OutputType
-makeUnionType I.Type { I.itpeName = typeName, I.itpeDescription = description, I.itpePossibleTypes = possibleTypes, .. } = (Right (UnionOutputType (UnionType typeName description possibleTypeRefs)))
-  where
-    possibleTypeRefs = fromMaybe [] ((map makeTypeRef) <$> possibleTypes)
-
-makeEnumType :: I.Type -> Either InputType OutputType
-makeEnumType I.Type { I.itpeName = typeName, I.itpeDescription = description, I.itpeEnumValues = enums, .. } = (Right (EnumOutputType (EnumType typeName description values)))
-  where
-    values = fromMaybe [] ((map makeEnumValue) <$> enums)
-
-makeEnumValue :: I.EnumValues -> EnumValue
-makeEnumValue I.EnumValues { I.ievName = enumName, I.ievDescription = description, I.ievIsDeprecated = False, .. } = EnumValue enumName description False Nothing 
-makeEnumValue I.EnumValues { I.ievName = enumName, I.ievDescription = description, I.ievIsDeprecated = True, I.ievDeprecationReason = reason } = EnumValue enumName description True reason
-
-makeInputObject :: I.Type -> Either InputType OutputType
-makeInputObject I.Type { I.itpeName = typeName, I.itpeDescription = description, I.itpeInputFields = fields, .. } = (Left (ObjectInputType (InputObjectType typeName description fieldTypes)))
-  where
-    fieldTypes = fromMaybe [] ((map makeInputValue) <$> fields)
-
-makeInputValue :: I.InputType -> InputValue
-makeInputValue I.InputType { I.iiName = tpeName, I.iiDescription = description, I.iiTypeRef = tpeRef, I.iiDefaultValue = defaultValue } = (InputValue tpeName description (makeTypeRef tpeRef) defaultValue)
-
-makeTypeRef :: I.TypeRef -> TypeReference
-makeTypeRef I.TypeRef { I.itrKind = "NON_NULL", I.itrOfType = (Just inner), .. } = NonNullOf (makeTypeRef inner) 
-makeTypeRef I.TypeRef { I.itrKind = "LIST", I.itrOfType = (Just inner), .. }     = ListOf (makeTypeRef inner)
-makeTypeRef I.TypeRef { I.itrName = (Just tpeName), .. }                         = NamedType tpeName
-makeTypeRef _                                                                    = UnnamedType
-
-makeFieldType :: I.Field -> FieldType
-makeFieldType I.Field { I.ifName = fieldName, I.ifDescription = description, I.ifIsDeprecated = isDeprecated, I.ifDeprecationReason = deprecationReason, I.ifTypeRef = typeRef, I.ifArgs = args } = FieldType fieldName description isDeprecated deprecationReason (makeTypeRef typeRef) inputArgs
-  where
-    inputArgs = (map makeInputValue) args
-
-makeTypeMap :: [(Either InputType OutputType)] ->  M.HashMap Text (Either InputType OutputType)
-makeTypeMap = foldl' insertInfo M.empty
-  where
-    insertInfo hashMap (Left tpe)  = M.insert (name tpe) (Left tpe) hashMap
-    insertInfo hashMap (Right tpe) = M.insert (name tpe) (Right tpe) hashMap
-
--}
+mapOrEmpty :: (Functor t) => (a -> b) -> Maybe (t a) -> t b
+mapOrEmpty f v = fromMaybe mempty (fmap f <$> v)

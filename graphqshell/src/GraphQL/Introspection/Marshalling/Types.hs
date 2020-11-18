@@ -13,6 +13,7 @@ import Relude hiding (ByteString, Type)
 import Data.Aeson as J
 import Text.RawString.QQ
 import GraphQL.Marshalling.Utils (aesonOptions)
+import Data.Vector (Vector)
 
 data IntrospectionResponse = IntrospectionResponse {
   introspectionResponsSchema :: IntrospectionSchema 
@@ -25,8 +26,8 @@ data IntrospectionSchema = IntrospectionSchema {
     introspectionSchemaQueryType :: IntrospectionRootTypeName
   , introspectionSchemaMutationType :: Maybe IntrospectionRootTypeName
   , introspectionSchemaSubscriptionType :: Maybe IntrospectionRootTypeName
-  , introspectionSchemaTypes :: [IntrospectionType]
-  , introspectionSchemaDirectives :: [IntrospectionDirective]
+  , introspectionSchemaTypes :: Vector IntrospectionType
+  , introspectionSchemaDirectives :: Vector IntrospectionDirective
 }  deriving (Show, Eq, Generic)
 
 instance FromJSON IntrospectionSchema where
@@ -43,11 +44,11 @@ data IntrospectionType = IntrospectionType {
       introspectionTypeKind :: Text
     , introspectionTypeName :: Text
     , introspectionTypeDescription :: Maybe Text
-    , introspectionTypeFields :: Maybe [IntrospectionField]
-    , introspectionTypeInputFields :: Maybe [IntrospectionInputType]
-    , introspectionTypeInterfaces ::  Maybe [IntrospectionTypeRef]
-    , introspectionTypeEnumValues :: Maybe [IntrospectionEnumValue]
-    , introspectionTypePossibleTypes :: Maybe [IntrospectionTypeRef]
+    , introspectionTypeFields :: Maybe (Vector IntrospectionField)
+    , introspectionTypeInputFields :: Maybe (Vector IntrospectionInputType)
+    , introspectionTypeInterfaces ::  Maybe (Vector IntrospectionTypeRef)
+    , introspectionTypeEnumValues :: Maybe (Vector IntrospectionEnumValue)
+    , introspectionTypePossibleTypes :: Maybe (Vector IntrospectionTypeRef)
 } deriving (Show, Eq, Generic)
 
 instance FromJSON IntrospectionType where
@@ -67,7 +68,7 @@ instance FromJSON IntrospectionEnumValue where
 data IntrospectionField = IntrospectionField {
       introspectionFieldName :: Text
     , introspectionFieldDescription :: Maybe Text
-    , introspectionFieldArgs :: [IntrospectionInputType]
+    , introspectionFieldArgs :: Vector IntrospectionInputType
     , introspectionFieldIsDeprecated :: Bool
     , introspectionFieldDeprecationReason :: Maybe Text
     , introspectionFieldTypeRef :: IntrospectionTypeRef
@@ -98,8 +99,8 @@ instance FromJSON IntrospectionInputType where
 data IntrospectionDirective = IntrospectionDirective {
     introspectionDirectiveName :: Text
   , introspectionDirectiveDescription :: Maybe Text
-  , introspectionDirectiveLocations :: [Text]
-  , introspectionDirectiveArgs :: Maybe [IntrospectionInputType]
+  , introspectionDirectiveLocations :: Vector Text
+  , introspectionDirectiveArgs :: Maybe (Vector IntrospectionInputType)
 } deriving (Show, Eq, Generic)
 
 instance FromJSON IntrospectionDirective where
