@@ -26,9 +26,8 @@ data GQShellEvent = SchemaEvent | Tick
 
 runShell :: String -> IO ()
 runShell url = do
-  api <- (API.mkAPI (toText url))
-  schema <- API.introspect api
-  print schema
+  --  api <- (API.mkAPI (toText url))
+  -- schema <- API.introspect api
   void $ defaultMain makeApplication (GQShellState schema api)
 
 makeApplication :: App GQShellState GQShellEvent ()
