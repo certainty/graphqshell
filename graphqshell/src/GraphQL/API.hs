@@ -1,38 +1,22 @@
-module GraphQL.API
-  (
-      API
-    , mkAPI
-    , introspect
-    , endpointURI
-  ) where
+module GraphQL.API where
+
+import Control.Exception.Safe (MonadThrow)
+import GraphQL.Api.Types (GraphQLApi (..))
+import GraphQL.Client (ClientSettings, runGraphQLClientIO)
+import GraphQL.Introspection.Schema (runIntrospection)
 import Relude
-import Control.Monad.Catch (MonadThrow)
-import Control.Exception.Safe (throw)
-import qualified Text.URI as URI
-import GraphQL.Client.Types
-import GraphQL.Client
-import GraphQL.Introspection.Marshalling.Types (introspectionQuery)
-import qualified GraphQL.Introspection.Marshalling.Types as I 
 
-data API = API {
-   client :: Client
-} deriving (Eq, Show)
+data ApiSettings = ApiSettings
+  { clientSettings :: ClientSettings
+  }
+  deriving (Eq, Show)
 
-mkAPI :: (MonadThrow m) => Text -> m API
-mkAPI uri = API <$> (mkClient uri)
+newtype IOApi a = IOApi
+  { runIOAPI :: ReaderT ApiSettings IO a
+  }
+  deriving (Functor, Applicative, Monad, MonadIO, MonadThrow, MonadReader ApiSettings)
 
--- introspect :: (MonadThrow m, MonadIO m) => API -> m Schema
--- introspect api = do
---   rawResponse <- introspect' api
---   case schemaFromIntrospectionResponse rawResponse of
---     (Left e)       -> throw e
---     (Right schema) -> pure schema
-
--- introspect' :: (MonadThrow m, MonadIO m) => API -> m (GraphQLResponse I.IntrospectionResponse)
--- introspect' api = runRequest (client api) (GraphQLQuery introspectionQuery) noVariables
-
--- noVariables :: Maybe ()
--- noVariables = Nothing
-
--- endpointURI :: API -> URI.URI
--- endpointURI = clientEndpoint . client
+instance GraphQLApi IOApi where
+  introspect = do
+    settings <- asks clientSettings
+    liftIO $ runGraphQLClientIO settings runIntrospection

@@ -1,17 +1,24 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module GraphQL.Client.Types(
-   GraphQLQuery(..)
+    GraphQLQuery(..)
   , Location(..)
   , GraphQLError(..)
   , GraphQLQueryError(..)
   , GraphQLResponse(..)
   , GraphQLBody(..)
+  , GraphQLClient(..)
+  , emptyVariables
  ) where
 
 import Relude
 import qualified Data.Aeson as J
 import GraphQL.Marshalling.Utils (aesonOptions)
+import Control.Exception.Safe (MonadThrow)
+import Data.Aeson (FromJSON, ToJSON)
+
+class (Monad m, MonadThrow m) => GraphQLClient m where
+  runGraphQLRequest :: (ToJSON variables, FromJSON resp) => GraphQLQuery -> Maybe variables ->  m (GraphQLResponse resp)
 
 -- Request portion
 newtype GraphQLQuery = GraphQLQuery { unGraphQLQuery :: Text }
@@ -31,7 +38,6 @@ instance (J.FromJSON a) => J.FromJSON (GraphQLBody a) where
   parseJSON = J.genericParseJSON $ aesonOptions "GraphQLBody"
 
 -- Response portion
-
 data GraphQLQueryError = EmptyGraphQLReponse
                        | HttpError Text
                        | ParsingError Text
@@ -58,6 +64,7 @@ data Location = Location
 instance J.FromJSON Location where
   parseJSON = J.genericParseJSON $ aesonOptions "Location"
 
+-- TODO: Distringuish Success, Partial, Error
 data GraphQLResponse a = GraphQLResponse
   { graphQLResponseData   :: Maybe a
   , graphQLResponseErrors :: Maybe [GraphQLError]
@@ -67,4 +74,5 @@ data GraphQLResponse a = GraphQLResponse
 instance J.FromJSON a => J.FromJSON (GraphQLResponse a) where
   parseJSON = J.genericParseJSON $ aesonOptions "GraphQLResponse"
 
-
+emptyVariables :: Maybe ()
+emptyVariables = Nothing 
