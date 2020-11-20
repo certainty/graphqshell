@@ -4,6 +4,7 @@
 module GraphQL.Schema.IntrospectionTest where
 
 import Control.Exception.Safe (MonadThrow)
+import Data.Aeson (FromJSON, ToJSON, Value)
 import GraphQL.Client.Types
 import GraphQL.Introspection.Schema
 import GraphQL.Introspection.Schema.Types
@@ -23,12 +24,10 @@ newtype TestGraphQLClient b a = TestGraphQLClient
   }
   deriving (Functor, Applicative, Monad, MonadThrow, MonadIO, MonadReader (TestClientSettings b))
 
-instance GraphQLClient (TestGraphQLClient resp) where
-  runGraphQLRequest _query _variables = do
-    r <- asks stubResponse
-    pure r
+instance (FromJSON b) => GraphQLClient (TestGraphQLClient b) where
+  runGraphQLRequest _query _variables = asks stubResponse
 
-withStubbedClient :: GraphQLResponse a -> (forall m. GraphQLClient m => m b) -> IO b
+withStubbedClient :: (FromJSON a) => GraphQLResponse a -> (forall m. GraphQLClient m => m b) -> IO b
 withStubbedClient resp action = runReaderT (runTestClient action) (TestClientSettings resp)
 
 spec_introspection :: Spec
