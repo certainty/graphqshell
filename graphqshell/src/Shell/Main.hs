@@ -16,7 +16,8 @@ data Name = SchemaView deriving (Eq, Ord, Show)
 
 -- Welcome the app-state
 data GQShellState = GQShellState
-  { _schema :: Schema
+  { _schema :: Schema,
+    _apiSettings :: API.ApiSettings
   }
   deriving (Eq, Show)
 
@@ -26,9 +27,9 @@ data GQShellEvent = SchemaEvent | Tick
 
 runShell :: String -> IO ()
 runShell url = do
-  --  api <- (API.mkAPI (toText url))
-  -- schema <- API.introspect api
-  void $ defaultMain makeApplication (GQShellState schema api)
+  apiSettings <- API.mkApiSettings (toText url)
+  schema <- API.runApiIO apiSettings API.introspect
+  void $ defaultMain makeApplication (GQShellState schema apiSettings)
 
 makeApplication :: App GQShellState GQShellEvent ()
 makeApplication =
@@ -46,7 +47,7 @@ handleEvent s (AppEvent _) = continue s
 draw :: GQShellState -> [Widget ()]
 draw st = [ui uriStr]
   where
-    uriStr = renderStr . API.endpointURI . _api $ st
+    uriStr = renderStr . API.apiURI . _apiSettings $ st
 
 topBar :: String -> Widget n
 topBar url = hBox [padRight Max $ str $ "connected to " ++ url]

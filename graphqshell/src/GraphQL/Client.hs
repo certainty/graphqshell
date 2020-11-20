@@ -37,7 +37,6 @@ runGraphQLClientIO :: ClientSettings -> (forall m. GraphQLClient m => m a) -> IO
 runGraphQLClientIO settings action = runReaderT (runIOClient action) settings
 
 instance GraphQLClient IOGraphQLClient where
-  runGraphQLRequest :: (J.ToJSON variables, J.FromJSON resp, MonadIO m, MonadThrow m, MonadReader ClientSettings m) => GraphQLQuery -> Maybe variables -> m (GraphQLResponse resp)
   runGraphQLRequest query variables = do
     endpointURI <- asks clientEndpoint
     response <- case useURI endpointURI of
@@ -50,7 +49,7 @@ instance GraphQLClient IOGraphQLClient where
     where
       requestBody = GraphQLBody query variables
 
-runRequest' :: (J.ToJSON variables, MonadIO m) => (Url scheme) -> GraphQLBody variables -> m ByteString
+runRequest' :: (J.ToJSON variables, MonadIO m) => Url scheme -> GraphQLBody variables -> m ByteString
 runRequest' url body = runReq defaultHttpConfig $ do
   resp <- req POST url (ReqBodyJson body) bsResponse requestOptions
   pure (responseBody resp)

@@ -142,4 +142,4 @@ fromMarshalledEnumValue enum = EnumValue name description deprecation
     reason = introspectionEnumValueDeprecationReason enum
 
 mapOrEmpty :: (Functor t, Monoid (t b)) => (a -> b) -> Maybe (t a) -> t b
-mapOrEmpty f v = maybe mempty (fmap f) v
+mapOrEmpty f = maybe mempty (fmap f)

@@ -1,33 +1,38 @@
 {-# LANGUAGE QuasiQuotes #-}
 
 module GraphQL.Schema.Fixtures where
-import Relude 
-import Text.RawString.QQ
+
+import qualified Data.Aeson as J
 import GraphQL.Client.Types
 import qualified GraphQL.Introspection.Marshalling.Types as I
-import qualified Data.Aeson as J
-
+import Relude
+import Text.RawString.QQ
 
 introspectionInvalidResponse :: GraphQLResponse I.IntrospectionResponse
 introspectionInvalidResponse = case J.eitherDecode responseText of
-                                    (Right r) -> r
-                                    _ -> error "Invalid Response in Fixture"
+  (Right r) -> r
+  _ -> error "Invalid Response in Fixture"
   where
-    responseText = [r|
+    responseText =
+      [r|
 {
   "data": null,
   "errors": []
 }
+
 |]
 
+introspectionEmptyResponse :: GraphQLResponse ()
+introspectionEmptyResponse = GraphQLResponse Nothing Nothing
 
 -- Fetched from https://graphql-weather-api.herokuapp.com
 introspectionValidResponse :: GraphQLResponse I.IntrospectionResponse
 introspectionValidResponse = case J.eitherDecode responseText of
-                              (Right r) -> r
-                              _         -> error "Invalid Response in Fixture"
+  (Right r) -> r
+  _ -> error "Invalid Response in Fixture"
   where
-    responseText = [r|
+    responseText =
+      [r|
 {
  "data": {
     "schema": {
