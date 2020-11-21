@@ -1,14 +1,12 @@
--- | Main interface to interact with the schema as exposed via introspection
---
+-- |
+-- Main interface to interact with the schema as exposed via introspection
 -- The introspection schema provides a set of functions that allow
 -- us to answer questions about remote types. This includes
 -- things like searching for types or fields, introspecting types of fields,
 -- arguments, descriptions etc.
 --
--- Examples:
---
--- ```
--- ```
+-- Please refer to 'GraphQL.Introspection' to learn how to introspect and API and
+-- retrieve a 'GraphQL.Introspection.Schema' to work with.
 module GraphQL.Introspection.Schema
   ( module GraphQL.Introspection.Schema.Types,
     fromMarshalledSchema,

@@ -4,8 +4,8 @@
 -- This module provides types to represent introspection data
 -- as sent by a GraphQL server implementation.
 --
--- You should not need use it directly but instead interact with
--- the schema with the higher level 'GraphQL.Introspection.Schema' API.
+-- You should not need to use it directly but instead interact with
+-- the schema with the higher level 'GraphQL.Introspection' and 'GraphQL.Introspection.Schema' API.
 module GraphQL.Introspection.Marshalling.Types where
 
 import Data.Aeson as J

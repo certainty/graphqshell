@@ -9,6 +9,8 @@ services:
     command: ["/bin/bash", "--init-file", "./entrypoint.sh"]
     links:
       - demo_server
+    environment:
+      GRAPHQL_API: "http://demo_server:5000/graphql"
   
   demo_server:
     build: 
