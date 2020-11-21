@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -6,51 +7,38 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Main where
-import Relude hiding (Undefined, ByteString)
-import Data.Maybe (fromMaybe)
-import System.Environment (lookupEnv)
+
 import Data.ByteString.Lazy
-import Data.Morpheus.Types (RootResolver (..), Undefined (..))
-import Data.Text (Text)
+import Data.Morpheus
+  ( App,
+    deriveApp,
+    runApp,
+  )
 import Data.Morpheus.Kind (INTERFACE)
-import Data.Morpheus.Types (GQLType (..), interface)
-import Data.Proxy (Proxy (..))
-import GHC.Generics (Generic)
 import Data.Morpheus.Types
-  ( GQLType,
+  ( GQLType (..),
     ResolverQ,
     RootResolver (..),
     Undefined (..),
+    interface,
     liftEither,
   )
-
-import Data.Morpheus
- ( App,
-   deriveApp,
-   runApp,
- )
-
+import Data.Text ()
+import GHC.Generics ()
+import Relude hiding (ByteString, Undefined)
+import System.Environment (lookupEnv)
 import Web.Scotty
-  (
-   scotty
+  ( scotty,
   )
-
 import Web.Scotty.Trans
-  (
-    raw,
+  ( body,
     post,
-    body
+    raw,
   )
-import Control.Monad.IO.Class (MonadIO(liftIO))
 
 data Realm
   = MountOlympus
@@ -106,18 +94,19 @@ someDeity =
 
 dbDeity :: Text -> Maybe City -> IO (Either String Deity)
 dbDeity _ bornAt =
-  return $ Right $
-    Deity
-      { name = "Morpheus",
-        power = Just "Shapeshifting",
-        realm = Dream,
-        bornAt
-      }
+  return $
+    Right $
+      Deity
+        { name = "Morpheus",
+          power = Just "Shapeshifting",
+          realm = Dream,
+          bornAt
+        }
 
 data Character m
   = CharacterHuman (Human m) -- Only <tyconName><conName> should generate direct link
   | CharacterDeity Deity -- Only <tyconName><conName> should generate direct link
-      -- RECORDS
+  -- RECORDS
   | Creature {name :: Text, age :: Int}
   | BoxedDeity {boxedDeity :: Deity}
   | SomeScalarRecord {scalar :: Text}
@@ -173,7 +162,7 @@ app :: App () IO
 app = deriveApp rootResolver
 
 api :: ByteString -> IO ByteString
-api = runApp app 
+api = runApp app
 
 main :: IO ()
 main = do

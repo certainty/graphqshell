@@ -64,6 +64,16 @@ library:
     - brick 
     - vty 
     - async 
+    - raw-strings-qq
+    - aeson
+    - exceptions
+    - safe-exceptions
+    - either
+    - unordered-containers
+    - fuzzyset
+    - req
+    - modern-uri
+    - vector
 
 
 executables:
@@ -118,3 +128,5 @@ tests:
     - tasty-discover 
     - tasty-hspec 
     - graphqshell
+    - raw-strings-qq
+    - aeson

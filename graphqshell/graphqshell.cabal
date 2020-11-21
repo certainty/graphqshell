@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9abeef57abc799e8abff210a95df12e4e04aaa31fd7e142338b1c3574ab8f9a5
+-- hash: 5554e969f0b2938659a4b8c5418d3266539c240d2466730941c807336c6d9114
 
 name:           graphqshell
 version:        0.1.0.0
@@ -26,6 +26,16 @@ source-repository head
 
 library
   exposed-modules:
+      GraphQL.API
+      GraphQL.Api.Types
+      GraphQL.Client
+      GraphQL.Client.Types
+      GraphQL.Introspection
+      GraphQL.Introspection.Marshalling.Types
+      GraphQL.Introspection.Schema
+      GraphQL.Introspection.Schema.Types
+      GraphQL.Marshalling.Utils
+      Shell.Components.Introspection
       Shell.Main
   other-modules:
       Paths_graphqshell
@@ -35,13 +45,22 @@ library
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   ld-options: -pthread
   build-depends:
-      async
+      aeson
+    , async
     , base >=4.7 && <5
     , brick
     , bytestring
+    , either
+    , exceptions
+    , fuzzyset
+    , modern-uri
+    , raw-strings-qq
     , relude
+    , req
     , safe-exceptions
     , text
+    , unordered-containers
+    , vector
     , vty
   default-language: Haskell2010
 
@@ -85,17 +104,20 @@ test-suite graphqshell-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      ExampleTest
+      GraphQL.Schema.Fixtures
+      GraphQL.Schema.IntrospectionTest
       Paths_graphqshell
   hs-source-dirs:
       test
   default-extensions: NoImplicitPrelude ConstraintKinds DeriveGeneric DerivingStrategies GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase OverloadedStrings RecordWildCards ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications ViewPatterns ApplicativeDo DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , graphqshell
     , hedgehog
+    , raw-strings-qq
     , relude
     , safe-exceptions
     , tasty
