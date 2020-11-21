@@ -14,6 +14,8 @@ import Relude
 runIntrospection :: (GraphQLClient m) => m Schema
 runIntrospection = runIntrospection' (\t -> runGraphQLRequest (GraphQLQuery t) emptyVariables)
 
+-- | This function is really only used to make this testable
+--   Please refer to 'runIntrospection' instead for the monadic interface that is encouraged to be used
 runIntrospection' :: (MonadThrow m) => (Text -> m (GraphQLResponse IntrospectionResponse)) -> m Schema
 runIntrospection' f = do
   response <- f introspectionQuery

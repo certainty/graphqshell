@@ -20,7 +20,7 @@ import qualified Data.HashMap.Strict as Dict
 import Data.Text (isPrefixOf)
 import qualified Data.Vector as Vector
 import GraphQL.Introspection.Marshalling.Types
-import GraphQL.Introspection.Schema.Types hiding (deprecationReason, isDeprecated, name)
+import GraphQL.Introspection.Schema.Types hiding (deprecationReason, description, isDeprecated, name)
 import qualified GraphQL.Introspection.Schema.Types as Types
 import Relude hiding (isPrefixOf)
 
