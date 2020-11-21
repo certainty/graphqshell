@@ -14,11 +14,11 @@ where
 import Control.Exception.Safe (MonadThrow)
 import GraphQL.Api.Types (GraphQLApi (..))
 import GraphQL.Client (ClientSettings (..), runGraphQLClientIO)
-import GraphQL.Introspection.Schema (runIntrospection)
+import GraphQL.Introspection (runIntrospection)
 import Relude
 import qualified Text.URI as URI
 
-data ApiSettings = ApiSettings
+newtype ApiSettings = ApiSettings
   { clientSettings :: ClientSettings
   }
   deriving (Eq, Show)

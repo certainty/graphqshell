@@ -23,7 +23,7 @@ data ClientError
 
 instance Exception ClientError
 
-data ClientSettings = ClientSettings
+newtype ClientSettings = ClientSettings
   { clientEndpoint :: URI.URI
   }
   deriving (Eq, Show)

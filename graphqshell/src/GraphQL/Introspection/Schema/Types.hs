@@ -144,3 +144,35 @@ instance CanBeDeprecated EnumValue where
   isDeprecated _ = True
   deprecationReason (EnumValue _ _ (Deprecated reason)) = reason
   deprecationReason _ = Nothing
+
+class HasDescription a where
+  description :: a -> Description
+
+instance HasDescription ScalarType where
+  description (ScalarType _ d) = d
+
+instance HasDescription ObjectType where
+  description (ObjectType _ d _ _) = d
+
+instance HasDescription UnionType where
+  description (UnionType _ d _) = d
+
+instance HasDescription InterfaceType where
+  description (InterfaceType _ d _ _) = d
+
+instance HasDescription EnumType where
+  description (EnumType _ d _) = d
+
+instance HasDescription InputObjectType where
+  description (InputObjectType _ d _) = d
+
+instance HasDescription FieldType where
+  description (FieldType _ d _ _ _) = d
+
+instance HasDescription GraphQLType where
+  description (Scalar t) = description t
+  description (Object t) = description t
+  description (Enum t) = description t
+  description (Interface t) = description t
+  description (Union t) = description t
+  description (Input t) = description t

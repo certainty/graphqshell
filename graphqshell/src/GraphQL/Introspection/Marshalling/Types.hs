@@ -14,7 +14,7 @@ import GraphQL.Marshalling.Utils (aesonOptions)
 import Relude hiding (ByteString, Type)
 import Text.RawString.QQ
 
-data IntrospectionResponse = IntrospectionResponse
+newtype IntrospectionResponse = IntrospectionResponse
   { introspectionResponseSchema :: IntrospectionSchema
   }
   deriving (Show, Eq, Generic)
@@ -34,7 +34,7 @@ data IntrospectionSchema = IntrospectionSchema
 instance FromJSON IntrospectionSchema where
   parseJSON = J.genericParseJSON (aesonOptions "introspectionSchema")
 
-data IntrospectionRootTypeName = RootTypeName
+newtype IntrospectionRootTypeName = RootTypeName
   { introspectionRootTypeName :: Text
   }
   deriving (Show, Eq, Generic)

@@ -11,16 +11,14 @@
 -- ```
 module GraphQL.Introspection.Schema
   ( module GraphQL.Introspection.Schema.Types,
-    runIntrospection,
+    fromMarshalledSchema,
   )
 where
 
-import Control.Exception.Safe (throw)
 import qualified Data.FuzzySet as FS
 import qualified Data.HashMap.Strict as Dict
 import Data.Text (isPrefixOf)
 import qualified Data.Vector as Vector
-import GraphQL.Client.Types
 import GraphQL.Introspection.Marshalling.Types
 import GraphQL.Introspection.Schema.Types hiding (deprecationReason, isDeprecated, name)
 import qualified GraphQL.Introspection.Schema.Types as Types
@@ -42,19 +40,6 @@ import Relude hiding (isPrefixOf)
 -- searchType needle schema = map (\(score, tpeName) ->  (score, NamedType tpeName)) matches
 --   where
 --     matches = FS.get (fuzzTypes schema) needle
-
-runIntrospection :: (GraphQLClient m) => m Schema
-runIntrospection = do
-  response <- runGraphQLRequest (GraphQLQuery introspectionQuery) emptyVariables
-  case response of
-    (GraphQLResponse (Just schema) _) -> throwLeft (fromMarshalledSchema schema)
-    (GraphQLResponse _ (Just errors)) -> throw (PartialResult errors)
-    _ -> throw EmptyGraphQLReponse
-  where
-    throwLeft (Left e) = throw e
-    throwLeft (Right r) = pure r
-
--- from marshalling data
 
 fromMarshalledSchema :: IntrospectionSchema -> Either IntrospectionError Schema
 fromMarshalledSchema schema = do
