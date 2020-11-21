@@ -29,7 +29,7 @@ introspectionEmptyResponse = GraphQLResponse Nothing Nothing
 introspectionValidResponse :: GraphQLResponse I.IntrospectionResponse
 introspectionValidResponse = case J.eitherDecode responseText of
   (Right r) -> r
-  _ -> error "Invalid Response in Fixture"
+  (Left e) -> error ("Invalid Response in Fixture: " <> (show e))
   where
     responseText =
       [r|
