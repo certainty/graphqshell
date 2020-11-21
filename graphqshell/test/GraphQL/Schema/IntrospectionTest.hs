@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
 
 module GraphQL.Schema.IntrospectionTest where
@@ -6,6 +7,7 @@ module GraphQL.Schema.IntrospectionTest where
 import Control.Exception.Safe (MonadThrow)
 import Data.Aeson (FromJSON, ToJSON, Value)
 import GraphQL.Client.Types
+import GraphQL.Introspection.Marshalling.Types (IntrospectionResponse)
 import GraphQL.Introspection.Schema
 import GraphQL.Introspection.Schema.Types
 import GraphQL.Schema.Fixtures
@@ -13,22 +15,24 @@ import Relude
 import Test.Tasty ()
 import Test.Tasty.Hspec
 
-data TestClientSettings a = TestClientSettings
-  { -- TODO: map query to response
-    stubResponse :: GraphQLResponse a
+-- data TestClientSettings a = TestClientSettings
+--   { -- TODO: map query to response
+--     stubResponse :: GraphQLResponse a
+--   }
+--   deriving (Eq, Show)
+
+newtype TestGraphQLClient a = TestGraphQLClient
+  { runTestClient :: ReaderT (GraphQLResponse IntrospectionResponse) IO a
   }
-  deriving (Eq, Show)
+  deriving (Functor, Applicative, Monad, MonadIO, MonadThrow, MonadReader (GraphQLResponse IntrospectionResponse))
 
-newtype TestGraphQLClient b a = TestGraphQLClient
-  { runTestClient :: ReaderT (TestClientSettings b) IO a
-  }
-  deriving (Functor, Applicative, Monad, MonadThrow, MonadIO, MonadReader (TestClientSettings b))
+withStubbedClient :: (GraphQLResponse IntrospectionResponse) -> (forall m. GraphQLClient m => m a) -> IO a
+withStubbedClient resp action = runReaderT (runTestClient action) resp
 
-instance (FromJSON b) => GraphQLClient (TestGraphQLClient b) where
-  runGraphQLRequest _query _variables = asks stubResponse
-
-withStubbedClient :: (FromJSON a) => GraphQLResponse a -> (forall m. GraphQLClient m => m b) -> IO b
-withStubbedClient resp action = runReaderT (runTestClient action) (TestClientSettings resp)
+instance GraphQLClient TestGraphQLClient where
+  runGraphQLRequest query variables = do
+    r <- ask
+    pure introspectionEmptyResponse
 
 spec_introspection :: Spec
 spec_introspection = do

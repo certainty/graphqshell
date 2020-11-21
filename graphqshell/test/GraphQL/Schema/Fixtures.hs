@@ -22,7 +22,7 @@ introspectionInvalidResponse = case J.eitherDecode responseText of
 
 |]
 
-introspectionEmptyResponse :: GraphQLResponse ()
+introspectionEmptyResponse :: GraphQLResponse a
 introspectionEmptyResponse = GraphQLResponse Nothing Nothing
 
 -- Fetched from https://graphql-weather-api.herokuapp.com
