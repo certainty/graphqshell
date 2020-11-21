@@ -8,10 +8,13 @@ import qualified GraphQL.Introspection.Marshalling.Types as I
 import Relude
 import Text.RawString.QQ
 
+introspectionEmptyResponse :: GraphQLResponse a
+introspectionEmptyResponse = GraphQLResponse Nothing Nothing
+
 introspectionInvalidResponse :: GraphQLResponse I.IntrospectionResponse
 introspectionInvalidResponse = case J.eitherDecode responseText of
-  (Right r) -> r
-  _ -> error "Invalid Response in Fixture"
+  (Right resp) -> resp
+  (Left e) -> error ("Invalid Response in Fixture: " <> show e)
   where
     responseText =
       [r|
@@ -22,14 +25,11 @@ introspectionInvalidResponse = case J.eitherDecode responseText of
 
 |]
 
-introspectionEmptyResponse :: GraphQLResponse a
-introspectionEmptyResponse = GraphQLResponse Nothing Nothing
-
 -- Fetched from https://graphql-weather-api.herokuapp.com
 introspectionValidResponse :: GraphQLResponse I.IntrospectionResponse
 introspectionValidResponse = case J.eitherDecode responseText of
-  (Right r) -> r
-  (Left e) -> error ("Invalid Response in Fixture: " <> (show e))
+  (Right resp) -> resp
+  (Left e) -> error ("Invalid Response in Fixture: " <> show e)
   where
     responseText =
       [r|
