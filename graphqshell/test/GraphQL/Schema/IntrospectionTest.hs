@@ -10,7 +10,7 @@ import Relude
 import Test.Tasty ()
 import Test.Tasty.Hspec
 
-stubbedIntrospection :: GraphQLResponse IntrospectionResponse -> (Text -> Maybe (GraphQLResponse IntrospectionResponse))
+stubbedIntrospection :: GraphQLResponse IntrospectionResponse -> (GraphQLQuery -> Maybe (GraphQLResponse IntrospectionResponse))
 stubbedIntrospection resp = const (Just resp)
 
 spec_introspection :: Spec
