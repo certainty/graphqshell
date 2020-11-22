@@ -36,6 +36,7 @@ default-extensions:
   - LambdaCase
   - OverloadedStrings
   - RecordWildCards
+  - NamedFieldPuns
   - ScopedTypeVariables
   - StandaloneDeriving
   - TupleSections

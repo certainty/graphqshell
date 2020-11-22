@@ -10,9 +10,12 @@
 module GraphQL.Introspection.Schema
   ( module GraphQL.Introspection.Schema.Types,
     fromMarshalledSchema,
+    lookupType,
+    searchType,
   )
 where
 
+import qualified Data.Bifunctor
 import qualified Data.FuzzySet as FS
 import qualified Data.HashMap.Strict as Dict
 import Data.Text (isPrefixOf)
@@ -24,20 +27,17 @@ import Relude hiding (isPrefixOf)
 
 --- Get information about the schema
 
--- derefType :: TypeReference -> Schema -> Maybe GraphQLType
--- derefType (NamedType ref) schema = Dict.lookup ref (universe schema)
--- derefType (ListOf ref) schema    = derefType ref schema
--- derefType (NonNullOf ref) schema = derefType ref schema
--- derefType _ _ = Nothing
-
--- queryType :: Schema -> Maybe GraphQLType
--- queryType schema = derefType (query schema) schema
+lookupType :: TypeReference -> Schema -> Maybe GraphQLType
+lookupType (NamedType ref) schema = Dict.lookup ref (universe schema)
+lookupType (ListOf ref) schema = lookupType ref schema
+lookupType (NonNullOf ref) schema = lookupType ref schema
+lookupType _ _ = Nothing
 
 -- -- | fuzzy search for types
--- searchType :: Text -> Schema -> [(Double, TypeReference)]
--- searchType needle schema = map (\(score, tpeName) ->  (score, NamedType tpeName)) matches
---   where
---     matches = FS.get (fuzzTypes schema) needle
+searchType :: Text -> Schema -> [(Double, TypeReference)]
+searchType needle schema = map (Data.Bifunctor.second NamedType) matches
+  where
+    matches = FS.get (fuzzyTypes schema) needle
 
 fromMarshalledSchema :: IntrospectionSchema -> Either IntrospectionError Schema
 fromMarshalledSchema schema = do

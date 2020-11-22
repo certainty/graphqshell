@@ -1,3 +1,5 @@
+{-# LANGUAGE BlockArguments #-}
+
 module GraphQL.Introspection.Schema.Types where
 
 import qualified Data.FuzzySet as FS
@@ -5,17 +7,12 @@ import qualified Data.HashMap.Strict as M
 import Data.Vector (Vector)
 import GraphQL.Client.Types (GraphQLError)
 import Relude
-  ( Bool (..),
-    Eq,
-    Exception,
-    Maybe (Nothing),
-    Show,
-    Text,
-  )
 
 data IntrospectionError
   = IntrospectionError Text
   | PartialResult [GraphQLError]
+  | MissingQueryType
+  | InvalidRootType Text
   deriving (Eq, Show)
 
 instance Exception IntrospectionError
@@ -30,7 +27,7 @@ data Schema = Schema
     -- | The type universe of the schema
     universe :: TypeUniverse,
     -- | Fuzzy index of fields
-    fuzzTypes :: FS.FuzzySet
+    fuzzyTypes :: FS.FuzzySet
   }
   deriving (Eq, Show)
 
