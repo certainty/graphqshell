@@ -1,5 +1,6 @@
 module GraphQL.Introspection
-  ( runIntrospection,
+  ( IntrospectionError (..),
+    runIntrospection,
     runIntrospection',
   )
 where
@@ -10,6 +11,13 @@ import GraphQL.Introspection.Marshalling.Types
 import GraphQL.Introspection.Schema (fromMarshalledSchema)
 import GraphQL.Introspection.Schema.Types hiding (deprecationReason, isDeprecated, name)
 import Relude
+
+data IntrospectionError
+  = IntrospectionError Text
+  | PartialResult [GraphQLError]
+  deriving (Eq, Show)
+
+instance Exception IntrospectionError
 
 runIntrospection :: (GraphQLClient m) => m Schema
 runIntrospection = runIntrospection' (\t -> runGraphQLRequest (GraphQLQuery t) emptyVariables)

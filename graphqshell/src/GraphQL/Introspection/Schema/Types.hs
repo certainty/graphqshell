@@ -1,21 +1,29 @@
 {-# LANGUAGE BlockArguments #-}
 
-module GraphQL.Introspection.Schema.Types where
+module GraphQL.Introspection.Schema.Types
+  ( Schema (..),
+    GraphQLType (..),
+    DeprecationInfo (..),
+    ScalarType (..),
+    ObjectType (..),
+    UnionType (..),
+    InterfaceType (..),
+    EnumType (..),
+    InputObjectType (..),
+    FieldType (..),
+    EnumValue (..),
+    InputValue (..),
+    TypeReference (..),
+    HasDescription (..),
+    CanBeDeprecated (..),
+    HasName (..),
+  )
+where
 
 import qualified Data.FuzzySet as FS
 import qualified Data.HashMap.Strict as M
 import Data.Vector (Vector)
-import GraphQL.Client.Types (GraphQLError)
 import Relude
-
-data IntrospectionError
-  = IntrospectionError Text
-  | PartialResult [GraphQLError]
-  | MissingQueryType
-  | InvalidRootType Text
-  deriving (Eq, Show)
-
-instance Exception IntrospectionError
 
 -- Schema
 type TypeUniverse = M.HashMap Text GraphQLType

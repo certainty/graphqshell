@@ -9,6 +9,7 @@
 -- retrieve a 'GraphQL.Introspection.Schema' to work with.
 module GraphQL.Introspection.Schema
   ( module GraphQL.Introspection.Schema.Types,
+    SchemaBuildError (..),
     fromMarshalledSchema,
     lookupType,
     searchType,
@@ -25,6 +26,14 @@ import GraphQL.Introspection.Schema.Types hiding (deprecationReason, description
 import qualified GraphQL.Introspection.Schema.Types as Types
 import Relude hiding (isPrefixOf)
 
+data SchemaBuildError
+  = MissingQueryType
+  | InvalidRootType Text
+  | UnknownKind Text
+  deriving (Eq, Show)
+
+instance Exception SchemaBuildError
+
 --- Get information about the schema
 
 lookupType :: TypeReference -> Schema -> Maybe GraphQLType
@@ -39,7 +48,7 @@ searchType needle schema = map (Data.Bifunctor.second NamedType) matches
   where
     matches = FS.get (fuzzyTypes schema) needle
 
-fromMarshalledSchema :: IntrospectionSchema -> Either IntrospectionError Schema
+fromMarshalledSchema :: IntrospectionSchema -> Either SchemaBuildError Schema
 fromMarshalledSchema schema = do
   universe <- makeTypeDict <$> consideredTypes
   pure (Schema queryTypeRef mutationTypeRef subscriptionTypeRef universe (typeSearchSet universe))
@@ -53,10 +62,10 @@ fromMarshalledSchema schema = do
     makeTypeDict universe = Dict.fromList (map byName universe)
     byName e = (Types.name e, e)
 
-fromMarshalledType :: IntrospectionType -> Either IntrospectionError GraphQLType
+fromMarshalledType :: IntrospectionType -> Either SchemaBuildError GraphQLType
 fromMarshalledType tpe = fromMarshalledType' (introspectionTypeKind tpe) tpe
 
-fromMarshalledType' :: Text -> IntrospectionType -> Either IntrospectionError GraphQLType
+fromMarshalledType' :: Text -> IntrospectionType -> Either SchemaBuildError GraphQLType
 fromMarshalledType' "SCALAR" tpe = Right $ Scalar (ScalarType name description)
   where
     name = introspectionTypeName tpe
@@ -88,7 +97,7 @@ fromMarshalledType' "INPUT_OBJECT" tpe = Right $ Input (InputObjectType name des
     name = introspectionTypeName tpe
     description = introspectionTypeDescription tpe
     fields = mapOrEmpty fromMarshalledInputValue (introspectionTypeInputFields tpe)
-fromMarshalledType' kind _ = Left (IntrospectionError ("Unexpected Kind for GraphQL Type: " <> kind))
+fromMarshalledType' kind _ = Left (UnknownKind kind)
 
 fromMarshalledFieldType :: IntrospectionField -> FieldType
 fromMarshalledFieldType field = FieldType name description deprecation arguments outputTypeRef
