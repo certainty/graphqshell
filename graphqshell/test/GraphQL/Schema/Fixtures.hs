@@ -9,7 +9,7 @@ import Relude
 import Text.RawString.QQ
 
 introspectionEmptyResponse :: GraphQLResponse a
-introspectionEmptyResponse = GraphQLResponse Nothing Nothing
+introspectionEmptyResponse = EmptyResponse
 
 introspectionInvalidResponse :: GraphQLResponse I.IntrospectionResponse
 introspectionInvalidResponse = case J.eitherDecode responseText of

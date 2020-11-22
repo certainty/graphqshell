@@ -15,7 +15,7 @@ import Utils (throwEither)
 
 data IntrospectionError
   = IntrospectionError Text
-  | PartialResult [GraphQLError]
+  | UnexpectedGraphQLResponse
   deriving (Eq, Show)
 
 instance Exception IntrospectionError
@@ -26,9 +26,8 @@ runIntrospection = runIntrospection' (`runGraphQLRequest` emptyVariables)
 -- | This function is really only used to make this testable
 --   Please refer to 'runIntrospection' instead for the monadic interface that is encouraged to be used
 runIntrospection' :: (MonadThrow m) => (GraphQLQuery -> m (GraphQLResponse IntrospectionResponse)) -> m Schema
-runIntrospection' f = do
-  response <- f (GraphQLQuery introspectionQuery)
+runIntrospection' runQuery = do
+  response <- runQuery (GraphQLQuery introspectionQuery)
   case response of
-    (GraphQLResponse (Just (IntrospectionResponse schema)) _) -> throwEither (fromMarshalledSchema schema)
-    (GraphQLResponse _ (Just errors)) -> throw (PartialResult errors)
-    _ -> throw EmptyGraphQLReponse
+    (SuccessResponse (IntrospectionResponse schema)) -> throwEither (fromMarshalledSchema schema)
+    _ -> throw UnexpectedGraphQLResponse

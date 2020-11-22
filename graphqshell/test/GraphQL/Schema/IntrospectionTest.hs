@@ -10,18 +10,18 @@ import Relude
 import Test.Tasty ()
 import Test.Tasty.Hspec
 
-stubbedIntrospection :: GraphQLResponse IntrospectionResponse -> (GraphQLQuery -> Maybe (GraphQLResponse IntrospectionResponse))
-stubbedIntrospection resp = const (Just resp)
+stubbedIntrospection :: GraphQLResponse IntrospectionResponse -> (GraphQLQuery -> Either e (GraphQLResponse IntrospectionResponse))
+stubbedIntrospection resp = const (Right resp)
 
 spec_introspection :: Spec
 spec_introspection = do
   describe "when a successful response is provided" $
     it "returns schema" $ do
-      runIntrospection' (stubbedIntrospection introspectionValidResponse) `shouldSatisfy` isJust
+      runIntrospection' (stubbedIntrospection introspectionValidResponse) `shouldSatisfy` isRight
 
   describe "when the data can't be parsed" $
     it "returns an introspection error" $ do
-      runIntrospection' (stubbedIntrospection introspectionInvalidResponse) `shouldSatisfy` isNothing
+      runIntrospection' (stubbedIntrospection introspectionInvalidResponse) `shouldSatisfy` isLeft
 
 spec_introspectionSchema :: Spec
 spec_introspectionSchema = do
@@ -60,5 +60,5 @@ spec_introspectionSchema = do
 
 validSchema :: Schema
 validSchema = case runIntrospection' (stubbedIntrospection introspectionValidResponse) of
-  (Just s) -> s
-  _ -> error "Schema should be valid"
+  (Right s) -> s
+  (Left e) -> error ("Schema should be valid ... " <> (show e))
