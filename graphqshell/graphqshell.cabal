@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5bca1de27e11bb12deed3db20b5618141064ca891fcf7b28f1a5b97944a5d573
+-- hash: 5ed7784f523d71629cb4c6e4c57eab3c021d2aeb19f11568f3d1280111cbda48
 
 name:           graphqshell
 version:        0.1.0.0
@@ -126,6 +126,7 @@ test-suite graphqshell-test
     , tasty-hedgehog
     , tasty-hspec
     , text
+    , vector
   default-language: Haskell2010
 
 benchmark graphshell-benchmark

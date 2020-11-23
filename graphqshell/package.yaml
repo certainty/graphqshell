@@ -131,3 +131,4 @@ tests:
     - graphqshell
     - raw-strings-qq
     - aeson
+    - vector

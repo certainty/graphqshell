@@ -1,8 +1,9 @@
 module GraphQL.Schema.IntrospectionTest where
 
+import qualified Data.Vector as Vector
 import GraphQL.Client.Types
 import GraphQL.Introspection (runIntrospection')
-import GraphQL.Introspection.Marshalling.Types (IntrospectionResponse (..))
+import GraphQL.Introspection.Marshalling.Types (IntrospectionResponse)
 import qualified GraphQL.Introspection.Schema as Schema
 import GraphQL.Introspection.Schema.Types
 import GraphQL.Schema.Fixtures
@@ -55,8 +56,19 @@ spec_introspectionSchema = do
     it "finds types matching something in the middle" $ do
       (snd <$> Schema.searchType "oud" validSchema) `shouldBe` [NamedType "Clouds"]
 
-    it "finds types when single letter is given" $ do
-      (snd <$> Schema.searchType "W" validSchema) `shouldBe` [NamedType "City"]
+    it "finds multiple matches" $ do
+      (snd <$> Schema.searchType "Foot" testSchema) `shouldBe` [NamedType "Football", NamedType "FootLocker"]
+
+-- TODO: search is case insensitive
+
+testSchema :: Schema.Schema
+testSchema = Schema.mkSchema query Nothing Nothing otherTypes
+  where
+    query = Object (ObjectType "Query" Nothing Vector.empty Vector.empty)
+    otherTypes =
+      [ Object (ObjectType "Football" Nothing Vector.empty Vector.empty),
+        Object (ObjectType "FootLocker" Nothing Vector.empty Vector.empty)
+      ]
 
 validSchema :: Schema.Schema
 validSchema = case runIntrospection' (stubbedIntrospection introspectionValidResponse) of

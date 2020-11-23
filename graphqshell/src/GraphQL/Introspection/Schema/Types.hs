@@ -19,7 +19,7 @@ module GraphQL.Introspection.Schema.Types
   )
 where
 
-import Data.Vector
+import Data.Vector (Vector)
 import Relude
 
 -- Schema
