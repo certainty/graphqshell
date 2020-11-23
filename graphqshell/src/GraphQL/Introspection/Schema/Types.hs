@@ -1,8 +1,7 @@
 {-# LANGUAGE BlockArguments #-}
 
 module GraphQL.Introspection.Schema.Types
-  ( Schema (..),
-    GraphQLType (..),
+  ( GraphQLType (..),
     DeprecationInfo (..),
     ScalarType (..),
     ObjectType (..),
@@ -20,24 +19,10 @@ module GraphQL.Introspection.Schema.Types
   )
 where
 
-import qualified Data.FuzzySet as FS
-import qualified Data.HashMap.Strict as M
-import Data.Vector (Vector)
+import Data.Vector
 import Relude
 
 -- Schema
-type TypeUniverse = M.HashMap Text GraphQLType
-
-data Schema = Schema
-  { query :: TypeReference,
-    mutation :: Maybe TypeReference,
-    subscription :: Maybe TypeReference,
-    -- | The type universe of the schema
-    universe :: TypeUniverse,
-    -- | Fuzzy index of fields
-    fuzzyTypes :: FS.FuzzySet
-  }
-  deriving (Eq, Show)
 
 -- Type wrapper
 data GraphQLType

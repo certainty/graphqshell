@@ -34,10 +34,110 @@ introspectionValidResponse = case J.eitherDecode responseText of
     responseText =
       [r|
 {
- "data": {
+  "data": {
     "schema": {
       "queryType": {
-        "name": "Query"
+        "kind": "OBJECT",
+        "name": "Query",
+        "description": null,
+        "fields": [
+          {
+            "name": "getCityByName",
+            "description": null,
+            "args": [
+              {
+                "name": "name",
+                "description": null,
+                "typeRef": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  }
+                },
+                "defaultValue": null
+              },
+              {
+                "name": "country",
+                "description": null,
+                "typeRef": {
+                  "kind": "SCALAR",
+                  "name": "String",
+                  "ofType": null
+                },
+                "defaultValue": null
+              },
+              {
+                "name": "config",
+                "description": null,
+                "typeRef": {
+                  "kind": "INPUT_OBJECT",
+                  "name": "ConfigInput",
+                  "ofType": null
+                },
+                "defaultValue": null
+              }
+            ],
+            "typeRef": {
+              "kind": "OBJECT",
+              "name": "City",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "getCityById",
+            "description": null,
+            "args": [
+              {
+                "name": "id",
+                "description": null,
+                "typeRef": {
+                  "kind": "LIST",
+                  "name": null,
+                  "ofType": {
+                    "kind": "NON_NULL",
+                    "name": null,
+                    "ofType": {
+                      "kind": "SCALAR",
+                      "name": "String",
+                      "ofType": null
+                    }
+                  }
+                },
+                "defaultValue": null
+              },
+              {
+                "name": "config",
+                "description": null,
+                "typeRef": {
+                  "kind": "INPUT_OBJECT",
+                  "name": "ConfigInput",
+                  "ofType": null
+                },
+                "defaultValue": null
+              }
+            ],
+            "typeRef": {
+              "kind": "LIST",
+              "name": null,
+              "ofType": {
+                "kind": "OBJECT",
+                "name": "City",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
       },
       "mutationType": null,
       "subscriptionType": null,
@@ -1923,5 +2023,4 @@ introspectionValidResponse = case J.eitherDecode responseText of
       ]
     }
   }
-}
-|]
+}|]

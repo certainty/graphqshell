@@ -23,9 +23,9 @@ instance FromJSON IntrospectionResponse where
   parseJSON = J.genericParseJSON (aesonOptions "introspectionResponse")
 
 data IntrospectionSchema = IntrospectionSchema
-  { introspectionSchemaQueryType :: IntrospectionRootTypeName,
-    introspectionSchemaMutationType :: Maybe IntrospectionRootTypeName,
-    introspectionSchemaSubscriptionType :: Maybe IntrospectionRootTypeName,
+  { introspectionSchemaQueryType :: IntrospectionType,
+    introspectionSchemaMutationType :: Maybe IntrospectionType,
+    introspectionSchemaSubscriptionType :: Maybe IntrospectionType,
     introspectionSchemaTypes :: Vector IntrospectionType,
     introspectionSchemaDirectives :: Vector IntrospectionDirective
   }
@@ -113,19 +113,21 @@ data IntrospectionDirective = IntrospectionDirective
 instance FromJSON IntrospectionDirective where
   parseJSON = J.genericParseJSON (aesonOptions "introspectionDirective")
 
+-- This is not a type but it is closely related to the types defined here.
+-- It determines how they need to be marshalled
 introspectionQuery :: Text
 introspectionQuery =
   [r|
 query Introspection {
   schema: __schema {
     queryType {
-      name
+      ...FullType
     }
     mutationType {
-      name
+      ...FullType
     }
     subscriptionType {
-      name
+      ...FullType
     }
     types {
       ...FullType

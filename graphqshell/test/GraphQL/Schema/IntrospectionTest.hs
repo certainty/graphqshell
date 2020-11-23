@@ -27,7 +27,7 @@ spec_introspectionSchema :: Spec
 spec_introspectionSchema = do
   describe "queryType" $
     it "finds the query" $ do
-      Schema.query validSchema `shouldBe` NamedType "Query"
+      name (Schema.query validSchema) `shouldBe` "Query"
 
   describe "lookupType" $ do
     it "finds the named type" $ do
@@ -58,7 +58,7 @@ spec_introspectionSchema = do
     it "finds types when single letter is given" $ do
       (snd <$> Schema.searchType "W" validSchema) `shouldBe` [NamedType "City"]
 
-validSchema :: Schema
+validSchema :: Schema.Schema
 validSchema = case runIntrospection' (stubbedIntrospection introspectionValidResponse) of
   (Right s) -> s
   (Left e) -> error ("Schema should be valid ... " <> (show e))

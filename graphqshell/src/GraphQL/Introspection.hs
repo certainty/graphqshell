@@ -8,7 +8,7 @@ where
 import Control.Exception.Safe (MonadThrow, throw)
 import GraphQL.Client.Types
 import GraphQL.Introspection.Marshalling.Types
-import GraphQL.Introspection.Schema (fromMarshalledSchema)
+import GraphQL.Introspection.Schema (Schema, fromMarshalledSchema)
 import GraphQL.Introspection.Schema.Types hiding (deprecationReason, isDeprecated, name)
 import Relude
 import Utils (throwEither)
