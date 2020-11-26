@@ -61,6 +61,15 @@ spec_introspectionSchema = do
 
     it "finds matches even for short search strings" $
       doSearch "Fo" testSchema `shouldBe` [NamedType "FootLocker", NamedType "Football"]
+
+    it "finds matches for substrings" $
+      doSearch "Foal" testSchema `shouldBe` [NamedType "Football"]
+
+    it "is case insensitive" $ do
+      doSearch "foOt" testSchema `shouldBe` [NamedType "FootLocker", NamedType "Football"]
+
+    it "finds nothing if there is nothing" $ do
+      doSearch "nope" testSchema `shouldBe` []
   where
     doSearch needle schema = namedType <$> Schema.searchType needle surround schema
     namedType (tpe, _, _) = tpe
