@@ -1,38 +1,28 @@
-module GraphQL.Introspection.Schema.Types where
+{-# LANGUAGE BlockArguments #-}
 
-import qualified Data.FuzzySet as FS
-import qualified Data.HashMap.Strict as M
-import Data.Vector (Vector)
-import GraphQL.Client.Types (GraphQLError)
-import Relude
-  ( Bool (..),
-    Eq,
-    Exception,
-    Maybe (Nothing),
-    Show,
-    Text,
+module GraphQL.Introspection.Schema.Types
+  ( GraphQLType (..),
+    DeprecationInfo (..),
+    ScalarType (..),
+    ObjectType (..),
+    UnionType (..),
+    InterfaceType (..),
+    EnumType (..),
+    InputObjectType (..),
+    FieldType (..),
+    EnumValue (..),
+    InputValue (..),
+    TypeReference (..),
+    HasDescription (..),
+    CanBeDeprecated (..),
+    HasName (..),
   )
+where
 
-data IntrospectionError
-  = IntrospectionError Text
-  | PartialResult [GraphQLError]
-  deriving (Eq, Show)
-
-instance Exception IntrospectionError
+import Data.Vector (Vector)
+import Relude
 
 -- Schema
-type TypeUniverse = M.HashMap Text GraphQLType
-
-data Schema = Schema
-  { query :: TypeReference,
-    mutation :: Maybe TypeReference,
-    subscription :: Maybe TypeReference,
-    -- | The type universe of the schema
-    universe :: TypeUniverse,
-    -- | Fuzzy index of fields
-    fuzzTypes :: FS.FuzzySet
-  }
-  deriving (Eq, Show)
 
 -- Type wrapper
 data GraphQLType

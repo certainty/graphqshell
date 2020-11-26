@@ -6,7 +6,7 @@ import Brick
 import Brick.Widgets.Border
 import Brick.Widgets.Border.Style
 import qualified GraphQL.API as API
-import GraphQL.Introspection.Schema.Types (Schema)
+import GraphQL.Introspection.Schema (Schema)
 import qualified Graphics.Vty as V
 import Relude
 import qualified Shell.Components.Introspection as Intro

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5554e969f0b2938659a4b8c5418d3266539c240d2466730941c807336c6d9114
+-- hash: 58e1e40a7ae9a4d8fe63077c44ef825e149b2e85ae343d12e5042bf75782315a
 
 name:           graphqshell
 version:        0.1.0.0
@@ -37,11 +37,12 @@ library
       GraphQL.Marshalling.Utils
       Shell.Components.Introspection
       Shell.Main
+      Utils
   other-modules:
       Paths_graphqshell
   hs-source-dirs:
       src
-  default-extensions: NoImplicitPrelude ConstraintKinds DeriveGeneric DerivingStrategies GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase OverloadedStrings RecordWildCards ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications ViewPatterns ApplicativeDo DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies
+  default-extensions: NoImplicitPrelude ConstraintKinds DeriveGeneric DerivingStrategies GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase OverloadedStrings RecordWildCards NamedFieldPuns ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications ViewPatterns ApplicativeDo DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   ld-options: -pthread
   build-depends:
@@ -52,6 +53,7 @@ library
     , bytestring
     , either
     , exceptions
+    , fuzzy
     , fuzzyset
     , modern-uri
     , raw-strings-qq
@@ -70,7 +72,7 @@ executable demo_server
       Paths_graphqshell
   hs-source-dirs:
       demo_server
-  default-extensions: NoImplicitPrelude ConstraintKinds DeriveGeneric DerivingStrategies GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase OverloadedStrings RecordWildCards ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications ViewPatterns ApplicativeDo DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies
+  default-extensions: NoImplicitPrelude ConstraintKinds DeriveGeneric DerivingStrategies GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase OverloadedStrings RecordWildCards NamedFieldPuns ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications ViewPatterns ApplicativeDo DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
@@ -88,7 +90,7 @@ executable graphqshell-exe
       Paths_graphqshell
   hs-source-dirs:
       app
-  default-extensions: NoImplicitPrelude ConstraintKinds DeriveGeneric DerivingStrategies GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase OverloadedStrings RecordWildCards ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications ViewPatterns ApplicativeDo DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies
+  default-extensions: NoImplicitPrelude ConstraintKinds DeriveGeneric DerivingStrategies GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase OverloadedStrings RecordWildCards NamedFieldPuns ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications ViewPatterns ApplicativeDo DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   ld-options: -pthread
   build-depends:
@@ -109,7 +111,7 @@ test-suite graphqshell-test
       Paths_graphqshell
   hs-source-dirs:
       test
-  default-extensions: NoImplicitPrelude ConstraintKinds DeriveGeneric DerivingStrategies GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase OverloadedStrings RecordWildCards ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications ViewPatterns ApplicativeDo DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies
+  default-extensions: NoImplicitPrelude ConstraintKinds DeriveGeneric DerivingStrategies GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase OverloadedStrings RecordWildCards NamedFieldPuns ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications ViewPatterns ApplicativeDo DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
@@ -125,6 +127,7 @@ test-suite graphqshell-test
     , tasty-hedgehog
     , tasty-hspec
     , text
+    , vector
   default-language: Haskell2010
 
 benchmark graphshell-benchmark
@@ -134,7 +137,7 @@ benchmark graphshell-benchmark
       Paths_graphqshell
   hs-source-dirs:
       benchmark
-  default-extensions: NoImplicitPrelude ConstraintKinds DeriveGeneric DerivingStrategies GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase OverloadedStrings RecordWildCards ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications ViewPatterns ApplicativeDo DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies
+  default-extensions: NoImplicitPrelude ConstraintKinds DeriveGeneric DerivingStrategies GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase OverloadedStrings RecordWildCards NamedFieldPuns ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications ViewPatterns ApplicativeDo DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5

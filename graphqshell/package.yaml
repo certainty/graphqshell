@@ -36,6 +36,7 @@ default-extensions:
   - LambdaCase
   - OverloadedStrings
   - RecordWildCards
+  - NamedFieldPuns
   - ScopedTypeVariables
   - StandaloneDeriving
   - TupleSections
@@ -71,6 +72,7 @@ library:
     - either
     - unordered-containers
     - fuzzyset
+    - fuzzy
     - req
     - modern-uri
     - vector
@@ -130,3 +132,4 @@ tests:
     - graphqshell
     - raw-strings-qq
     - aeson
+    - vector

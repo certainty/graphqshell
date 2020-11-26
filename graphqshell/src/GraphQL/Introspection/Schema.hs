@@ -9,11 +9,18 @@
 -- retrieve a 'GraphQL.Introspection.Schema' to work with.
 module GraphQL.Introspection.Schema
   ( module GraphQL.Introspection.Schema.Types,
+    SchemaBuildError (..),
+    Schema,
+    query,
+    mutation,
+    subscription,
+    mkSchema,
     fromMarshalledSchema,
+    lookupType,
+    searchType,
   )
 where
 
-import qualified Data.FuzzySet as FS
 import qualified Data.HashMap.Strict as Dict
 import Data.Text (isPrefixOf)
 import qualified Data.Vector as Vector
@@ -21,42 +28,81 @@ import GraphQL.Introspection.Marshalling.Types
 import GraphQL.Introspection.Schema.Types hiding (deprecationReason, description, isDeprecated, name)
 import qualified GraphQL.Introspection.Schema.Types as Types
 import Relude hiding (isPrefixOf)
+import qualified Text.Fuzzy as Fz
+
+data SchemaBuildError
+  = MissingQueryType
+  | InvalidRootType Text
+  | UnknownKind Text
+  deriving (Eq, Show)
+
+instance Exception SchemaBuildError
+
+type TypeUniverse = Dict.HashMap Text GraphQLType
+
+type QueryType = GraphQLType
+
+type MutationType = Maybe GraphQLType
+
+type SubscriptionType = Maybe GraphQLType
+
+data Schema = Schema
+  { query :: QueryType,
+    mutation :: MutationType,
+    subscription :: SubscriptionType,
+    -- | The type universe of the schema
+    universe :: TypeUniverse,
+    -- | Fuzzy index of type names
+    typeNames :: [Text]
+  }
+  deriving (Eq, Show)
+
+mkSchema :: QueryType -> MutationType -> SubscriptionType -> [GraphQLType] -> Schema
+mkSchema queryType mutationType subscriptionType additionalTypes = Schema queryType mutationType subscriptionType typeUniverse typeIndex
+  where
+    typeIndex = Dict.keys typeUniverse
+    typeUniverse = Dict.fromList (map (\tpe -> (Types.name tpe, tpe)) additionalTypes)
 
 --- Get information about the schema
+lookupType :: TypeReference -> Schema -> Maybe GraphQLType
+lookupType (NamedType ref) schema = Dict.lookup ref (universe schema)
+lookupType (ListOf ref) schema = lookupType ref schema
+lookupType (NonNullOf ref) schema = lookupType ref schema
+lookupType _ _ = Nothing
 
--- derefType :: TypeReference -> Schema -> Maybe GraphQLType
--- derefType (NamedType ref) schema = Dict.lookup ref (universe schema)
--- derefType (ListOf ref) schema    = derefType ref schema
--- derefType (NonNullOf ref) schema = derefType ref schema
--- derefType _ _ = Nothing
-
--- queryType :: Schema -> Maybe GraphQLType
--- queryType schema = derefType (query schema) schema
-
--- -- | fuzzy search for types
--- searchType :: Text -> Schema -> [(Double, TypeReference)]
--- searchType needle schema = map (\(score, tpeName) ->  (score, NamedType tpeName)) matches
---   where
---     matches = FS.get (fuzzTypes schema) needle
-
-fromMarshalledSchema :: IntrospectionSchema -> Either IntrospectionError Schema
-fromMarshalledSchema schema = do
-  universe <- makeTypeDict <$> consideredTypes
-  pure (Schema queryTypeRef mutationTypeRef subscriptionTypeRef universe (typeSearchSet universe))
+-- -- | fuzzy search for types in the schema provided
+searchType ::
+  -- | The text to search for
+  Text ->
+  -- | A pair specifying the prefix and suffix to surround the matches
+  (Text, Text) ->
+  -- | The schema
+  Schema ->
+  -- | A list of matches containing the score, the annotated match and the reference to the type
+  [(TypeReference, Text, Int)]
+searchType needle (prefix, suffix) schema = map wrapMatch matches
   where
-    queryTypeRef = NamedType <$> introspectionRootTypeName $ introspectionSchemaQueryType schema
-    mutationTypeRef = NamedType . introspectionRootTypeName <$> introspectionSchemaMutationType schema
-    subscriptionTypeRef = NamedType . introspectionRootTypeName <$> introspectionSchemaSubscriptionType schema
+    matches = Fz.filter needle (typeNames schema) prefix suffix identity False
+    wrapMatch match = (NamedType $ Fz.original match, Fz.rendered match, Fz.score match)
+
+-- Build the schema from introspection data
+fromMarshalledSchema :: IntrospectionSchema -> Either SchemaBuildError Schema
+fromMarshalledSchema schema = mkSchema <$> queryType <*> maybeMutationType <*> maybeSubscriptionType <*> consideredTypes
+  where
+    queryType = fromMarshalledType (introspectionSchemaQueryType schema)
+    maybeMutationType = fromMarshalledOpt $ introspectionSchemaMutationType schema
+    maybeSubscriptionType = fromMarshalledOpt $ introspectionSchemaSubscriptionType schema
     consideredTypes = traverse fromMarshalledType consideredMarshalledTypes
     consideredMarshalledTypes = filter (not . isPrefixOf "__" . introspectionTypeName) (Vector.toList (introspectionSchemaTypes schema))
-    typeSearchSet types = FS.fromList (Dict.keys types)
-    makeTypeDict universe = Dict.fromList (map byName universe)
-    byName e = (Types.name e, e)
 
-fromMarshalledType :: IntrospectionType -> Either IntrospectionError GraphQLType
+fromMarshalledOpt :: Maybe IntrospectionType -> Either SchemaBuildError (Maybe GraphQLType)
+fromMarshalledOpt Nothing = Right Nothing
+fromMarshalledOpt (Just tpe) = Just <$> fromMarshalledType tpe
+
+fromMarshalledType :: IntrospectionType -> Either SchemaBuildError GraphQLType
 fromMarshalledType tpe = fromMarshalledType' (introspectionTypeKind tpe) tpe
 
-fromMarshalledType' :: Text -> IntrospectionType -> Either IntrospectionError GraphQLType
+fromMarshalledType' :: Text -> IntrospectionType -> Either SchemaBuildError GraphQLType
 fromMarshalledType' "SCALAR" tpe = Right $ Scalar (ScalarType name description)
   where
     name = introspectionTypeName tpe
@@ -88,7 +134,7 @@ fromMarshalledType' "INPUT_OBJECT" tpe = Right $ Input (InputObjectType name des
     name = introspectionTypeName tpe
     description = introspectionTypeDescription tpe
     fields = mapOrEmpty fromMarshalledInputValue (introspectionTypeInputFields tpe)
-fromMarshalledType' kind _ = Left (IntrospectionError ("Unexpected Kind for GraphQL Type: " <> kind))
+fromMarshalledType' kind _ = Left (UnknownKind kind)
 
 fromMarshalledFieldType :: IntrospectionField -> FieldType
 fromMarshalledFieldType field = FieldType name description deprecation arguments outputTypeRef
