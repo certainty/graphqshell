@@ -72,6 +72,7 @@ library:
     - either
     - unordered-containers
     - fuzzyset
+    - fuzzy
     - req
     - modern-uri
     - vector

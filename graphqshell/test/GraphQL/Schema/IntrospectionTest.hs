@@ -17,21 +17,21 @@ stubbedIntrospection resp = const (Right resp)
 spec_introspection :: Spec
 spec_introspection = do
   describe "when a successful response is provided" $
-    it "returns schema" $ do
+    it "returns schema" $
       runIntrospection' (stubbedIntrospection introspectionValidResponse) `shouldSatisfy` isRight
 
   describe "when the data can't be parsed" $
-    it "returns an introspection error" $ do
+    it "returns an introspection error" $
       runIntrospection' (stubbedIntrospection introspectionInvalidResponse) `shouldSatisfy` isLeft
 
 spec_introspectionSchema :: Spec
 spec_introspectionSchema = do
   describe "queryType" $
-    it "finds the query" $ do
+    it "finds the query" $
       name (Schema.query validSchema) `shouldBe` "Query"
 
   describe "lookupType" $ do
-    it "finds the named type" $ do
+    it "finds the named type" $
       (name <$> Schema.lookupType (NamedType "City") validSchema) `shouldBe` Just "City"
 
     it "finds type that's wrapped in List" $
@@ -50,16 +50,22 @@ spec_introspectionSchema = do
       Schema.lookupType (NamedType "NonExistent") validSchema `shouldBe` Nothing
 
   describe "searchType" $ do
-    it "finds types matching the beginning" $ do
-      (snd <$> Schema.searchType "Clou" validSchema) `shouldBe` [NamedType "Clouds"]
+    it "finds types matching the beginning" $
+      doSearch "Clou" validSchema `shouldBe` [NamedType "Clouds"]
 
-    it "finds types matching something in the middle" $ do
-      (snd <$> Schema.searchType "oud" validSchema) `shouldBe` [NamedType "Clouds"]
+    it "finds types matching something in the middle" $
+      doSearch "oud" validSchema `shouldBe` [NamedType "Clouds"]
 
-    it "finds multiple matches" $ do
-      (snd <$> Schema.searchType "Foot" testSchema) `shouldBe` [NamedType "Football", NamedType "FootLocker"]
+    it "finds multiple matches" $
+      doSearch "Foot" testSchema `shouldBe` [NamedType "FootLocker", NamedType "Football"]
 
--- TODO: search is case insensitive
+    it "finds matches even for short search strings" $
+      doSearch "Fo" testSchema `shouldBe` [NamedType "FootLocker", NamedType "Football"]
+  where
+    doSearch needle schema = namedType <$> Schema.searchType needle surround schema
+    namedType (tpe, _, _) = tpe
+    surround :: (Text, Text)
+    surround = ("", "")
 
 testSchema :: Schema.Schema
 testSchema = Schema.mkSchema query Nothing Nothing otherTypes
@@ -73,4 +79,4 @@ testSchema = Schema.mkSchema query Nothing Nothing otherTypes
 validSchema :: Schema.Schema
 validSchema = case runIntrospection' (stubbedIntrospection introspectionValidResponse) of
   (Right s) -> s
-  (Left e) -> error ("Schema should be valid ... " <> (show e))
+  (Left e) -> error ("Schema should be valid ... " <> show e)

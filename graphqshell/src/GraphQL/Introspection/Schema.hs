@@ -21,8 +21,6 @@ module GraphQL.Introspection.Schema
   )
 where
 
-import qualified Data.Bifunctor
-import qualified Data.FuzzySet as FS
 import qualified Data.HashMap.Strict as Dict
 import Data.Text (isPrefixOf)
 import qualified Data.Vector as Vector
@@ -30,6 +28,7 @@ import GraphQL.Introspection.Marshalling.Types
 import GraphQL.Introspection.Schema.Types hiding (deprecationReason, description, isDeprecated, name)
 import qualified GraphQL.Introspection.Schema.Types as Types
 import Relude hiding (isPrefixOf)
+import qualified Text.Fuzzy as Fz
 
 data SchemaBuildError
   = MissingQueryType
@@ -53,15 +52,15 @@ data Schema = Schema
     subscription :: SubscriptionType,
     -- | The type universe of the schema
     universe :: TypeUniverse,
-    -- | Fuzzy index of fields
-    fuzzyTypes :: FS.FuzzySet
+    -- | Fuzzy index of type names
+    typeNames :: [Text]
   }
   deriving (Eq, Show)
 
 mkSchema :: QueryType -> MutationType -> SubscriptionType -> [GraphQLType] -> Schema
 mkSchema queryType mutationType subscriptionType additionalTypes = Schema queryType mutationType subscriptionType typeUniverse typeIndex
   where
-    typeIndex = FS.fromList (Dict.keys typeUniverse)
+    typeIndex = Dict.keys typeUniverse
     typeUniverse = Dict.fromList (map (\tpe -> (Types.name tpe, tpe)) additionalTypes)
 
 --- Get information about the schema
@@ -71,11 +70,20 @@ lookupType (ListOf ref) schema = lookupType ref schema
 lookupType (NonNullOf ref) schema = lookupType ref schema
 lookupType _ _ = Nothing
 
--- -- | fuzzy search for types
-searchType :: Text -> Schema -> [(Double, TypeReference)]
-searchType needle schema = map (Data.Bifunctor.second NamedType) matches
+-- -- | fuzzy search for types in the schema provided
+searchType ::
+  -- | The text to search for
+  Text ->
+  -- | A pair specifying the prefix and suffix to surround the matches
+  (Text, Text) ->
+  -- | The schema
+  Schema ->
+  -- | A list of matches containing the score, the annotated match and the reference to the type
+  [(TypeReference, Text, Int)]
+searchType needle (prefix, suffix) schema = map wrapMatch matches
   where
-    matches = FS.get (fuzzyTypes schema) needle
+    matches = Fz.filter needle (typeNames schema) prefix suffix identity False
+    wrapMatch match = (NamedType $ Fz.original match, Fz.rendered match, Fz.score match)
 
 -- Build the schema from introspection data
 fromMarshalledSchema :: IntrospectionSchema -> Either SchemaBuildError Schema

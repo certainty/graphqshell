@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5ed7784f523d71629cb4c6e4c57eab3c021d2aeb19f11568f3d1280111cbda48
+-- hash: 58e1e40a7ae9a4d8fe63077c44ef825e149b2e85ae343d12e5042bf75782315a
 
 name:           graphqshell
 version:        0.1.0.0
@@ -53,6 +53,7 @@ library
     , bytestring
     , either
     , exceptions
+    , fuzzy
     , fuzzyset
     , modern-uri
     , raw-strings-qq
