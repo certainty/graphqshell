@@ -56,7 +56,7 @@ spec_introspectionSchema = do
     it "finds types matching something in the middle" $
       doSearch "oud" validSchema `shouldBe` [NamedType "Clouds"]
 
-    it "finds multiple matches (best matches first)" $
+    it "finds multiple matches" $
       doSearch "Foot" testSchema `shouldBe` [NamedType "FootLocker", NamedType "Football"]
 
     it "finds matches even for short search strings" $
