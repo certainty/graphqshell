@@ -24,7 +24,7 @@ data ApplicationState = ApplicationState
     _apiSettings :: API.ApiSettings,
     _introspectorState :: Intro.State
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 makeLenses ''ApplicationState
 
