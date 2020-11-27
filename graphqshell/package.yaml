@@ -90,6 +90,7 @@ executables:
     - -pthread
     dependencies:
     - graphqshell
+    - optparse-applicative
 
   demo_server:
     main: Main.hs

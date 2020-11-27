@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Shell.Main (runShell) where
+module Shell.Application (runShell) where
 
 import Brick
 import Brick.Widgets.Border
@@ -24,6 +24,12 @@ data GQShellState = GQShellState
 -- Application Events
 data GQShellEvent = SchemaEvent | Tick
   deriving (Eq, Ord, Show)
+
+data Settings = Settings
+  { -- The URL of the API to connect to on application start up
+    apiUrl :: Text
+  }
+  deriving (Eq, Show)
 
 runShell :: String -> IO ()
 runShell url = do
