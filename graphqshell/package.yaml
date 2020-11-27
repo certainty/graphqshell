@@ -76,6 +76,9 @@ library:
     - req
     - modern-uri
     - vector
+    - microlens
+    - microlens-th
+
 
 
 executables:

@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Shell.Application (runShell) where
 
@@ -8,21 +10,28 @@ import Brick.Widgets.Border.Style
 import qualified GraphQL.API as API
 import GraphQL.Introspection.Schema (Schema)
 import qualified Graphics.Vty as V
-import Relude
+import Lens.Micro (Lens', (&), (.~), (^.))
+import Lens.Micro.TH
+import Relude hiding (state)
 import qualified Shell.Components.Introspection as Intro
 import Text.URI (renderStr)
 
 data Name = SchemaView deriving (Eq, Ord, Show)
 
 -- Welcome the app-state
-data GQShellState = GQShellState
+data ApplicationState = ApplicationState
   { _schema :: Schema,
-    _apiSettings :: API.ApiSettings
+    _apiSettings :: API.ApiSettings,
+    _introspectorState :: Intro.State
   }
   deriving (Eq, Show)
 
+makeLenses ''ApplicationState
+
 -- Application Events
-data GQShellEvent = SchemaEvent | Tick
+data ApplicationEvent
+  = IntrospectorEvent Intro.Event
+  | Tick
   deriving (Eq, Ord, Show)
 
 data Settings = Settings
@@ -33,24 +42,31 @@ data Settings = Settings
 
 runShell :: String -> IO ()
 runShell url = do
-  apiSettings <- API.mkApiSettings (toText url)
-  schema <- API.runApiIO apiSettings API.introspect
-  void $ defaultMain makeApplication (GQShellState schema apiSettings)
+  apiSettings' <- API.mkApiSettings (toText url)
+  schema' <- API.runApiIO apiSettings' API.introspect
+  void $ defaultMain makeApplication (ApplicationState schema' apiSettings' (Intro.mkState schema'))
 
-makeApplication :: App GQShellState GQShellEvent ()
+makeApplication :: App ApplicationState ApplicationEvent ()
 makeApplication =
   App
     { appDraw = draw,
       appChooseCursor = neverShowCursor,
-      appHandleEvent = handleEvent,
+      appHandleEvent = update,
       appAttrMap = const $ attrMap V.defAttr [],
       appStartEvent = pure
     }
 
-handleEvent :: GQShellState -> BrickEvent n GQShellEvent -> EventM n (Next GQShellState)
-handleEvent s (AppEvent _) = continue s
+update :: ApplicationState -> BrickEvent n ApplicationEvent -> EventM n (Next ApplicationState)
+update s (AppEvent (IntrospectorEvent event)) = updateComponent s introspectorState Intro.update (AppEvent event)
+update s (VtyEvent evt) = updateComponent s introspectorState Intro.update (VtyEvent evt)
+update s _ = continue s
 
-draw :: GQShellState -> [Widget ()]
+updateComponent :: a -> Lens' a b -> (b -> e -> EventM n (Next b)) -> e -> EventM n (Next a)
+updateComponent state target handler event = do
+  newVal <- handler (state ^. target) event
+  pure $ (\newState -> state & target .~ newState) <$> newVal
+
+draw :: ApplicationState -> [Widget ()]
 draw st = [ui uriStr]
   where
     uriStr = renderStr . API.apiURI . _apiSettings $ st
@@ -64,7 +80,7 @@ statusLine = hBox [padRight Max $ str "Status"]
 mainViewPort :: String -> Widget ()
 mainViewPort url =
   border $
-    (topBar url)
+    topBar url
       <=> hBorder
       <=> Intro.view
       <=> hBorder
