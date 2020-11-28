@@ -6,10 +6,12 @@ module Shell.Components.Introspection
     State,
     mkState,
     update,
+    attributes,
   )
 where
 
 import Brick
+import Brick.AttrMap (AttrName)
 import Brick.Widgets.Border
 import Brick.Widgets.Border.Style
 import Brick.Widgets.Center
@@ -17,9 +19,11 @@ import qualified Brick.Widgets.List as L
 import GraphQL.Introspection.Schema (FieldType, GraphQLType (..), Schema, query)
 import GraphQL.Introspection.Schema.Types (ObjectType (ObjectType), name)
 import qualified Graphics.Vty as V
-import Lens.Micro ((^.))
+import Graphics.Vty.Attributes (Attr)
+import Lens.Micro ((&), (.~), (^.))
 import Lens.Micro.TH (makeLenses)
 import Relude hiding (State, state)
+import Shell.Components.Types
 
 data Event = Event deriving (Eq, Ord, Show)
 
@@ -30,19 +34,25 @@ data State = State
   }
 
 data FieldViewState = FieldViewState
-  { _sfvFields :: (L.List () FieldType)
+  { _sfvFields :: L.List () FieldType
   }
 
 makeLenses ''State
 makeLenses ''FieldViewState
+
+attributes :: [(AttrName, Attr)]
+attributes = []
 
 mkState :: Schema -> State
 mkState schema = State schema (query schema) (FieldViewState (L.list () fields 1))
   where
     (Object (ObjectType _ _ fields _)) = query schema
 
-update :: State -> BrickEvent n Event -> EventM n (Next State)
-update s _ = continue s
+update :: State -> BrickEvent ComponentName Event -> EventM ComponentName (Next State)
+update state (VtyEvent ev) = do
+  newState <- L.handleListEvent ev (state ^. (stFieldView . sfvFields))
+  continue (state & stFieldView .~ FieldViewState newState)
+update state _ev = continue state
 
 view :: State -> Widget ()
 view state = padBottom Max $ fieldView state <+> vBorder <+> typeView state
@@ -54,4 +64,6 @@ fieldView :: State -> Widget ()
 fieldView state = L.renderList renderField True (state ^. (stFieldView . sfvFields))
 
 renderField :: Bool -> FieldType -> Widget ()
-renderField _selected field = str (toString (name field))
+renderField selected field = str $ (toString (name field)) ++ (show selected)
+
+htitle t = hLimit 20 $ withAttr "infoTitle" $ txt t

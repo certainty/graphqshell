@@ -17,11 +17,8 @@ import Lens.Micro (Lens', (&), (.~), (^.))
 import Lens.Micro.TH (makeLenses)
 import Relude hiding (state)
 import qualified Shell.Components.Introspection as Intro
+import Shell.Components.Types
 import Text.URI (renderStr)
-
--- | A resource name for each component that we use
--- Currently just () but will be refactored later
-type ComponentName = () -- Main | Introspector deriving (Eq, Ord, Show)
 
 -- Welcome the app-state
 data ApplicationState = ApplicationState
@@ -45,6 +42,7 @@ data ApplicationEvent
   | Tick
   deriving (Eq, Ord, Show)
 
+-- Main entry point to run the application
 runShell :: String -> Int -> IO ApplicationState
 runShell url tickRate = do
   chan <- BCh.newBChan 5
@@ -52,9 +50,10 @@ runShell url tickRate = do
   apiSettings' <- API.mkApiSettings (toText url)
   schema' <- API.runApiIO apiSettings' API.introspect
   initialVty <- buildVty
-  customMain initialVty buildVty (Just chan) makeApplication (mkInitialState apiSettings' schema')
+  customMain initialVty buildVty (Just chan) (makeApplication attrs) (mkInitialState apiSettings' schema')
   where
     buildVty = V.mkVty V.defaultConfig
+    attrs = attrMap V.defAttr (Intro.attributes)
 
 -- Background thread to run tick events fed into the system
 startTickThread :: BCh.BChan ApplicationEvent -> Int -> IO ThreadId
@@ -63,13 +62,13 @@ startTickThread chan tickRate = forkIO $
     BCh.writeBChan chan Tick
     threadDelay tickRate
 
-makeApplication :: App ApplicationState ApplicationEvent ComponentName
-makeApplication =
+makeApplication :: AttrMap -> App ApplicationState ApplicationEvent ComponentName
+makeApplication attrs =
   App
     { appDraw = draw,
       appChooseCursor = neverShowCursor,
       appHandleEvent = update,
-      appAttrMap = const $ attrMap V.defAttr [],
+      appAttrMap = const attrs,
       appStartEvent = pure
     }
 
