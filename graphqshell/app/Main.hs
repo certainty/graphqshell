@@ -11,11 +11,14 @@ data Options = Options
   }
   deriving (Eq, Show)
 
+tickRate :: Int
+tickRate = (1 * 1000000)
+
 main :: IO ()
 main = do
   parsedOpts <- execParser opts
   apiURI <- lookupEnv "GRAPHQL_API"
-  runShell (fromMaybe (toString (apiURL parsedOpts)) apiURI)
+  void $ runShell (fromMaybe (toString (apiURL parsedOpts)) apiURI) tickRate
   where
     opts =
       info
