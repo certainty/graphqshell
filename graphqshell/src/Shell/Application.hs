@@ -13,8 +13,7 @@ import Control.Concurrent (ThreadId, forkIO, threadDelay)
 import qualified GraphQL.API as API
 import GraphQL.Introspection.Schema (Schema)
 import qualified Graphics.Vty as V
-import Lens.Micro (Lens', (.~), (^.))
-import Lens.Micro.TH (makeLenses)
+import Lens.Micro.Platform (Lens', makeLenses, (.~), (^.))
 import Relude hiding (state)
 import qualified Shell.Components.Introspection as Intro
 import Shell.Components.Types

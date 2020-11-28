@@ -76,8 +76,7 @@ library:
     - req
     - modern-uri
     - vector
-    - microlens
-    - microlens-th
+    - microlens-platform
     - time
 
 

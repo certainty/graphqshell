@@ -23,8 +23,7 @@ import GraphQL.Introspection.Schema.Types (HasName (name), description)
 import Graphics.Vty (standout)
 import qualified Graphics.Vty as V
 import Graphics.Vty.Attributes (Attr, bold, defAttr, withStyle)
-import Lens.Micro ((.~), (^.))
-import Lens.Micro.TH (makeLenses)
+import Lens.Micro.Platform (makeLenses, (.~), (^.))
 import Relude hiding (State, state)
 import Shell.Components.Types
 

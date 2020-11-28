@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e9d4060546d6cb5adc660ba697bc0b6c73ff7f003051b5a436235ead87004991
+-- hash: 0661f78dc917d17200909ce8ec35af9b5c171eead1374e19aa935a6c4990bb4a
 
 name:           graphqshell
 version:        0.1.0.0
@@ -57,8 +57,7 @@ library
     , exceptions
     , fuzzy
     , fuzzyset
-    , microlens
-    , microlens-th
+    , microlens-platform
     , modern-uri
     , raw-strings-qq
     , relude
