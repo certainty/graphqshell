@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Shell.Components.Introspection
   ( view,
     Event (..),
@@ -13,28 +15,43 @@ import Brick.Widgets.Border.Style
 import Brick.Widgets.Center
 import qualified Brick.Widgets.List as L
 import GraphQL.Introspection.Schema (FieldType, GraphQLType (..), Schema, query)
-import GraphQL.Introspection.Schema.Types (ObjectType (ObjectType))
+import GraphQL.Introspection.Schema.Types (ObjectType (ObjectType), name)
 import qualified Graphics.Vty as V
-import Relude hiding (State)
+import Lens.Micro ((^.))
+import Lens.Micro.TH (makeLenses)
+import Relude hiding (State, state)
 
 data Event = Event deriving (Eq, Ord, Show)
 
-data State = State Schema GraphQLType (L.List () FieldType)
-  deriving (Show)
+data State = State
+  { _stSchema :: Schema,
+    _stSelectedType :: GraphQLType,
+    _stFieldView :: FieldViewState
+  }
+
+data FieldViewState = FieldViewState
+  { _sfvFields :: (L.List () FieldType)
+  }
+
+makeLenses ''State
+makeLenses ''FieldViewState
 
 mkState :: Schema -> State
-mkState schema = State schema (query schema) (L.list () fields 1)
+mkState schema = State schema (query schema) (FieldViewState (L.list () fields 1))
   where
     (Object (ObjectType _ _ fields _)) = query schema
 
 update :: State -> BrickEvent n Event -> EventM n (Next State)
 update s _ = continue s
 
-view :: Widget ()
-view = padBottom Max $ fieldView <+> vBorder <+> typeView
+view :: State -> Widget ()
+view state = padBottom Max $ fieldView state <+> vBorder <+> typeView state
 
-typeView :: Widget ()
-typeView = vLimitPercent 70 $ padRight Max (str "typeinfo")
+typeView :: State -> Widget ()
+typeView _state = str "Type"
 
-fieldView :: Widget ()
-fieldView = vLimitPercent 30 (str "fields")
+fieldView :: State -> Widget ()
+fieldView state = L.renderList renderField True (state ^. (stFieldView . sfvFields))
+
+renderField :: Bool -> FieldType -> Widget ()
+renderField _selected field = str (toString (name field))

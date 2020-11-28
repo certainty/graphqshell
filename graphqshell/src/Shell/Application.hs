@@ -88,27 +88,27 @@ updateComponent state target handler event = do
   pure $ (\newState -> state & target .~ newState) <$> newVal
 
 draw :: ApplicationState -> [Widget ComponentName]
-draw st = [ui uriStr]
+draw state = [mainWidget state]
+
+mainWidget :: ApplicationState -> Widget ComponentName
+mainWidget state =
+  withBorderStyle unicodeRounded $
+    joinBorders $
+      mainViewPort state
+
+topBar :: ApplicationState -> Widget ComponentName
+topBar state = hBox [padRight Max $ str $ "connected to " ++ url]
   where
-    uriStr = renderStr . API.apiURI . _stApiSettings $ st
+    url = renderStr . API.apiURI $ state ^. stApiSettings
 
-topBar :: String -> Widget ComponentName
-topBar url = hBox [padRight Max $ str $ "connected to " ++ url]
-
-statusLine :: Widget ComponentName
-statusLine = hBox [padRight Max $ str "C-c: Exit"]
-
-mainViewPort :: String -> Widget ComponentName
-mainViewPort url =
+mainViewPort :: ApplicationState -> Widget ComponentName
+mainViewPort state =
   border $
-    topBar url
+    topBar state
       <=> hBorder
-      <=> Intro.view
+      <=> Intro.view (state ^. stIntrospectorState)
       <=> hBorder
       <=> statusLine
 
-ui :: String -> Widget ComponentName
-ui url =
-  withBorderStyle unicodeRounded $
-    joinBorders $
-      mainViewPort url
+statusLine :: Widget ComponentName
+statusLine = hBox [padRight Max $ str "C-c: Exit"]
