@@ -20,7 +20,8 @@ import qualified Shell.Components.Introspection as Intro
 import Text.URI (renderStr)
 
 -- | A resource name for each component that we use
-data ComponentName = Main | Introspector deriving (Eq, Ord, Show)
+-- Currently just () but will be refactored later
+type ComponentName = () -- Main | Introspector deriving (Eq, Ord, Show)
 
 -- Welcome the app-state
 data ApplicationState = ApplicationState
@@ -36,7 +37,7 @@ makeLenses ''ApplicationState
 mkInitialState :: API.ApiSettings -> Schema -> ApplicationState
 mkInitialState settings schema = ApplicationState schema settings (Focus.focusRing components) (Intro.mkState schema)
   where
-    components = [Main, Introspector]
+    components = [()]
 
 -- Application Events
 data ApplicationEvent
@@ -62,7 +63,7 @@ startTickThread chan tickRate = forkIO $
     BCh.writeBChan chan Tick
     threadDelay tickRate
 
-makeApplication :: App ApplicationState ApplicationEvent ()
+makeApplication :: App ApplicationState ApplicationEvent ComponentName
 makeApplication =
   App
     { appDraw = draw,
@@ -72,7 +73,7 @@ makeApplication =
       appStartEvent = pure
     }
 
-update :: ApplicationState -> BrickEvent n ApplicationEvent -> EventM n (Next ApplicationState)
+update :: ApplicationState -> BrickEvent ComponentName ApplicationEvent -> EventM ComponentName (Next ApplicationState)
 -- Key events
 update s (VtyEvent (V.EvKey (V.KChar 'c') [V.MCtrl])) = halt s
 update s (VtyEvent evt) = updateComponent s stIntrospectorState Intro.update (VtyEvent evt)
@@ -86,18 +87,18 @@ updateComponent state target handler event = do
   newVal <- handler (state ^. target) event
   pure $ (\newState -> state & target .~ newState) <$> newVal
 
-draw :: ApplicationState -> [Widget ()]
+draw :: ApplicationState -> [Widget ComponentName]
 draw st = [ui uriStr]
   where
     uriStr = renderStr . API.apiURI . _stApiSettings $ st
 
-topBar :: String -> Widget n
+topBar :: String -> Widget ComponentName
 topBar url = hBox [padRight Max $ str $ "connected to " ++ url]
 
-statusLine :: Widget n
+statusLine :: Widget ComponentName
 statusLine = hBox [padRight Max $ str "C-c: Exit"]
 
-mainViewPort :: String -> Widget ()
+mainViewPort :: String -> Widget ComponentName
 mainViewPort url =
   border $
     topBar url
@@ -106,7 +107,7 @@ mainViewPort url =
       <=> hBorder
       <=> statusLine
 
-ui :: String -> Widget ()
+ui :: String -> Widget ComponentName
 ui url =
   withBorderStyle unicodeRounded $
     joinBorders $
