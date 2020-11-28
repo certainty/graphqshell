@@ -11,16 +11,16 @@ module Shell.Components.Introspection
 where
 
 import Brick
-import Brick.AttrMap (AttrName)
+import Brick.Markup (markup, (@?))
 import Brick.Widgets.Border
-import Brick.Widgets.Border.Style
 import Brick.Widgets.Center
 import qualified Brick.Widgets.List as L
-import GraphQL.Introspection.Schema (FieldType, GraphQLType (..), Schema, query)
-import GraphQL.Introspection.Schema.Types (ObjectType (ObjectType), name)
+import Data.Text.Markup (Markup (..), (@@))
+import GraphQL.Introspection.Schema
+import GraphQL.Introspection.Schema.Types (HasName (name))
 import qualified Graphics.Vty as V
-import Graphics.Vty.Attributes (Attr)
-import Lens.Micro ((&), (.~), (^.))
+import Graphics.Vty.Attributes (Attr, bold, defAttr, withStyle)
+import Lens.Micro ((.~), (^.))
 import Lens.Micro.TH (makeLenses)
 import Relude hiding (State, state)
 import Shell.Components.Types
@@ -40,8 +40,9 @@ data FieldViewState = FieldViewState
 makeLenses ''State
 makeLenses ''FieldViewState
 
+-- Custom formatting
 attributes :: [(AttrName, Attr)]
-attributes = []
+attributes = [(L.listSelectedAttr, withStyle defAttr bold)]
 
 mkState :: Schema -> State
 mkState schema = State schema (query schema) (FieldViewState (L.list () fields 1))
@@ -55,15 +56,39 @@ update state (VtyEvent ev) = do
 update state _ev = continue state
 
 view :: State -> Widget ()
-view state = padBottom Max $ fieldView state <+> vBorder <+> typeView state
+view state =
+  padBottom Max $
+    mainView state <+> vBorder <+> detailView state
 
-typeView :: State -> Widget ()
-typeView _state = str "Type"
+detailView :: State -> Widget ()
+detailView _state = padLeft (Pad 1) $ str "Type"
 
-fieldView :: State -> Widget ()
-fieldView state = L.renderList renderField True (state ^. (stFieldView . sfvFields))
+mainView :: State -> Widget ()
+mainView state =
+  hLimit 70 $
+    padBottom (Pad 2) $
+      htitle (name $ state ^. stSelectedType)
+        <=> padLeft (Pad 3) (L.renderList (renderField schema) True (state ^. (stFieldView . sfvFields)))
+  where
+    schema = state ^. stSchema
 
-renderField :: Bool -> FieldType -> Widget ()
-renderField selected field = str $ (toString (name field)) ++ (show selected)
+-- The field data in the mainView
+renderField :: Schema -> Bool -> FieldType -> Widget ()
+renderField _schema _selected field = markup $ toSDL field
 
-htitle t = hLimit 20 $ withAttr "infoTitle" $ txt t
+htitle :: Text -> Widget n
+htitle t = hBox [padLeft (Pad 1) $ txt t]
+
+-- Helpers will later be extracted
+
+class ToSDL a where
+  toSDL :: a -> Markup AttrName
+
+instance ToSDL TypeReference where
+  toSDL (ListOf tpe) = "[" <> toSDL tpe <> "]"
+  toSDL (NonNullOf tpe) = toSDL tpe <> "!"
+  toSDL (NamedType tpeName) = tpeName @? "typeName"
+  toSDL UnnamedType = ""
+
+instance ToSDL FieldType where
+  toSDL (FieldType fieldName _descr _depr _args outputRef) = (fieldName @? "fieldName") <> "(...): " <> toSDL outputRef

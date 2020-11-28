@@ -13,7 +13,7 @@ import Control.Concurrent (ThreadId, forkIO, threadDelay)
 import qualified GraphQL.API as API
 import GraphQL.Introspection.Schema (Schema)
 import qualified Graphics.Vty as V
-import Lens.Micro (Lens', (&), (.~), (^.))
+import Lens.Micro (Lens', (.~), (^.))
 import Lens.Micro.TH (makeLenses)
 import Relude hiding (state)
 import qualified Shell.Components.Introspection as Intro
@@ -53,7 +53,7 @@ runShell url tickRate = do
   customMain initialVty buildVty (Just chan) (makeApplication attrs) (mkInitialState apiSettings' schema')
   where
     buildVty = V.mkVty V.defaultConfig
-    attrs = attrMap V.defAttr (Intro.attributes)
+    attrs = attrMap V.defAttr Intro.attributes
 
 -- Background thread to run tick events fed into the system
 startTickThread :: BCh.BChan ApplicationEvent -> Int -> IO ThreadId
@@ -96,7 +96,7 @@ mainWidget state =
       mainViewPort state
 
 topBar :: ApplicationState -> Widget ComponentName
-topBar state = hBox [padRight Max $ str $ "connected to " ++ url]
+topBar state = hBox [padRight Max $ padLeft (Pad 1) $ str $ "GraphQL API: " ++ url]
   where
     url = renderStr . API.apiURI $ state ^. stApiSettings
 
@@ -105,9 +105,10 @@ mainViewPort state =
   border $
     topBar state
       <=> hBorder
+      <=> hBorder
       <=> Intro.view (state ^. stIntrospectorState)
       <=> hBorder
       <=> statusLine
 
 statusLine :: Widget ComponentName
-statusLine = hBox [padRight Max $ str "C-c: Exit"]
+statusLine = hBox [padRight Max $ padLeft (Pad 1) $ str "C-c: Exit"]
