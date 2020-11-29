@@ -18,6 +18,8 @@ module GraphQL.Introspection.Schema
     fromMarshalledSchema,
     lookupType,
     searchType,
+    isNullable,
+    fieldTypeReference,
   )
 where
 
@@ -84,6 +86,13 @@ searchType needle (prefix, suffix) schema = map wrapMatch matches
   where
     matches = Fz.filter needle (typeNames schema) prefix suffix identity False
     wrapMatch match = (NamedType $ Fz.original match, Fz.rendered match, Fz.score match)
+
+isNullable :: TypeReference -> Bool
+isNullable (NonNullOf _) = False
+isNullable _ = True
+
+fieldTypeReference :: FieldType -> TypeReference
+fieldTypeReference (FieldType _ _ _ _ tpe) = tpe
 
 -- Build the schema from introspection data
 fromMarshalledSchema :: IntrospectionSchema -> Either SchemaBuildError Schema

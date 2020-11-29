@@ -11,7 +11,7 @@ import Brick.Widgets.Border
 import Brick.Widgets.Border.Style
 import Control.Concurrent (ThreadId, forkIO, threadDelay)
 import qualified GraphQL.API as API
-import GraphQL.Introspection.Schema (Schema)
+import GraphQL.Introspection.Schema (Schema, query)
 import qualified Graphics.Vty as V
 import Lens.Micro.Platform (Lens', makeLenses, (.~), (^.))
 import Relude hiding (state)
@@ -31,7 +31,7 @@ data ApplicationState = ApplicationState
 makeLenses ''ApplicationState
 
 mkInitialState :: API.ApiSettings -> Schema -> ApplicationState
-mkInitialState settings schema = ApplicationState schema settings (Focus.focusRing components) (Intro.mkState schema)
+mkInitialState settings schema = ApplicationState schema settings (Focus.focusRing components) (Intro.mkState schema (query schema))
   where
     components = [()]
 
