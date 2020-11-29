@@ -95,7 +95,7 @@ mainWidget state =
       mainViewPort state
 
 topBar :: ApplicationState -> Widget ComponentName
-topBar state = hBox [padRight Max $ padLeft (Pad 1) $ str $ "GraphQL API: " ++ url]
+topBar state = hBox [padRight Max $ padLeft (Pad 1) $ txt (toText url)]
   where
     url = renderStr . API.apiURI $ state ^. stApiSettings
 
@@ -104,10 +104,14 @@ mainViewPort state =
   border $
     topBar state
       <=> hBorder
+      <=> tabLine
       <=> hBorder
       <=> Intro.view (state ^. stIntrospectorState)
       <=> hBorder
       <=> statusLine
+
+tabLine :: Widget ComponentName
+tabLine = hBox [padRight Max $ padLeft (Pad 1) $ txt "[ Introspector ] | [ Query ]"]
 
 statusLine :: Widget ComponentName
 statusLine = hBox [padRight Max $ padLeft (Pad 1) $ str "C-c: Exit"]

@@ -70,21 +70,52 @@ fieldOutputType schema (FieldType _ _ _ _ ref) = lookupType ref schema
 
 -- View
 view :: State -> Widget ()
-view state =
-  padBottom Max $
-    mainView state <+> vBorder <+> detailView state
+view = objectTypeView
 
-mainView :: State -> Widget ()
-mainView state =
+-- | ObjectType view
+objectTypeView :: State -> Widget ()
+objectTypeView state =
+  padBottom Max $
+    vLimitPercent 30 (objectTypeInfoView state)
+      <=> objectTypeFieldsView state
+
+objectTypeInfoView :: State -> Widget ()
+objectTypeInfoView state = (info "Type" typeName <+> info "Kind" typeKind <+> info "Referenced by" referencedBy <+> info "References" references) <=> infoWidget "Description" (txtWrap (txtOpt typeDescr))
+  where
+    typeName = Just $ name $ state ^. stSelectedType
+    typeKind = Just (graphQLKind $ state ^. stSelectedType)
+    referencedBy = Nothing
+    references = Nothing
+    typeDescr = Nothing
+    info label value = infoWidget label (txt (txtOpt value))
+    infoWidget label value = padAll 1 $ txt (label <> ": ") <+> value
+
+graphQLKind :: GraphQLType -> Text
+graphQLKind (Object _) = "ObjectType"
+graphQLKind (Scalar _) = "Scalar"
+graphQLKind (Enum _) = "Enum"
+graphQLKind (Interface _) = "Interface"
+graphQLKind (Union _) = "Union"
+
+txtOpt :: Maybe Text -> Text
+txtOpt = fromMaybe "N/A"
+
+-- | ObjectType fields view
+-- This is a basic main - detail architecture
+objectTypeFieldsView :: State -> Widget ()
+objectTypeFieldsView state =
+  hBorderWithLabel (txt " Fields ") <=> objectTypeFieldsMainView state <+> vBorder <+> (hBorderWithLabel (txt "Field Info") <=> objectTypeFieldDetailView state)
+
+objectTypeFieldsMainView :: State -> Widget ()
+objectTypeFieldsMainView state =
   hLimitPercent 40 $
     padBottom (Pad 2) $
-      htitle (name $ state ^. stSelectedType)
-        <=> padLeft (Pad 3) (L.renderList (renderField schema) True (state ^. (stFieldView . sfvFields)))
+      L.renderList (renderField schema) True (state ^. (stFieldView . sfvFields))
   where
     schema = state ^. stSchema
 
-detailView :: State -> Widget ()
-detailView state =
+objectTypeFieldDetailView :: State -> Widget ()
+objectTypeFieldDetailView state =
   padLeft (Pad 2) (htitle (selectedTypeName <> "." <> fieldName))
     <=> hBorder
     <=> padLeft (Pad 2) (htitle "Description")
