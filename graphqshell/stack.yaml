@@ -45,7 +45,9 @@ extra-deps:
   - morpheus-graphql-client-0.16.0
 
 # Override default flag values for local packages and extra-deps
-# flags: {}
+flags:
+  brick:
+    demos: false
 
 # Extra package databases containing global packages
 # extra-package-dbs: []
