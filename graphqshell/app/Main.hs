@@ -2,7 +2,7 @@ module Main where
 
 import Options.Applicative
 import Relude
-import Shell.Application (runShell)
+import qualified Shell.Application as Application
 import System.Environment
 
 data Options = Options
@@ -12,20 +12,15 @@ data Options = Options
   deriving (Eq, Show)
 
 tickRate :: Int
-tickRate = (1 * 1000000)
+tickRate = 1 * 1000000
 
 main :: IO ()
 main = do
   parsedOpts <- execParser opts
   apiURI <- lookupEnv "GRAPHQL_API"
-  void $ runShell (fromMaybe (toString (apiURL parsedOpts)) apiURI) tickRate
+  void $ Application.run (maybe (apiURL parsedOpts) toText apiURI) tickRate
   where
-    opts =
-      info
-        (options <**> helper)
-        ( fullDesc
-            <> header "GraphQL TUI that is fast, fun and functional"
-        )
+    opts = info (options <**> helper) (fullDesc <> header "GraphQL TUI that is fast, fun and functional")
 
 options :: Parser Options
 options =

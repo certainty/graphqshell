@@ -2,7 +2,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Shell.Application (runShell) where
+module Shell.Application (run) where
 
 import Brick
 import qualified Brick.BChan as BCh
@@ -19,12 +19,16 @@ import qualified Shell.Components.Introspection as Intro
 import Shell.Components.Types
 import Text.URI (renderStr)
 
--- Welcome the app-state
+-- | The application state holds global data and component specific data.
+-- The application will delegate updates to the currently active component automatically.
 data ApplicationState = ApplicationState
-  { _stSchema :: Schema,
+  { -- | The 'Schema' of the currently connected GraphQL API
+    _stSchema :: Schema,
+    -- | settings for the 'API' client
     _stApiSettings :: API.ApiSettings,
+    -- | Manage which component has the focus
     _stFocus :: !(Focus.FocusRing ComponentName),
-    -- Component states
+    -- | State for the introspector component
     _stIntrospectorState :: Intro.State
   }
 
@@ -42,11 +46,10 @@ data ApplicationEvent
   deriving (Eq, Ord, Show)
 
 -- Main entry point to run the application
-runShell :: String -> Int -> IO ApplicationState
-runShell url tickRate = do
-  chan <- BCh.newBChan 5
-  _ <- startTickThread chan tickRate
-  apiSettings' <- API.mkApiSettings (toText url)
+run :: Text -> Int -> IO ApplicationState
+run url tickRate = do
+  (_, chan) <- startTickThread tickRate
+  apiSettings' <- API.mkApiSettings url
   schema' <- API.runApiIO apiSettings' API.introspect
   initialVty <- buildVty
   customMain initialVty buildVty (Just chan) (makeApplication attrs) (mkInitialState apiSettings' schema')
@@ -55,11 +58,20 @@ runShell url tickRate = do
     attrs = attrMap V.defAttr Intro.attributes
 
 -- Background thread to run tick events fed into the system
-startTickThread :: BCh.BChan ApplicationEvent -> Int -> IO ThreadId
-startTickThread chan tickRate = forkIO $
-  forever $ do
-    BCh.writeBChan chan Tick
-    threadDelay tickRate
+-- This is required to have the UI updated even though no user interaction occurred
+-- for example to update progress indicators.
+startTickThread ::
+  -- | The tick rate in microseconds
+  Int ->
+  -- | 'ThreadId' of the tick thread and the channel that is used to write to
+  IO (ThreadId, BCh.BChan ApplicationEvent)
+startTickThread tickRate = do
+  chan <- BCh.newBChan 5
+  thread <- forkIO $
+    forever $ do
+      BCh.writeBChan chan Tick
+      threadDelay tickRate
+  pure (thread, chan)
 
 makeApplication :: AttrMap -> App ApplicationState ApplicationEvent ComponentName
 makeApplication attrs =
