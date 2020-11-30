@@ -137,3 +137,5 @@ tests:
     - raw-strings-qq
     - aeson
     - vector
+    - microlens-th
+    - brick

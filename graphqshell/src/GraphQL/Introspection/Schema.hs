@@ -42,11 +42,11 @@ instance Exception SchemaBuildError
 
 type TypeUniverse = Dict.HashMap Text GraphQLType
 
-type QueryType = GraphQLType
+type QueryType = ObjectType
 
-type MutationType = Maybe GraphQLType
+type MutationType = Maybe ObjectType
 
-type SubscriptionType = Maybe GraphQLType
+type SubscriptionType = Maybe ObjectType
 
 data Schema = Schema
   { query :: QueryType,
@@ -98,11 +98,22 @@ fieldTypeReference (FieldType _ _ _ _ tpe) = tpe
 fromMarshalledSchema :: IntrospectionSchema -> Either SchemaBuildError Schema
 fromMarshalledSchema schema = mkSchema <$> queryType <*> maybeMutationType <*> maybeSubscriptionType <*> consideredTypes
   where
-    queryType = fromMarshalledType (introspectionSchemaQueryType schema)
-    maybeMutationType = fromMarshalledOpt $ introspectionSchemaMutationType schema
-    maybeSubscriptionType = fromMarshalledOpt $ introspectionSchemaSubscriptionType schema
+    queryType = rootType "Query" (fromMarshalledType (introspectionSchemaQueryType schema))
+    maybeMutationType = rootTypeOpt "Mutation" (fromMarshalledOpt $ introspectionSchemaMutationType schema)
+    maybeSubscriptionType = rootTypeOpt "Subscription" (fromMarshalledOpt $ introspectionSchemaSubscriptionType schema)
     consideredTypes = traverse fromMarshalledType consideredMarshalledTypes
     consideredMarshalledTypes = filter (not . isPrefixOf "__" . introspectionTypeName) (Vector.toList (introspectionSchemaTypes schema))
+
+rootType :: Text -> Either SchemaBuildError GraphQLType -> Either SchemaBuildError ObjectType
+rootType _ (Right (Object tpe)) = Right tpe
+rootType typeName (Right _) = Left (InvalidRootType typeName)
+rootType _ (Left e) = Left e
+
+rootTypeOpt :: Text -> Either SchemaBuildError (Maybe GraphQLType) -> Either SchemaBuildError (Maybe ObjectType)
+rootTypeOpt _ (Right (Just (Object tpe))) = Right (Just tpe)
+rootTypeOpt typeName (Right (Just _)) = Left (InvalidRootType typeName)
+rootTypeOpt _ (Right Nothing) = Right Nothing
+rootTypeOpt _ (Left e) = Left e
 
 fromMarshalledOpt :: Maybe IntrospectionType -> Either SchemaBuildError (Maybe GraphQLType)
 fromMarshalledOpt Nothing = Right Nothing

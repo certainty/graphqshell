@@ -79,7 +79,7 @@ spec_introspectionSchema = do
 testSchema :: Schema.Schema
 testSchema = Schema.mkSchema query Nothing Nothing otherTypes
   where
-    query = Object (ObjectType "Query" Nothing Vector.empty Vector.empty)
+    query = ObjectType "Query" Nothing Vector.empty Vector.empty
     otherTypes =
       [ Object (ObjectType "Football" Nothing Vector.empty Vector.empty),
         Object (ObjectType "FootLocker" Nothing Vector.empty Vector.empty)
