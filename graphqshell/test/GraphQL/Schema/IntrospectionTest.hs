@@ -6,7 +6,6 @@ import GraphQL.Introspection (runIntrospection')
 import GraphQL.Introspection.Marshalling.Types (IntrospectionResponse)
 import qualified GraphQL.Introspection.Schema as Schema
 import GraphQL.Introspection.Schema.Types
-import GraphQL.Introspection.Schema.Types (TypeReference (Named))
 import GraphQL.Schema.Fixtures
 import Relude
 import Test.Tasty ()
