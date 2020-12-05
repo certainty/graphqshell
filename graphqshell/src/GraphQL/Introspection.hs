@@ -8,10 +8,8 @@ where
 import Control.Exception.Safe (MonadThrow, throw)
 import GraphQL.Client.Types
 import GraphQL.Introspection.Marshalling.Types
-import GraphQL.Introspection.Schema (Schema, fromMarshalledSchema)
-import GraphQL.Introspection.Schema.Types hiding (deprecationReason, isDeprecated, name)
+import GraphQL.Introspection.Schema (Schema, fromIntrospectionSchema)
 import Relude
-import Utils (throwEither)
 
 data IntrospectionError
   = IntrospectionError Text
@@ -29,5 +27,5 @@ runIntrospection' :: (MonadThrow m) => (GraphQLQuery -> m (GraphQLResponse Intro
 runIntrospection' runQuery = do
   response <- runQuery (GraphQLQuery introspectionQuery)
   case response of
-    (SuccessResponse (IntrospectionResponse schema)) -> throwEither (fromMarshalledSchema schema)
+    (SuccessResponse (IntrospectionResponse schema)) -> fromIntrospectionSchema schema
     _ -> throw UnexpectedGraphQLResponse

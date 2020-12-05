@@ -162,8 +162,7 @@ class ToSDL a where
 instance ToSDL TypeReference where
   toSDL (ListOf tpe) = "[" <> toSDL tpe <> "]"
   toSDL (NonNullOf tpe) = toSDL tpe <> "!"
-  toSDL (NamedType tpeName) = tpeName @? "typeName"
-  toSDL UnnamedType = ""
+  toSDL (Named (NamedType tpeName)) = tpeName @? "typeName"
 
 instance ToSDL FieldType where
   toSDL (FieldType fieldName _descr _depr _args outputRef) = (fieldName @? "fieldName") <> "(...): " <> toSDL outputRef

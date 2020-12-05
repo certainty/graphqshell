@@ -15,7 +15,7 @@ module GraphQL.Introspection.Schema
     mutation,
     subscription,
     mkSchema,
-    fromMarshalledSchema,
+    fromIntrospectionSchema,
     lookupType,
     searchType,
     isNullable,
@@ -23,10 +23,39 @@ module GraphQL.Introspection.Schema
   )
 where
 
+import Control.Exception.Safe (MonadThrow, throw)
 import qualified Data.HashMap.Strict as Dict
 import Data.Text (isPrefixOf)
 import qualified Data.Vector as Vector
 import GraphQL.Introspection.Marshalling.Types
+  ( IntrospectionEnumValue (introspectionEnumValueName),
+    introspectionEnumValueDeprecationReason,
+    introspectionEnumValueDescription,
+    introspectionEnumValueIsDeprecated,
+    introspectionFieldArgs,
+    introspectionFieldDeprecationReason,
+    introspectionFieldDescription,
+    introspectionFieldIsDeprecated,
+    introspectionFieldName,
+    introspectionFieldTypeRef,
+    introspectionInputTypeDefaultValue,
+    introspectionInputTypeDescription,
+    introspectionInputTypeName,
+    introspectionInputTypeTypeRef,
+    introspectionSchemaMutationType,
+    introspectionSchemaQueryType,
+    introspectionSchemaSubscriptionType,
+    introspectionSchemaTypes,
+    introspectionTypeDescription,
+    introspectionTypeEnumValues,
+    introspectionTypeFields,
+    introspectionTypeInputFields,
+    introspectionTypeInterfaces,
+    introspectionTypeKind,
+    introspectionTypeName,
+    introspectionTypePossibleTypes,
+  )
+import qualified GraphQL.Introspection.Marshalling.Types as MTypes
 import GraphQL.Introspection.Schema.Types hiding (deprecationReason, description, isDeprecated, name)
 import qualified GraphQL.Introspection.Schema.Types as Types
 import Relude hiding (isPrefixOf)
@@ -35,7 +64,8 @@ import qualified Text.Fuzzy as Fz
 data SchemaBuildError
   = MissingQueryType
   | InvalidRootType Text
-  | UnknownKind Text
+  | UnexpectedType Text
+  | InvalidType Text
   deriving (Eq, Show)
 
 instance Exception SchemaBuildError
@@ -67,10 +97,9 @@ mkSchema queryType mutationType subscriptionType additionalTypes = Schema queryT
 
 --- Get information about the schema
 lookupType :: TypeReference -> Schema -> Maybe GraphQLType
-lookupType (NamedType ref) schema = Dict.lookup ref (universe schema)
+lookupType (Named (NamedType ref)) schema = Dict.lookup ref (universe schema)
 lookupType (ListOf ref) schema = lookupType ref schema
 lookupType (NonNullOf ref) schema = lookupType ref schema
-lookupType _ _ = Nothing
 
 -- -- | fuzzy search for types in the schema provided
 searchType ::
@@ -81,7 +110,7 @@ searchType ::
   -- | The schema
   Schema ->
   -- | A list of matches containing the score, the annotated match and the reference to the type
-  [(TypeReference, Text, Int)]
+  [(NamedType, Text, Int)]
 searchType needle (prefix, suffix) schema = map wrapMatch matches
   where
     matches = Fz.filter needle (typeNames schema) prefix suffix identity False
@@ -94,101 +123,99 @@ isNullable _ = True
 fieldTypeReference :: FieldType -> TypeReference
 fieldTypeReference (FieldType _ _ _ _ tpe) = tpe
 
--- Build the schema from introspection data
-fromMarshalledSchema :: IntrospectionSchema -> Either SchemaBuildError Schema
-fromMarshalledSchema schema = mkSchema <$> queryType <*> maybeMutationType <*> maybeSubscriptionType <*> consideredTypes
+fromIntrospectionSchema :: (MonadThrow m) => MTypes.IntrospectionSchema -> m Schema
+fromIntrospectionSchema schema = mkSchema <$> queryType <*> mutationType <*> subscriptionType <*> otherTypes
   where
-    queryType = rootType "Query" (fromMarshalledType (introspectionSchemaQueryType schema))
-    maybeMutationType = rootTypeOpt "Mutation" (fromMarshalledOpt $ introspectionSchemaMutationType schema)
-    maybeSubscriptionType = rootTypeOpt "Subscription" (fromMarshalledOpt $ introspectionSchemaSubscriptionType schema)
-    consideredTypes = traverse fromMarshalledType consideredMarshalledTypes
-    consideredMarshalledTypes = filter (not . isPrefixOf "__" . introspectionTypeName) (Vector.toList (introspectionSchemaTypes schema))
+    queryType = objectTypeFromIntrospectionType (introspectionSchemaQueryType schema)
+    mutationType = sequence $ objectTypeFromIntrospectionType <$> introspectionSchemaMutationType schema
+    subscriptionType = sequence $ objectTypeFromIntrospectionType <$> introspectionSchemaSubscriptionType schema
+    otherTypes = traverse fromIntrospectionType (filterReservedTypes (introspectionSchemaTypes schema))
+    filterReservedTypes tpes = filter (not . isPrefixOf "__" . introspectionTypeName) (Vector.toList tpes)
 
-rootType :: Text -> Either SchemaBuildError GraphQLType -> Either SchemaBuildError ObjectType
-rootType _ (Right (Object tpe)) = Right tpe
-rootType typeName (Right _) = Left (InvalidRootType typeName)
-rootType _ (Left e) = Left e
+objectTypeFromIntrospectionType :: (MonadThrow m) => MTypes.IntrospectionType -> m ObjectType
+objectTypeFromIntrospectionType introType = do
+  tpe <- fromIntrospectionType introType
+  case tpe of
+    (Object o) -> pure o
+    _ -> throw (UnexpectedType "Excepected ObjectType")
 
-rootTypeOpt :: Text -> Either SchemaBuildError (Maybe GraphQLType) -> Either SchemaBuildError (Maybe ObjectType)
-rootTypeOpt _ (Right (Just (Object tpe))) = Right (Just tpe)
-rootTypeOpt typeName (Right (Just _)) = Left (InvalidRootType typeName)
-rootTypeOpt _ (Right Nothing) = Right Nothing
-rootTypeOpt _ (Left e) = Left e
+fromIntrospectionType :: (MonadThrow m) => MTypes.IntrospectionType -> m GraphQLType
+fromIntrospectionType tpe = fromIntrospectionType' (introspectionTypeKind tpe) tpe
 
-fromMarshalledOpt :: Maybe IntrospectionType -> Either SchemaBuildError (Maybe GraphQLType)
-fromMarshalledOpt Nothing = Right Nothing
-fromMarshalledOpt (Just tpe) = Just <$> fromMarshalledType tpe
+fromIntrospectionType' :: (MonadThrow m) => MTypes.IntrospectionTypeKind -> MTypes.IntrospectionType -> m GraphQLType
+fromIntrospectionType' MTypes.Scalar tpe = pure $ Scalar $ ScalarType tpeName tpeDescription
+  where
+    tpeName = introspectionTypeName tpe
+    tpeDescription = introspectionTypeDescription tpe
+fromIntrospectionType' MTypes.Object tpe = Object <$> (ObjectType <$> tpeName <*> tpeDescription <*> tpeFields <*> tpeInterfaces)
+  where
+    tpeName = pure $ introspectionTypeName tpe
+    tpeDescription = pure $ introspectionTypeDescription tpe
+    tpeFields = traverse fromIntrospectionFieldType (maybeToVec (introspectionTypeFields tpe))
+    tpeInterfaces = traverse (guardNonWrapperType NamedType) (maybeToVec (introspectionTypeInterfaces tpe))
+fromIntrospectionType' MTypes.Union tpe = Union <$> (UnionType <$> tpeName <*> tpeDescription <*> tpePossibleTypes)
+  where
+    tpeName = pure $ introspectionTypeName tpe
+    tpeDescription = pure $ introspectionTypeDescription tpe
+    tpePossibleTypes = traverse (guardNonWrapperType NamedType) (maybeToVec (introspectionTypePossibleTypes tpe))
+fromIntrospectionType' MTypes.Interface tpe = Interface <$> (InterfaceType <$> tpeName <*> tpeDescription <*> tpeFields <*> tpePossibleTypes)
+  where
+    tpeName = pure $ introspectionTypeName tpe
+    tpeDescription = pure $ introspectionTypeDescription tpe
+    tpeFields = traverse fromIntrospectionFieldType (maybeToVec (introspectionTypeFields tpe))
+    tpePossibleTypes = traverse (guardNonWrapperType NamedType) (maybeToVec (introspectionTypePossibleTypes tpe))
+fromIntrospectionType' MTypes.Enum tpe = pure $ Enum $ EnumType tpeName tpeDescription tpeVariants
+  where
+    tpeName = introspectionTypeName tpe
+    tpeDescription = introspectionTypeDescription tpe
+    tpeVariants = fromIntrospectionEnumValue <$> maybeToVec (introspectionTypeEnumValues tpe)
+fromIntrospectionType' MTypes.InputObject tpe = Input <$> (InputObjectType <$> tpeName <*> tpeDescription <*> tpeFields)
+  where
+    tpeName = pure $ introspectionTypeName tpe
+    tpeDescription = pure $ introspectionTypeDescription tpe
+    tpeFields = traverse fromIntrospectionInputValue (maybeToVec (introspectionTypeInputFields tpe))
+fromIntrospectionType' kind _ = throw (UnexpectedType ("Unexpected kind " <> show kind))
 
-fromMarshalledType :: IntrospectionType -> Either SchemaBuildError GraphQLType
-fromMarshalledType tpe = fromMarshalledType' (introspectionTypeKind tpe) tpe
-
-fromMarshalledType' :: Text -> IntrospectionType -> Either SchemaBuildError GraphQLType
-fromMarshalledType' "SCALAR" tpe = Right $ Scalar (ScalarType name description)
+fromIntrospectionFieldType :: (MonadThrow m) => MTypes.IntrospectionField -> m FieldType
+fromIntrospectionFieldType field = FieldType <$> fName <*> fDescription <*> fDeprecation <*> fArguments <*> fType
   where
-    name = introspectionTypeName tpe
-    description = introspectionTypeDescription tpe
-fromMarshalledType' "OBJECT" tpe = Right $ Object (ObjectType name description fields interfaces)
-  where
-    name = introspectionTypeName tpe
-    description = introspectionTypeDescription tpe
-    fields = mapOrEmpty fromMarshalledFieldType (introspectionTypeFields tpe)
-    interfaces = mapOrEmpty fromMarshalledTypeRef (introspectionTypeInterfaces tpe)
-fromMarshalledType' "INTERFACE" tpe = Right $ Interface (InterfaceType name description fields possibleTypes)
-  where
-    name = introspectionTypeName tpe
-    description = introspectionTypeDescription tpe
-    fields = mapOrEmpty fromMarshalledFieldType (introspectionTypeFields tpe)
-    possibleTypes = mapOrEmpty fromMarshalledTypeRef (introspectionTypePossibleTypes tpe)
-fromMarshalledType' "UNION" tpe = Right $ Union (UnionType name description possibleTypes)
-  where
-    name = introspectionTypeName tpe
-    description = introspectionTypeDescription tpe
-    possibleTypes = mapOrEmpty fromMarshalledTypeRef (introspectionTypePossibleTypes tpe)
-fromMarshalledType' "ENUM" tpe = Right $ Enum (EnumType name description variants)
-  where
-    name = introspectionTypeName tpe
-    description = introspectionTypeDescription tpe
-    variants = mapOrEmpty fromMarshalledEnumValue (introspectionTypeEnumValues tpe)
-fromMarshalledType' "INPUT_OBJECT" tpe = Right $ Input (InputObjectType name description fields)
-  where
-    name = introspectionTypeName tpe
-    description = introspectionTypeDescription tpe
-    fields = mapOrEmpty fromMarshalledInputValue (introspectionTypeInputFields tpe)
-fromMarshalledType' kind _ = Left (UnknownKind kind)
-
-fromMarshalledFieldType :: IntrospectionField -> FieldType
-fromMarshalledFieldType field = FieldType name description deprecation arguments outputTypeRef
-  where
-    name = introspectionFieldName field
-    description = introspectionFieldDescription field
-    deprecation = if isDeprecated then Deprecated deprecationReason else NotDeprecated
+    fName = pure $ introspectionFieldName field
+    fDescription = pure $ introspectionFieldDescription field
+    fDeprecation = pure $ if isDeprecated then Deprecated deprecationReason else NotDeprecated
     isDeprecated = introspectionFieldIsDeprecated field
     deprecationReason = introspectionFieldDeprecationReason field
-    arguments = fmap fromMarshalledInputValue (introspectionFieldArgs field)
-    outputTypeRef = fromMarshalledTypeRef (introspectionFieldTypeRef field)
+    fArguments = traverse fromIntrospectionInputValue (introspectionFieldArgs field)
+    fType = fromIntrospectionTypeRef (introspectionFieldTypeRef field)
 
-fromMarshalledInputValue :: IntrospectionInputType -> InputValue
-fromMarshalledInputValue inp = InputValue name description typeRef defaultValue
+fromIntrospectionInputValue :: (MonadThrow m) => MTypes.IntrospectionInputType -> m InputValue
+fromIntrospectionInputValue inp = InputValue <$> inpName <*> inpDescription <*> typeRef <*> defaultValue
   where
-    name = introspectionInputTypeName inp
-    description = introspectionInputTypeDescription inp
-    typeRef = fromMarshalledTypeRef (introspectionInputTypeTypeRef inp)
-    defaultValue = introspectionInputTypeDefaultValue inp
+    inpName = pure $ introspectionInputTypeName inp
+    inpDescription = pure $ introspectionInputTypeDescription inp
+    typeRef = fromIntrospectionTypeRef (introspectionInputTypeTypeRef inp)
+    defaultValue = pure $ introspectionInputTypeDefaultValue inp
 
-fromMarshalledTypeRef :: IntrospectionTypeRef -> TypeReference
-fromMarshalledTypeRef (IntrospectionTypeRef "NON_NULL" _ (Just ofType)) = NonNullOf (fromMarshalledTypeRef ofType)
-fromMarshalledTypeRef (IntrospectionTypeRef "LIST" _ (Just ofType)) = ListOf (fromMarshalledTypeRef ofType)
-fromMarshalledTypeRef (IntrospectionTypeRef _ (Just name) _) = NamedType name
-fromMarshalledTypeRef _ = UnnamedType
+fromIntrospectionTypeRef :: (MonadThrow m) => MTypes.IntrospectionTypeRef -> m TypeReference
+fromIntrospectionTypeRef (MTypes.IntrospectionTypeRef MTypes.NonNull _ (Just ofType)) = NonNullOf <$> fromIntrospectionTypeRef ofType
+fromIntrospectionTypeRef (MTypes.IntrospectionTypeRef MTypes.List _ (Just ofType)) = ListOf <$> fromIntrospectionTypeRef ofType
+fromIntrospectionTypeRef (MTypes.IntrospectionTypeRef _ (Just name) _) = pure $ Named (NamedType name)
+fromIntrospectionTypeRef MTypes.IntrospectionTypeRef {} = throw (InvalidType "Named type reference without name")
 
-fromMarshalledEnumValue :: IntrospectionEnumValue -> EnumValue
-fromMarshalledEnumValue enum = EnumValue name description deprecation
+fromIntrospectionEnumValue :: MTypes.IntrospectionEnumValue -> EnumValue
+fromIntrospectionEnumValue enum = EnumValue enName enDescription enDeprecation
   where
-    name = introspectionEnumValueName enum
-    description = introspectionEnumValueDescription enum
-    deprecation = if isDeprecated then Deprecated reason else NotDeprecated
+    enName = introspectionEnumValueName enum
+    enDescription = introspectionEnumValueDescription enum
+    enDeprecation = if isDeprecated then Deprecated reason else NotDeprecated
     isDeprecated = introspectionEnumValueIsDeprecated enum
     reason = introspectionEnumValueDeprecationReason enum
 
-mapOrEmpty :: (Functor t, Monoid (t b)) => (a -> b) -> Maybe (t a) -> t b
-mapOrEmpty f = maybe mempty (fmap f)
+guardNonWrapperType :: (MonadThrow m) => (Text -> b) -> MTypes.IntrospectionTypeRef -> m b
+guardNonWrapperType _ (MTypes.IntrospectionTypeRef MTypes.NonNull _ _) = throw (UnexpectedType "NON_NULL")
+guardNonWrapperType _ (MTypes.IntrospectionTypeRef MTypes.List _ _) = throw (UnexpectedType "LIST")
+guardNonWrapperType f (MTypes.IntrospectionTypeRef _ (Just name) _) = pure (f name)
+guardNonWrapperType _ _ = throw (InvalidType "Named type reference without name")
+
+maybeToVec :: Maybe (Vector.Vector a) -> Vector.Vector a
+maybeToVec (Just v) = v
+maybeToVec Nothing = Vector.empty
