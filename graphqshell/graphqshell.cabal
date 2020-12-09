@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 58e1e40a7ae9a4d8fe63077c44ef825e149b2e85ae343d12e5042bf75782315a
+-- hash: e9e5582309c81d9714eb4c242bae35c04052c909658d8213b0ec0fa4feb6299d
 
 name:           graphqshell
 version:        0.1.0.0
@@ -35,8 +35,12 @@ library
       GraphQL.Introspection.Schema
       GraphQL.Introspection.Schema.Types
       GraphQL.Marshalling.Utils
+      Shell.Application
       Shell.Components.Introspection
-      Shell.Main
+      Shell.Components.Main
+      Shell.Components.Types
+      Shell.Components.Utilities
+      Shell.State
       Utils
   other-modules:
       Paths_graphqshell
@@ -55,12 +59,14 @@ library
     , exceptions
     , fuzzy
     , fuzzyset
+    , microlens-platform
     , modern-uri
     , raw-strings-qq
     , relude
     , req
     , safe-exceptions
     , text
+    , time
     , unordered-containers
     , vector
     , vty
@@ -97,6 +103,7 @@ executable graphqshell-exe
       base >=4.7 && <5
     , bytestring
     , graphqshell
+    , optparse-applicative
     , relude
     , safe-exceptions
     , text
@@ -108,6 +115,7 @@ test-suite graphqshell-test
   other-modules:
       GraphQL.Schema.Fixtures
       GraphQL.Schema.IntrospectionTest
+      Shell.Components.UtilitiesTest
       Paths_graphqshell
   hs-source-dirs:
       test
@@ -116,9 +124,11 @@ test-suite graphqshell-test
   build-depends:
       aeson
     , base >=4.7 && <5
+    , brick
     , bytestring
     , graphqshell
     , hedgehog
+    , microlens-th
     , raw-strings-qq
     , relude
     , safe-exceptions

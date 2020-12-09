@@ -16,6 +16,7 @@ module GraphQL.Introspection.Schema.Types
     HasDescription (..),
     CanBeDeprecated (..),
     HasName (..),
+    NamedType (..),
   )
 where
 
@@ -42,15 +43,20 @@ data DeprecationInfo
 -- Individual types
 type Name = Text
 
+newtype NamedType = NamedType
+  { unName :: Name
+  }
+  deriving (Eq, Show)
+
 type Description = Maybe Text
 
 type Fields = Vector FieldType
 
 type InputFields = Vector InputValue
 
-type Interfaces = Vector TypeReference
+type Interfaces = Vector NamedType
 
-type PossibleTypes = Vector TypeReference
+type PossibleTypes = Vector NamedType
 
 type EnumVariants = Vector EnumValue
 
@@ -83,8 +89,7 @@ data InputValue = InputValue Name Description InputTypeReference DefaultValue de
 data TypeReference
   = ListOf TypeReference
   | NonNullOf TypeReference
-  | NamedType Name
-  | UnnamedType
+  | Named NamedType
   deriving (Eq, Show)
 
 class HasName a where

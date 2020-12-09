@@ -32,22 +32,19 @@ spec_introspectionSchema = do
 
   describe "lookupType" $ do
     it "finds the named type" $
-      (name <$> Schema.lookupType (NamedType "City") validSchema) `shouldBe` Just "City"
+      (name <$> Schema.lookupType (Named (NamedType "City")) validSchema) `shouldBe` Just "City"
 
     it "finds type that's wrapped in List" $
-      (name <$> Schema.lookupType (ListOf (NamedType "City")) validSchema) `shouldBe` Just "City"
+      (name <$> Schema.lookupType (ListOf (Named (NamedType "City"))) validSchema) `shouldBe` Just "City"
 
     it "finds type that's wrapped in NonNull" $
-      (name <$> Schema.lookupType (NonNullOf (NamedType "City")) validSchema) `shouldBe` Just "City"
+      (name <$> Schema.lookupType (NonNullOf (Named (NamedType "City"))) validSchema) `shouldBe` Just "City"
 
     it "finds type that's wrapped in combination of NonNull and ListOf" $
-      (name <$> Schema.lookupType (NonNullOf (ListOf (NonNullOf (NamedType "City")))) validSchema) `shouldBe` Just "City"
-
-    it "returns nothing for non-named type" $
-      Schema.lookupType UnnamedType validSchema `shouldBe` Nothing
+      (name <$> Schema.lookupType (NonNullOf (ListOf (NonNullOf (Named (NamedType "City"))))) validSchema) `shouldBe` Just "City"
 
     it "returns nothing when type can't be found" $
-      Schema.lookupType (NamedType "NonExistent") validSchema `shouldBe` Nothing
+      Schema.lookupType (Named (NamedType "NonExistent")) validSchema `shouldBe` Nothing
 
   describe "searchType" $ do
     it "finds types matching the beginning" $
@@ -79,7 +76,7 @@ spec_introspectionSchema = do
 testSchema :: Schema.Schema
 testSchema = Schema.mkSchema query Nothing Nothing otherTypes
   where
-    query = Object (ObjectType "Query" Nothing Vector.empty Vector.empty)
+    query = ObjectType "Query" Nothing Vector.empty Vector.empty
     otherTypes =
       [ Object (ObjectType "Football" Nothing Vector.empty Vector.empty),
         Object (ObjectType "FootLocker" Nothing Vector.empty Vector.empty)

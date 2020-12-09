@@ -76,6 +76,9 @@ library:
     - req
     - modern-uri
     - vector
+    - microlens-platform
+    - time
+
 
 
 executables:
@@ -90,6 +93,7 @@ executables:
     - -pthread
     dependencies:
     - graphqshell
+    - optparse-applicative
 
   demo_server:
     main: Main.hs
@@ -133,3 +137,5 @@ tests:
     - raw-strings-qq
     - aeson
     - vector
+    - microlens-th
+    - brick

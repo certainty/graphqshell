@@ -8,11 +8,16 @@
 -- the schema with the higher level 'GraphQL.Introspection' and 'GraphQL.Introspection.Schema' API.
 module GraphQL.Introspection.Marshalling.Types where
 
-import Data.Aeson as J
+import Data.Aeson (FromJSON, genericParseJSON, parseJSON)
+import qualified Data.Aeson.Types as J
 import Data.Vector (Vector)
 import GraphQL.Marshalling.Utils (aesonOptions)
-import Relude hiding (ByteString, Type)
-import Text.RawString.QQ
+import Relude
+  ( Generic,
+    Text,
+  )
+import Text.RawString.QQ (r)
+import Prelude
 
 newtype IntrospectionResponse = IntrospectionResponse
   { introspectionResponseSchema :: IntrospectionSchema
@@ -20,7 +25,7 @@ newtype IntrospectionResponse = IntrospectionResponse
   deriving (Show, Eq, Generic)
 
 instance FromJSON IntrospectionResponse where
-  parseJSON = J.genericParseJSON (aesonOptions "introspectionResponse")
+  parseJSON = genericParseJSON (aesonOptions "introspectionResponse")
 
 data IntrospectionSchema = IntrospectionSchema
   { introspectionSchemaQueryType :: IntrospectionType,
@@ -32,7 +37,7 @@ data IntrospectionSchema = IntrospectionSchema
   deriving (Show, Eq, Generic)
 
 instance FromJSON IntrospectionSchema where
-  parseJSON = J.genericParseJSON (aesonOptions "introspectionSchema")
+  parseJSON = genericParseJSON (aesonOptions "introspectionSchema")
 
 newtype IntrospectionRootTypeName = RootTypeName
   { introspectionRootTypeName :: Text
@@ -40,10 +45,12 @@ newtype IntrospectionRootTypeName = RootTypeName
   deriving (Show, Eq, Generic)
 
 instance FromJSON IntrospectionRootTypeName where
-  parseJSON = J.genericParseJSON (aesonOptions "introspectionRootType")
+  parseJSON = genericParseJSON (aesonOptions "introspectionRootType")
+
+data IntrospectionTypeKind = Scalar | Enum | Object | Interface | Union | InputObject | List | NonNull deriving (Eq, Show)
 
 data IntrospectionType = IntrospectionType
-  { introspectionTypeKind :: Text,
+  { introspectionTypeKind :: IntrospectionTypeKind,
     introspectionTypeName :: Text,
     introspectionTypeDescription :: Maybe Text,
     introspectionTypeFields :: Maybe (Vector IntrospectionField),
@@ -54,8 +61,19 @@ data IntrospectionType = IntrospectionType
   }
   deriving (Show, Eq, Generic)
 
+instance FromJSON IntrospectionTypeKind where
+  parseJSON (J.String "SCALAR") = pure Scalar
+  parseJSON (J.String "OBJECT") = pure Object
+  parseJSON (J.String "INTERFACE") = pure Interface
+  parseJSON (J.String "UNION") = pure Union
+  parseJSON (J.String "INPUT_OBJECT") = pure InputObject
+  parseJSON (J.String "LIST") = pure List
+  parseJSON (J.String "NON_NULL") = pure NonNull
+  parseJSON (J.String "ENUM") = pure Enum
+  parseJSON invalidKind = fail $ "Invalid kind encountered: " <> show invalidKind
+
 instance FromJSON IntrospectionType where
-  parseJSON = J.genericParseJSON (aesonOptions "introspectionType")
+  parseJSON = genericParseJSON (aesonOptions "introspectionType")
 
 data IntrospectionEnumValue = IntrospectionEnumValue
   { introspectionEnumValueName :: Text,
@@ -66,7 +84,7 @@ data IntrospectionEnumValue = IntrospectionEnumValue
   deriving (Show, Eq, Generic)
 
 instance FromJSON IntrospectionEnumValue where
-  parseJSON = J.genericParseJSON (aesonOptions "introspectionEnumValue")
+  parseJSON = genericParseJSON (aesonOptions "introspectionEnumValue")
 
 data IntrospectionField = IntrospectionField
   { introspectionFieldName :: Text,
@@ -79,17 +97,17 @@ data IntrospectionField = IntrospectionField
   deriving (Show, Eq, Generic)
 
 instance FromJSON IntrospectionField where
-  parseJSON = J.genericParseJSON (aesonOptions "introspectionField")
+  parseJSON = genericParseJSON (aesonOptions "introspectionField")
 
 data IntrospectionTypeRef = IntrospectionTypeRef
-  { introspectionTypeRefKind :: Text,
+  { introspectionTypeRefKind :: IntrospectionTypeKind,
     introspectionTypeRefName :: Maybe Text,
     introspectionTypeRefOfType :: Maybe IntrospectionTypeRef
   }
   deriving (Show, Eq, Generic)
 
 instance FromJSON IntrospectionTypeRef where
-  parseJSON = J.genericParseJSON (aesonOptions "introspectionTypeRef")
+  parseJSON = genericParseJSON (aesonOptions "introspectionTypeRef")
 
 data IntrospectionInputType = IntrospectionInputType
   { introspectionInputTypeName :: Text,
@@ -100,7 +118,7 @@ data IntrospectionInputType = IntrospectionInputType
   deriving (Show, Eq, Generic)
 
 instance FromJSON IntrospectionInputType where
-  parseJSON = J.genericParseJSON (aesonOptions "introspectionInputType")
+  parseJSON = genericParseJSON (aesonOptions "introspectionInputType")
 
 data IntrospectionDirective = IntrospectionDirective
   { introspectionDirectiveName :: Text,
@@ -111,7 +129,7 @@ data IntrospectionDirective = IntrospectionDirective
   deriving (Show, Eq, Generic)
 
 instance FromJSON IntrospectionDirective where
-  parseJSON = J.genericParseJSON (aesonOptions "introspectionDirective")
+  parseJSON = genericParseJSON (aesonOptions "introspectionDirective")
 
 -- This is not a type but it is closely related to the types defined here.
 -- It determines how they need to be marshalled
