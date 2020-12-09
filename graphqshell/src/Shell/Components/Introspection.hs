@@ -33,7 +33,7 @@ data Event = Event deriving (Eq, Ord, Show)
 data State = State
   { _stSchema :: Schema,
     _stSelectedType :: GraphQLType,
-    _stFieldView :: FieldViewState
+    _stFieldView :: Maybe FieldViewState
   }
 
 data FieldViewState = FieldViewState
@@ -62,41 +62,49 @@ attributes :: [(AttrName, Attr)]
 attributes = [(L.listSelectedAttr, withStyle defAttr bold), ("standout", withStyle defAttr standout)]
 
 mkState :: Schema -> GraphQLType -> State
-mkState schema selectedType = State schema selectedType (mkFieldViewState schema selectedType)
+mkState schema selectedType@(Object _) = State schema selectedType (Just (mkFieldViewState schema selectedType))
+mkState schema selectedType = State schema selectedType Nothing
 
+-- TODO: extract code to update subcomponents
 update :: State -> BrickEvent ComponentName Event -> EventM ComponentName (Next State)
-update state (VtyEvent (V.EvKey V.KEnter [])) = case selectedType of
-  (Just tpe) -> continue (mkState (state ^. stSchema) tpe)
+update state@(State schema _ (Just fieldViewState)) (VtyEvent (V.EvKey V.KEnter [])) = case selectedType of
+  (Just tpe) -> continue (mkState schema tpe)
   Nothing -> continue state
   where
-    selectedType = state ^. stFieldView . sfvSelectedOutputType
-update state (VtyEvent ev) = do
-  newState <- L.handleListEvent ev (state ^. (stFieldView . sfvFields))
+    selectedType = fieldViewState ^. sfvSelectedOutputType
+update state@(State _ _ (Just fieldViewState)) (VtyEvent ev) = do
+  newState <- L.handleListEvent ev (fieldViewState ^. sfvFields)
   case L.listSelectedElement newState of
-    (Just (_, field)) -> continue (state & stFieldView .~ FieldViewState newState (Just field) (fieldOutputType (state ^. stSchema) field))
-    Nothing -> continue (state & stFieldView .~ FieldViewState newState Nothing Nothing)
+    (Just (_, field)) -> continue (state & stFieldView .~ Just (FieldViewState newState (Just field) (fieldOutputType (state ^. stSchema) field)))
+    Nothing -> continue (state & stFieldView .~ Just (FieldViewState newState Nothing Nothing))
+
 -- catch all
 update state _ev = continue state
 
 -- View
 view :: State -> Widget ()
-view = objectTypeView
+view (State schema selectedType (Just fieldViewState)) = objectTypeView selectedType schema fieldViewState
+view _ = unsupportedTypeView
+
+-- | Will go away
+unsupportedTypeView :: Widget ()
+unsupportedTypeView = padBottom Max $ txt "This type is not yet supported"
 
 -- | ObjectType view
-objectTypeView :: State -> Widget ()
-objectTypeView state =
+objectTypeView :: GraphQLType -> Schema -> FieldViewState -> Widget ()
+objectTypeView selectedType schema state =
   padBottom Max $
-    vLimitPercent 30 (objectTypeInfoView state)
-      <=> objectTypeFieldsView state
+    vLimitPercent 30 (objectTypeInfoView selectedType)
+      <=> objectTypeFieldsView schema state
 
-objectTypeInfoView :: State -> Widget ()
-objectTypeInfoView state = (info "Type" typeName <+> info "Kind" typeKind <+> info "Referenced by" referencedBy <+> info "References" references) <=> infoWidget "Description" (txtWrap (txtOpt typeDescr))
+objectTypeInfoView :: GraphQLType -> Widget ()
+objectTypeInfoView selectedType = (info "Type" typeName <+> info "Kind" typeKind <+> info "Referenced by" referencedBy <+> info "References" references) <=> infoWidget "Description" (txtWrap (txtOpt typeDescr))
   where
-    typeName = Just $ name $ state ^. stSelectedType
-    typeKind = Just (graphQLKind $ state ^. stSelectedType)
+    typeName = Just $ name $ selectedType
+    typeKind = Just (graphQLKind selectedType)
     referencedBy = Nothing
     references = Nothing
-    typeDescr = description $ state ^. stSelectedType
+    typeDescr = description selectedType
 
 info :: Text -> Maybe Text -> Widget n
 info label value = infoWidget label (txt (txtOpt value))
@@ -117,22 +125,20 @@ txtOpt = fromMaybe "N/A"
 
 -- | ObjectType fields view
 -- This is a basic main - detail architecture
-objectTypeFieldsView :: State -> Widget ()
-objectTypeFieldsView state =
-  hLimitPercent 30 (hBorderWithLabel (txt " Fields ") <=> objectTypeFieldsMainView state) <+> vBorder <+> (hBorderWithLabel (txt "Field Info") <=> objectTypeFieldDetailView state)
+objectTypeFieldsView :: Schema -> FieldViewState -> Widget ()
+objectTypeFieldsView schema state =
+  hLimitPercent 30 (hBorderWithLabel (txt " Fields ") <=> objectTypeFieldsMainView schema state) <+> vBorder <+> (hBorderWithLabel (txt "Field Info") <=> objectTypeFieldDetailView state)
 
-objectTypeFieldsMainView :: State -> Widget ()
-objectTypeFieldsMainView state =
+objectTypeFieldsMainView :: Schema -> FieldViewState -> Widget ()
+objectTypeFieldsMainView schema state =
   padBottom (Pad 2) $
-    L.renderList (renderField schema) True (state ^. (stFieldView . sfvFields))
-  where
-    schema = state ^. stSchema
+    L.renderList (renderField schema) True (state ^. sfvFields)
 
-objectTypeFieldDetailView :: State -> Widget ()
+objectTypeFieldDetailView :: FieldViewState -> Widget ()
 objectTypeFieldDetailView state =
-  fieldInfoView (state ^. stFieldView)
+  fieldInfoView state
     <=> hBorderWithLabel (txt " Arguments ")
-    <=> fieldArgumentsView (state ^. stFieldView)
+    <=> fieldArgumentsView state
 
 fieldInfoView :: FieldViewState -> Widget ()
 fieldInfoView state = info "Name" fieldName <+> info "Type" fieldTypeName <+> info "Nullable" nullableInfo <=> infoWidget "Description" (txtWrap (txtOpt fieldDescription))
