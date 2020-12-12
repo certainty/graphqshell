@@ -3,16 +3,24 @@
 module Shell.Configuration where
 import Relude
 import Text.URI (URI,mkURI)
-import Lens.Micro.Platform (makeLenses)
-import Control.Exception.Safe (MonadThrow)
+import Lens.Micro.Platform (makeLenses, (^.))
+import Control.Exception.Safe (MonadThrow, throw)
 import Data.Yaml (decodeThrow, withObject, withArray)
 import Data.Yaml.Aeson (FromJSON(..), (.:),(.:?), Parser, Value)
 import Data.Vector hiding (sequence)
+import Validation
+import qualified Data.List.NonEmpty as NonEmpty
+
+newtype ConfigurationError = ConfigurationError [ConfigurationErrorDetail] deriving (Eq, Show)
+
+data ConfigurationErrorDetail = MultipleDefaultEndpoints [Text] deriving (Eq, Show)
+
+instance Exception ConfigurationError
 
 data ApplicationConfig = ApplicationConfig {
   _appConfigEndpoints :: [EndpointConfig],
   _appConfigThemes :: [ThemeConfig]
-} deriving (Generic)
+} deriving (Generic, Eq)
 
 
 data EndpointConfig = EndpointConfig {
@@ -21,17 +29,17 @@ data EndpointConfig = EndpointConfig {
   _endpointURL :: URI,
   _endpointLink :: Maybe URI,
   _endpointHttpConfig :: Maybe EndpointHttpConfig
-} deriving (Generic, Show)
+} deriving (Generic, Show, Eq)
         
 data EndpointHttpConfig = EndpointHttpConfig {
   _endpointHttpHeaders :: Maybe (Vector (Text, Text))
-} deriving (Generic, Show)
+} deriving (Generic, Show, Eq)
 
 data ThemeConfig = ThemeConfig {
   _themeName :: Text,
   _themeIsDefault :: Bool,
   _themePath :: FilePath 
-} deriving (Generic, Show)
+} deriving (Generic, Show, Eq)
 
 
 makeLenses ''ApplicationConfig
@@ -40,7 +48,20 @@ makeLenses ''EndpointHttpConfig
 makeLenses ''ThemeConfig
 
 parseConfiguration :: (MonadThrow m) => ByteString -> m ApplicationConfig
-parseConfiguration = decodeThrow
+parseConfiguration inp = do
+  cfg <- decodeThrow inp
+  case validateConfiguration cfg of
+    (Failure f) -> throw (ConfigurationError (NonEmpty.toList f))
+    (Success validatedCfg) -> pure validatedCfg
+
+validateConfiguration ::  ApplicationConfig -> Validation (NonEmpty ConfigurationErrorDetail) ApplicationConfig
+validateConfiguration = validateAll [validateSingleDefaultEndpoint]
+  where
+    validateSingleDefaultEndpoint cfg = do
+      case Relude.map _endpointName (Relude.filter _endpointIsDefault (cfg ^. appConfigEndpoints)) of
+        [_]       -> Success cfg
+        endpoints -> failure (MultipleDefaultEndpoints endpoints)   
+      
 
 instance FromJSON ApplicationConfig where
   parseJSON = withObject "ApplicationConfig" $ \o -> do

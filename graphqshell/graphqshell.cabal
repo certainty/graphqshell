@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6dafa507cddd4e9f671b07b44fb80ca827b2f6b3dfc7e80e583e0318be4beadc
+-- hash: bb9dbf3c93683299bc7c6eb9d42137dc6ced8efb67289d7ba00a8db8660d84ae
 
 name:           graphqshell
 version:        0.1.0.0
@@ -69,6 +69,7 @@ library
     , text
     , time
     , unordered-containers
+    , validation-selective
     , vector
     , vty
     , yaml
