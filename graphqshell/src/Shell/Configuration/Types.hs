@@ -21,6 +21,7 @@ import qualified Data.Vector                   as Vector
 
 data ApplicationConfig = ApplicationConfig {
   _defaultEndpointConfig :: EndpointConfig,
+  _defaultThemeConfig :: ThemeConfig,
   _appConfigEndpoints :: [EndpointConfig],
   _appConfigThemes :: [ThemeConfig]
 } deriving (Generic, Eq)
@@ -61,25 +62,30 @@ instance IsDefaultConfig ThemeConfig where
 -- Marshalling
 instance FromJSON ApplicationConfig where
   parseJSON = withObject "ApplicationConfig" $ \o -> do
-    endpoints <- o .: "endpoints"
-    themes    <- o .: "themes"
-    case Relude.find isDefault endpoints of
-      Nothing ->
-        fail "No default endpoint configured. Make sure you defined one."
-      (Just ep) -> pure (ApplicationConfig ep endpoints themes)
+    endpoints       <- o .: "endpoints"
+    themes          <- o .: "themes"
+    defaultTheme    <- findDefault "themes" themes
+    defaultEndpoint <- findDefault "endpoints" endpoints
+    pure (ApplicationConfig defaultEndpoint defaultTheme endpoints themes)
+   where
+    findDefault section items = do
+      case Relude.find isDefault items of
+        Nothing ->
+          fail
+            (  "No default in "
+            <> section
+            <> " configured. Make sure you defined one."
+            )
+        (Just elt) -> pure elt
 
 instance FromJSON EndpointConfig where
   parseJSON = withObject "EndpointConfig" $ \o -> do
     EndpointConfig
-      <$> o
-      .:  "name"
-      <*> o
-      .:? "default"
-      .!= False
+      <$> (o .: "name")
+      <*> (o .:? "default" .!= False)
       <*> ((o .: "url") >>= parseURI)
       <*> ((o .:? "link") >>= parseMaybeURI)
-      <*> o
-      .:? "http"
+      <*> (o .:? "http")
    where
     parseMaybeURI u = sequence $ parseURI <$> u
     parseURI uri = case (mkURI uri) :: Maybe URI of
