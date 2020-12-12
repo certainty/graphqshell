@@ -4,7 +4,8 @@ module Shell.Application
 where
 
 import           Brick
-import           Brick.Themes
+
+import           Brick.Themes                   ( themeToAttrMap )
 import qualified Brick.BChan                   as BCh
 import           Control.Concurrent             ( ThreadId
                                                 , forkIO
@@ -13,25 +14,18 @@ import           Control.Concurrent             ( ThreadId
 import qualified GraphQL.API                   as API
 import qualified Graphics.Vty                  as V
 import           Relude                  hiding ( state )
-import qualified Shell.Components.Introspection
-                                               as Intro
 import qualified Shell.Components.Main         as Main
 import           Shell.Components.Types
 import           Lens.Micro.Platform            ( (^.) )
-import           Control.Exception.Safe         ( MonadThrow
-                                                , throw
-                                                )
 import           Shell.Configuration
+import           Shell.Theme
 
-data ThemeError = ThemeLoadError Text deriving (Show)
-instance Exception ThemeError
 
 -- Main entry point to run the application
 run :: ApplicationConfig -> Int -> IO Main.State
 run config tickRate = do
   appState <- initialState (API.mkApiSettings (config ^. defaultEndpointConfig))
   theme     <- loadTheme (config ^. defaultThemeConfig)
-  _         <- print theme
   (_, chan) <- startTickThread tickRate
   vty       <- applicationVTY
   customMain vty
@@ -50,9 +44,6 @@ application attrs = App { appDraw         = Main.view
                         , appAttrMap      = const attrs
                         , appStartEvent   = pure
                         }
-
-applicationAttrMap :: AttrMap
-applicationAttrMap = attrMap V.defAttr Intro.attributes
 
 applicationVTY :: IO V.Vty
 applicationVTY = V.mkVty V.defaultConfig
@@ -74,10 +65,4 @@ startTickThread tickRate = do
     threadDelay tickRate
   pure (thread, chan)
 
-loadTheme :: (MonadThrow m, MonadIO m) => ThemeConfig -> m Theme
-loadTheme config = do
-  result <- liftIO
-    $ loadCustomizations (config ^. themePath) (newTheme V.defAttr [])
-  case result of
-    (Left  e    ) -> throw (ThemeLoadError (toText e))
-    (Right theme) -> pure theme
+
