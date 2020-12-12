@@ -78,6 +78,7 @@ library:
     - vector
     - microlens-platform
     - time
+    - yaml
 
 
 
@@ -139,3 +140,4 @@ tests:
     - vector
     - microlens-th
     - brick
+    - modern-uri

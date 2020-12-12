@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e9e5582309c81d9714eb4c242bae35c04052c909658d8213b0ec0fa4feb6299d
+-- hash: 6dafa507cddd4e9f671b07b44fb80ca827b2f6b3dfc7e80e583e0318be4beadc
 
 name:           graphqshell
 version:        0.1.0.0
@@ -40,6 +40,7 @@ library
       Shell.Components.Main
       Shell.Components.Types
       Shell.Components.Utilities
+      Shell.Configuration
       Shell.State
       Utils
   other-modules:
@@ -70,6 +71,7 @@ library
     , unordered-containers
     , vector
     , vty
+    , yaml
   default-language: Haskell2010
 
 executable demo_server
@@ -116,6 +118,7 @@ test-suite graphqshell-test
       GraphQL.Schema.Fixtures
       GraphQL.Schema.IntrospectionTest
       Shell.Components.UtilitiesTest
+      Shell.ConfigurationTest
       Paths_graphqshell
   hs-source-dirs:
       test
@@ -129,6 +132,7 @@ test-suite graphqshell-test
     , graphqshell
     , hedgehog
     , microlens-th
+    , modern-uri
     , raw-strings-qq
     , relude
     , safe-exceptions

@@ -1,0 +1,14 @@
+endpoints:
+  - name: weather
+    default: true
+    url: "https://graphql-weather-api.herokuapp.com/"
+    link: "https://graphql-weather-api.herokuapp.com" 
+    http:
+      custom-headers:
+        - name: "TEST_HEADER"
+          value: "TEST_HEADER_VALUE"
+
+themes:
+  - name: default
+    default: true
+    path: /path/to/theme-file
