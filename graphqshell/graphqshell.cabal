@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b150632502b41fca2d45d3fc19c0727b46728d840b0ede5966c62f6eb518ce2d
+-- hash: 080bbcd873df8dbfc012d77b5cbc6f0687d3ad035211943ce6f98ede5ef241cb
 
 name:           graphqshell
 version:        0.1.0.0
@@ -107,6 +107,7 @@ executable graphqshell-exe
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , directory
     , graphqshell
     , optparse-applicative
     , relude

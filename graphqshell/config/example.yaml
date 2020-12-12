@@ -1,6 +1,10 @@
 endpoints:
-  - name: weather
+  - name: example 
     default: true
+    url: "https://api.react-finland.fi/graphql"
+    link: "https://api.react-finland.fi/graphql"
+  - name: weather
+    default: false
     url: "https://graphql-weather-api.herokuapp.com/"
     link: "https://graphql-weather-api.herokuapp.com" 
     http:

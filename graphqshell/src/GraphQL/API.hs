@@ -20,7 +20,10 @@ import           GraphQL.Introspection          ( runIntrospection )
 import           Relude
 import qualified Text.URI                      as URI
 import           Shell.Configuration
-import           Lens.Micro.Platform            ( (^.) )
+import           Lens.Micro.Platform            ( (^.)
+                                                , (^?)
+                                                , _Just
+                                                )
 
 newtype ApiSettings = ApiSettings
   { clientSettings :: ClientSettings
@@ -28,7 +31,9 @@ newtype ApiSettings = ApiSettings
   deriving (Eq, Show)
 
 mkApiSettings :: EndpointConfig -> ApiSettings
-mkApiSettings config = ApiSettings . ClientSettings $ (config ^. endpointURL)
+mkApiSettings config = ApiSettings $ ClientSettings
+  (config ^. endpointURL)
+  (config ^? endpointHttpConfig . _Just . endpointHttpHeaders . _Just)
 
 apiURI :: ApiSettings -> URI.URI
 apiURI = clientEndpoint . clientSettings

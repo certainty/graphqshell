@@ -5,6 +5,7 @@ import           Relude
 import qualified Shell.Application             as Application
 import qualified Data.ByteString               as ByteString
 import           Shell.Configuration
+import           System.Directory
 
 data Options = Options
   { verbose :: Bool,
@@ -17,19 +18,22 @@ tickRate = 1 * 1000000
 
 main :: IO ()
 main = do
-  parsedOpts <- execParser opts
-  config     <- loadConfiguration (configPath parsedOpts)
+  userHomePath <- getHomeDirectory
+  parsedOpts   <- execParser (opts userHomePath)
+  config       <- loadConfiguration (configPath parsedOpts)
   void $ Application.run config tickRate
  where
-  opts = info
-    (options <**> helper)
+  opts homePath = info
+    ((options homePath) <**> helper)
     (fullDesc <> header "GraphQL TUI that is fast, fun and functional")
 
 loadConfiguration :: FilePath -> IO ApplicationConfig
-loadConfiguration path = (ByteString.readFile path) >>= parseConfiguration
+loadConfiguration path = do
+  canonicalPath <- canonicalizePath path
+  (ByteString.readFile canonicalPath) >>= parseConfiguration
 
-options :: Parser Options
-options =
+options :: FilePath -> Parser Options
+options homePath =
   Options
     <$> switch
           (long "verbose" <> short 'v' <> help
@@ -41,5 +45,5 @@ options =
           <> help "The path to the configuration file"
           <> metavar "CONFIG_FILE"
           <> showDefault
-          <> value "~/.graphqshell/config.yaml"
+          <> value (homePath <> "/.graphqshell/config.yaml")
           )

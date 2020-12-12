@@ -96,6 +96,7 @@ executables:
     dependencies:
     - graphqshell
     - optparse-applicative
+    - directory
 
   demo_server:
     main: Main.hs

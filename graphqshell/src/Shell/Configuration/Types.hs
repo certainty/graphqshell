@@ -15,8 +15,9 @@ import           Data.Yaml.Aeson                ( FromJSON(..)
                                                 , Parser
                                                 , Value
                                                 )
-import           Data.Vector             hiding ( sequence )
 import           Lens.Micro.Platform            ( makeLenses )
+import qualified Data.Text.Encoding            as ByteString
+import qualified Data.Vector                   as Vector
 
 data ApplicationConfig = ApplicationConfig {
   _defaultEndpointConfig :: EndpointConfig,
@@ -33,7 +34,7 @@ data EndpointConfig = EndpointConfig {
 } deriving (Generic, Show, Eq)
 
 data EndpointHttpConfig = EndpointHttpConfig {
-  _endpointHttpHeaders :: Maybe (Vector (Text, Text))
+  _endpointHttpHeaders :: Maybe [(ByteString, ByteString)]
 } deriving (Generic, Show, Eq)
 
 data ThemeConfig = ThemeConfig {
@@ -64,7 +65,7 @@ instance FromJSON ApplicationConfig where
     themes    <- o .: "themes"
     case Relude.find isDefault endpoints of
       Nothing ->
-        fail "No default endpoint configured. Make sure you defined one"
+        fail "No default endpoint configured. Make sure you defined one."
       (Just ep) -> pure (ApplicationConfig ep endpoints themes)
 
 instance FromJSON EndpointConfig where
@@ -91,12 +92,13 @@ instance FromJSON EndpointHttpConfig where
     parsedHeaders <- sequence $ (parseCustomHeaders <$> headers)
     pure $ EndpointHttpConfig parsedHeaders
    where
-    parseCustomHeaders :: Value -> Parser (Vector (Text, Text))
-    parseCustomHeaders = withArray "headers" (traverse parsePairs)
-    parsePairs :: Value -> Parser (Text, Text)
+    parseCustomHeaders :: Value -> Parser [(ByteString, ByteString)]
+    parseCustomHeaders inp =
+      Vector.toList <$> withArray "headers" (traverse parsePairs) inp
+    parsePairs :: Value -> Parser (ByteString, ByteString)
     parsePairs = withObject "header" $ \o -> do
-      key <- o .: "name"
-      val <- o .: "value"
+      key <- ByteString.encodeUtf8 <$> (o .: "name")
+      val <- ByteString.encodeUtf8 <$> (o .: "value")
       pure (key, val)
 
 instance FromJSON ThemeConfig where
