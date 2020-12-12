@@ -19,10 +19,10 @@ import           Data.Vector             hiding ( sequence )
 import           Lens.Micro.Platform            ( makeLenses )
 
 data ApplicationConfig = ApplicationConfig {
+  _defaultEndpointConfig :: EndpointConfig,
   _appConfigEndpoints :: [EndpointConfig],
   _appConfigThemes :: [ThemeConfig]
 } deriving (Generic, Eq)
-
 
 data EndpointConfig = EndpointConfig {
   _endpointName :: Text,
@@ -60,7 +60,12 @@ instance IsDefaultConfig ThemeConfig where
 -- Marshalling
 instance FromJSON ApplicationConfig where
   parseJSON = withObject "ApplicationConfig" $ \o -> do
-    ApplicationConfig <$> o .: "endpoints" <*> o .: "themes"
+    endpoints <- o .: "endpoints"
+    themes    <- o .: "themes"
+    case Relude.find isDefault endpoints of
+      Nothing ->
+        fail "No default endpoint configured. Make sure you defined one"
+      (Just ep) -> pure (ApplicationConfig ep endpoints themes)
 
 instance FromJSON EndpointConfig where
   parseJSON = withObject "EndpointConfig" $ \o -> do
