@@ -25,6 +25,13 @@ packages:
       sha256: e0920abfc858b5294a815c58d187f79b89704339dc94b63b0ebfdc30900bd703
   original:
     hackage: morpheus-graphql-client-0.16.0
+- completed:
+    hackage: conferer-source-yaml-0.4.0.1@sha256:7e9bb3f0e75aba1483a4a3699b04f8579bc4c070680fb3fe8932ce8a2af1df8c,1543
+    pantry-tree:
+      size: 330
+      sha256: 07ae500db1acb1b3fe458012ab11e2928f7d0308868d40603bb3a82bf10f84cf
+  original:
+    hackage: conferer-source-yaml-0.4.0.1
 snapshots:
 - completed:
     size: 532177

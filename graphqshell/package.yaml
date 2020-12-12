@@ -78,6 +78,8 @@ library:
     - vector
     - microlens-platform
     - time
+    - yaml
+    - validation-selective
 
 
 
@@ -94,6 +96,7 @@ executables:
     dependencies:
     - graphqshell
     - optparse-applicative
+    - directory
 
   demo_server:
     main: Main.hs
@@ -139,3 +142,4 @@ tests:
     - vector
     - microlens-th
     - brick
+    - modern-uri

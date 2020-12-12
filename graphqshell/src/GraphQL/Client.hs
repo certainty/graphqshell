@@ -2,19 +2,21 @@
 {-# LANGUAGE RankNTypes #-}
 
 module GraphQL.Client
-  ( ClientError (..),
-    ClientSettings (..),
-    IOGraphQLClient (..),
-    runGraphQLClientIO,
+  ( ClientError(..)
+  , ClientSettings(..)
+  , IOGraphQLClient(..)
+  , runGraphQLClientIO
   )
 where
 
-import Control.Exception.Safe (MonadThrow, throw)
-import qualified Data.Aeson as J
-import GraphQL.Client.Types
-import Network.HTTP.Req
-import Relude hiding (Option)
-import qualified Text.URI as URI
+import           Control.Exception.Safe         ( MonadThrow
+                                                , throw
+                                                )
+import qualified Data.Aeson                    as J
+import           GraphQL.Client.Types
+import           Network.HTTP.Req
+import           Relude                  hiding ( Option )
+import qualified Text.URI                      as URI
 
 data ClientError
   = InvalidURI URI.URI
@@ -23,38 +25,48 @@ data ClientError
 
 instance Exception ClientError
 
-newtype ClientSettings = ClientSettings
-  { clientEndpoint :: URI.URI
-  }
-  deriving (Eq, Show)
+data ClientSettings = ClientSettings {
+    clientEndpoint :: URI.URI,
+    customHeaders :: Maybe [(ByteString, ByteString)]
+  } deriving (Eq, Show)
 
 newtype IOGraphQLClient a = IOGraphQClient
   { runIOClient :: ReaderT ClientSettings IO a
   }
   deriving (Functor, Applicative, Monad, MonadIO, MonadThrow, MonadReader ClientSettings)
 
-runGraphQLClientIO :: ClientSettings -> (forall m. GraphQLClient m => m a) -> IO a
+runGraphQLClientIO
+  :: ClientSettings -> (forall m . GraphQLClient m => m a) -> IO a
 runGraphQLClientIO settings action = runReaderT (runIOClient action) settings
 
 instance GraphQLClient IOGraphQLClient where
   runGraphQLRequest query variables = do
-    endpointURI <- asks clientEndpoint
-    response <- case useURI endpointURI of
+    endpointURI   <- asks clientEndpoint
+    customHeaders <- (asks customHeaders >>= pure . (fromMaybe []))
+    response      <- case useURI endpointURI of
       Nothing -> throw (InvalidURI endpointURI)
-      (Just (Left (httpURI, _))) -> runRequest' httpURI requestBody
-      (Just (Right (httpsURI, _))) -> runRequest' httpsURI requestBody
+      (Just (Left (httpURI, _))) ->
+        runRequest' httpURI customHeaders requestBody
+      (Just (Right (httpsURI, _))) ->
+        runRequest' httpsURI customHeaders requestBody
     case decodeGraphQLResponse response of
-      (Left e) -> throw (DecodingError e)
+      (Left  e) -> throw (DecodingError e)
       (Right r) -> pure r
-    where
-      requestBody = GraphQLBody query variables
+    where requestBody = GraphQLBody query variables
 
-runRequest' :: (J.ToJSON variables, MonadIO m) => Url scheme -> GraphQLBody variables -> m ByteString
-runRequest' url body = runReq defaultHttpConfig $ do
+runRequest'
+  :: (J.ToJSON variables, MonadIO m)
+  => Url scheme
+  -> [(ByteString, ByteString)]
+  -> GraphQLBody variables
+  -> m ByteString
+runRequest' url headers body = runReq defaultHttpConfig $ do
   resp <- req POST url (ReqBodyJson body) bsResponse requestOptions
   pure (responseBody resp)
-  where
-    requestOptions = mempty
+ where
+  requestOptions   = mconcat customHeaderOpts
+  customHeaderOpts = map (\(k, v) -> header k v) headers
 
-decodeGraphQLResponse :: (J.FromJSON resp) => ByteString -> Either String (GraphQLResponse resp)
+decodeGraphQLResponse
+  :: (J.FromJSON resp) => ByteString -> Either String (GraphQLResponse resp)
 decodeGraphQLResponse = J.eitherDecodeStrict

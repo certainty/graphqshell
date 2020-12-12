@@ -43,6 +43,7 @@ extra-deps:
   - morpheus-graphql-0.16.0
   - morpheus-graphql-core-0.16.0
   - morpheus-graphql-client-0.16.0
+  - conferer-source-yaml-0.4.0.1
 
 # Override default flag values for local packages and extra-deps
 flags:

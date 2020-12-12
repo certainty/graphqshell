@@ -1,13 +1,15 @@
 module Main where
 
-import Options.Applicative
-import Relude
-import qualified Shell.Application as Application
-import System.Environment
+import           Options.Applicative
+import           Relude
+import qualified Shell.Application             as Application
+import qualified Data.ByteString               as ByteString
+import           Shell.Configuration
+import           System.Directory
 
 data Options = Options
   { verbose :: Bool,
-    apiURL :: Text
+    configPath :: FilePath
   }
   deriving (Eq, Show)
 
@@ -16,25 +18,32 @@ tickRate = 1 * 1000000
 
 main :: IO ()
 main = do
-  parsedOpts <- execParser opts
-  apiURI <- lookupEnv "GRAPHQL_API"
-  void $ Application.run (maybe (apiURL parsedOpts) toText apiURI) tickRate
-  where
-    opts = info (options <**> helper) (fullDesc <> header "GraphQL TUI that is fast, fun and functional")
+  userHomePath <- getHomeDirectory
+  parsedOpts   <- execParser (opts userHomePath)
+  config       <- loadConfiguration (configPath parsedOpts)
+  void $ Application.run config tickRate
+ where
+  opts homePath = info
+    ((options homePath) <**> helper)
+    (fullDesc <> header "GraphQL TUI that is fast, fun and functional")
 
-options :: Parser Options
-options =
+loadConfiguration :: FilePath -> IO ApplicationConfig
+loadConfiguration path = do
+  canonicalPath <- canonicalizePath path
+  (ByteString.readFile canonicalPath) >>= parseConfiguration
+
+options :: FilePath -> Parser Options
+options homePath =
   Options
     <$> switch
-      ( long "verbose"
-          <> short 'v'
-          <> help "Print information during startup"
-      )
+          (long "verbose" <> short 'v' <> help
+            "Print information during startup"
+          )
     <*> strOption
-      ( long "api"
-          <> short 'a'
-          <> help "The GRAPHQL API to connect to initially"
-          <> metavar "GRAPHQL_API"
+          (  long "config"
+          <> short 'c'
+          <> help "The path to the configuration file"
+          <> metavar "CONFIG_FILE"
           <> showDefault
-          <> value "https://graphql-weather-api.herokuapp.com/"
-      )
+          <> value (homePath <> "/.graphqshell/config.yaml")
+          )
