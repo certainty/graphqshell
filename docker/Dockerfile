@@ -8,4 +8,4 @@ RUN stack install
 
 COPY ./docker/entrypoint.sh /mnt/build
 RUN mkdir ~/.graphqshell
-COPY ./graphqshell/config/example.yaml ~/.graphqshell/config.yaml
+COPY ./graphqshell/config/ ~/.graphqshell/
