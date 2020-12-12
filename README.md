@@ -1,7 +1,10 @@
-# GraphQL Client TUI 
+# GraphQL Client TUI (in the works)
 
 [![Build Status](https://travis-ci.com/certainty/graphqshell.svg?branch=main)](https://travis-ci.com/certainty/graphqshell)
 
+## Status
+This is in early hacking state, where I sketch out what it could be. 
+It's by no means stable and will lack features, crash or have other undesirable effects.
 
 ## Trying it out
 
