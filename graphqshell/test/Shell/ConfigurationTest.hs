@@ -29,17 +29,17 @@ spec_parseConfiguration = do
       _endpointHttpConfig endpoint `shouldBe` Nothing
 
     it "fails if two endpoints are marked as default" $ do
-      parseConfiguration twoDefaultEndpoints `shouldThrow` (== ConfigurationError [MultipleDefaultEndpoints ["weather", "other"]])
+      parseConfiguration twoDefaultEndpoints `shouldThrow` (== InvalidConfig [MultipleDefaultEndpoints ["weather", "other"]])
       
     it "fails if two endpoints have the same name" $ do
-      parseConfiguration duplicateEndpoints `shouldThrow` (== ConfigurationError [DuplicateNames ["weather"]])
+      parseConfiguration duplicateEndpoints `shouldThrow` (== InvalidConfig [DuplicateNames ["weather"]])
 
   describe "themes" $ do
     it "fails if two themes are marked as default" $ do
-      parseConfiguration twoDefaultThemes `shouldThrow` (== ConfigurationError [MultipleDefaultThemes ["default", "other"]])
+      parseConfiguration twoDefaultThemes `shouldThrow` (== InvalidConfig [MultipleDefaultThemes ["default", "other"]])
       
     it "fails if two themes have the same name" $ do
-      parseConfiguration duplicateThemes `shouldThrow` (== ConfigurationError [DuplicateNames ["weather"]])
+      parseConfiguration duplicateThemes `shouldThrow` (== InvalidConfig [DuplicateNames ["weather"]])
 
 duplicateThemes :: ByteString      
 duplicateThemes = [r|
