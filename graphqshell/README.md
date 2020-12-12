@@ -4,5 +4,5 @@
 ## Development
 
 ```
-stack exec graphqshell-exe -- -c config/example.yaml
+stack exec graphqshell-exe -- -c config/config.yaml
 ```
