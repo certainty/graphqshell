@@ -9,44 +9,44 @@ import           Text.RawString.QQ
 import           Text.URI                       ( render )
 import           Shell.Configuration
 
-spec_parseConfiguration :: Spec
-spec_parseConfiguration = do
-  describe "when the config is valid" $ do
-    it "returns the config" $ do
+spec_Configuration :: Spec
+spec_Configuration = do
+  describe "parseConfiguration" $ do
+    it "returns valid configuration" $ do
       cfg <- parseConfiguration validConfiguration
       null (_appConfigEndpoints cfg) `shouldBe` False
 
-  describe "endpoints" $ do
-    it "parses the url correctly" $ do
-      cfg <- parseConfiguration validConfiguration
-      let endpoint = (Unsafe.head (_appConfigEndpoints cfg))
-      render (_endpointURL endpoint) `shouldBe` "https://example.com/api"
+    context "endpoints section" $ do
+      it "parses the url correctly" $ do
+        cfg <- parseConfiguration validConfiguration
+        let endpoint = (Unsafe.head (_appConfigEndpoints cfg))
+        render (_endpointURL endpoint) `shouldBe` "https://example.com/api"
 
-    it "allows to omit custom headers" $ do
-      cfg <- parseConfiguration validConfiguration
-      let endpoint = (Unsafe.head $ Unsafe.tail (_appConfigEndpoints cfg))
-      _endpointHttpConfig endpoint `shouldBe` Nothing
+      it "allows to omit custom headers" $ do
+        cfg <- parseConfiguration validConfiguration
+        let endpoint = (Unsafe.head $ Unsafe.tail (_appConfigEndpoints cfg))
+        _endpointHttpConfig endpoint `shouldBe` Nothing
 
-    it "fails if two endpoints are marked as default" $ do
-      parseConfiguration twoDefaultEndpoints
-        `shouldThrow` (== InvalidConfig
-                        [MultipleDefaultEndpoints ["weather", "other"]]
-                      )
+      it "fails if two endpoints are marked as default" $ do
+        parseConfiguration twoDefaultEndpoints
+          `shouldThrow` (== InvalidConfig
+                          [MultipleDefaultEndpoints ["weather", "other"]]
+                        )
 
-    it "fails if two endpoints have the same name" $ do
-      parseConfiguration duplicateEndpoints
-        `shouldThrow` (== InvalidConfig [DuplicateNames ["weather"]])
+      it "fails if two endpoints have the same name" $ do
+        parseConfiguration duplicateEndpoints
+          `shouldThrow` (== InvalidConfig [DuplicateNames ["weather"]])
 
-  describe "themes" $ do
-    it "fails if two themes are marked as default" $ do
-      parseConfiguration twoDefaultThemes
-        `shouldThrow` (== InvalidConfig
-                        [MultipleDefaultThemes ["default", "other"]]
-                      )
+    context "themes section" $ do
+      it "fails if two themes are marked as default" $ do
+        parseConfiguration twoDefaultThemes
+          `shouldThrow` (== InvalidConfig
+                          [MultipleDefaultThemes ["default", "other"]]
+                        )
 
-    it "fails if two themes have the same name" $ do
-      parseConfiguration duplicateThemes
-        `shouldThrow` (== InvalidConfig [DuplicateNames ["weather"]])
+      it "fails if two themes have the same name" $ do
+        parseConfiguration duplicateThemes
+          `shouldThrow` (== InvalidConfig [DuplicateNames ["weather"]])
 
 duplicateThemes :: ByteString
 duplicateThemes = [r|

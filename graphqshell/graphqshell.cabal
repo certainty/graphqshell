@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8d1263455f213e1e2928768f96efd689594f4ec80df2f19d61e1c9226c73bb5d
+-- hash: 708a907e39601ce6bd66399c5a848d533f678cd14fc63368e0659b8bb2562dd5
 
 name:           graphqshell
 version:        0.1.0.0
@@ -24,6 +24,10 @@ source-repository head
   type: git
   location: https://github.com/certainty/graphqshell
 
+flag demo-server
+  manual: True
+  default: False
+
 library
   exposed-modules:
       GraphQL.API
@@ -41,6 +45,7 @@ library
       Shell.Components.Types
       Shell.Components.Utilities
       Shell.Configuration
+      Shell.Configuration.Marshalling
       Shell.Configuration.Types
       Shell.Configuration.Validation
       Shell.State
@@ -94,6 +99,10 @@ executable demo_server
     , safe-exceptions
     , scotty
     , text
+  if flag(demo-server)
+    buildable: True
+  else
+    buildable: False
   default-language: Haskell2010
 
 executable graphqshell-exe
