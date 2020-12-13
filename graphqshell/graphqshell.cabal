@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 080bbcd873df8dbfc012d77b5cbc6f0687d3ad035211943ce6f98ede5ef241cb
+-- hash: 21f323f7fb4979c74138f9c5669947559a4885c8be4350deddd29d48f30779ba
 
 name:           graphqshell
 version:        0.1.0.0
@@ -24,6 +24,10 @@ source-repository head
   type: git
   location: https://github.com/certainty/graphqshell
 
+flag demo-server
+  manual: True
+  default: False
+
 library
   exposed-modules:
       GraphQL.API
@@ -41,9 +45,11 @@ library
       Shell.Components.Types
       Shell.Components.Utilities
       Shell.Configuration
+      Shell.Configuration.Marshalling
       Shell.Configuration.Types
       Shell.Configuration.Validation
       Shell.State
+      Shell.Theme
       Utils
   other-modules:
       Paths_graphqshell
@@ -60,6 +66,7 @@ library
     , bytestring
     , either
     , exceptions
+    , filepath
     , fuzzy
     , fuzzyset
     , microlens-platform
@@ -93,6 +100,10 @@ executable demo_server
     , safe-exceptions
     , scotty
     , text
+  if flag(demo-server)
+    buildable: True
+  else
+    buildable: False
   default-language: Haskell2010
 
 executable graphqshell-exe
@@ -135,6 +146,7 @@ test-suite graphqshell-test
     , bytestring
     , graphqshell
     , hedgehog
+    , microlens-platform
     , microlens-th
     , modern-uri
     , raw-strings-qq

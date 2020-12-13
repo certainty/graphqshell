@@ -8,11 +8,11 @@ services:
     stdin_open: true
     command: ["/bin/bash", "--init-file", "./entrypoint.sh"]
     links:
-      - demo_server
+      - server
     environment:
-      GRAPHQL_API: "http://demo_server:5000/graphql"
+      GRAPHQL_API: "http://server:5000/graphql"
   
-  demo_server:
+  server:
     build: 
       context: ../
       dockerfile: docker/Dockerfile
@@ -22,4 +22,3 @@ services:
     environment:
       GQL_SERVER_PORT: 5000
     command: ["stack", "exec", "demo_server"]
-  

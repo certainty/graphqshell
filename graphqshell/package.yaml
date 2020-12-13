@@ -80,8 +80,12 @@ library:
     - time
     - yaml
     - validation-selective
+    - filepath
 
-
+flags:
+  demo-server:
+    manual: true
+    default: false
 
 executables:
   graphqshell-exe:
@@ -99,6 +103,12 @@ executables:
     - directory
 
   demo_server:
+    when:
+      - condition: flag(demo-server)
+        then: 
+          buildable: true
+        else:
+          buildable: false
     main: Main.hs
     source-dirs: demo_server
     ghc-options:
@@ -143,3 +153,4 @@ tests:
     - microlens-th
     - brick
     - modern-uri
+    - microlens-platform

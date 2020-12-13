@@ -4,6 +4,8 @@ module Shell.Application
 where
 
 import           Brick
+
+import           Brick.Themes                   ( themeToAttrMap )
 import qualified Brick.BChan                   as BCh
 import           Control.Concurrent             ( ThreadId
                                                 , forkIO
@@ -12,35 +14,40 @@ import           Control.Concurrent             ( ThreadId
 import qualified GraphQL.API                   as API
 import qualified Graphics.Vty                  as V
 import           Relude                  hiding ( state )
-import qualified Shell.Components.Introspection
-                                               as Intro
 import qualified Shell.Components.Main         as Main
 import           Shell.Components.Types
-import           Shell.Configuration
 import           Lens.Micro.Platform            ( (^.) )
+import           Shell.Configuration
+import           Shell.Theme
+
 
 -- Main entry point to run the application
-run :: ApplicationConfig -> Int -> IO Main.State
-run config tickRate = do
-  appState <- initialState (API.mkApiSettings (config ^. defaultEndpointConfig))
-  (_, chan) <- startTickThread tickRate
+run :: ApplicationConfig -> IO Main.State
+run config = do
+  appState <- initialState
+    (API.mkApiSettings (config ^. appConfigDefaultEndpoint))
+  theme     <- loadTheme (config ^. appConfigDefaultTheme)
+  (_, chan) <- startTickThread
+    (fromMaybe defaultTickRate (config ^. appConfigTickRate))
   vty <- applicationVTY
-
-  customMain vty applicationVTY (Just chan) application appState
+  customMain vty
+             applicationVTY
+             (Just chan)
+             (application (themeToAttrMap theme))
+             appState
  where
   initialState settings = Main.initialState settings <$> initialSchema settings
   initialSchema settings = API.runApiIO settings API.introspect
+  defaultTickRate = 1 * 1000000
 
-application :: App Main.State Main.Event ComponentName
-application = App { appDraw         = Main.view
-                  , appChooseCursor = neverShowCursor
-                  , appHandleEvent  = Main.update
-                  , appAttrMap      = const applicationAttrMap
-                  , appStartEvent   = pure
-                  }
 
-applicationAttrMap :: AttrMap
-applicationAttrMap = attrMap V.defAttr Intro.attributes
+application :: AttrMap -> App Main.State Main.Event ComponentName
+application attrs = App { appDraw         = Main.view
+                        , appChooseCursor = neverShowCursor
+                        , appHandleEvent  = Main.update
+                        , appAttrMap      = const attrs
+                        , appStartEvent   = pure
+                        }
 
 applicationVTY :: IO V.Vty
 applicationVTY = V.mkVty V.defaultConfig
@@ -61,3 +68,5 @@ startTickThread tickRate = do
     BCh.writeBChan chan Main.Tick
     threadDelay tickRate
   pure (thread, chan)
+
+

@@ -1,6 +1,12 @@
+application:
+  tickrate: 1000000 # microseconds
+
 endpoints:
-  - name: example 
+  - name: demo_server
     default: true
+    url: "http://demo_server:5000/graphql"
+  - name: example 
+    default: false
     url: "https://api.react-finland.fi/graphql"
     link: "https://api.react-finland.fi/graphql"
   - name: weather
@@ -15,4 +21,4 @@ endpoints:
 themes:
   - name: default
     default: true
-    path: /path/to/theme-file
+    path: theme.ini 

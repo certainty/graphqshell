@@ -13,15 +13,12 @@ data Options = Options
   }
   deriving (Eq, Show)
 
-tickRate :: Int
-tickRate = 1 * 1000000
-
 main :: IO ()
 main = do
   userHomePath <- getHomeDirectory
   parsedOpts   <- execParser (opts userHomePath)
   config       <- loadConfiguration (configPath parsedOpts)
-  void $ Application.run config tickRate
+  void $ Application.run config
  where
   opts homePath = info
     ((options homePath) <**> helper)
@@ -29,8 +26,8 @@ main = do
 
 loadConfiguration :: FilePath -> IO ApplicationConfig
 loadConfiguration path = do
-  canonicalPath <- canonicalizePath path
-  (ByteString.readFile canonicalPath) >>= parseConfiguration
+  canonicalPath <- makeAbsolute path
+  (ByteString.readFile canonicalPath) >>= (parseConfiguration canonicalPath)
 
 options :: FilePath -> Parser Options
 options homePath =

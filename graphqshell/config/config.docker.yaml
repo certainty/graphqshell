@@ -1,0 +1,8 @@
+endpoints:
+  - name: demo 
+    default: true
+    url: "http://server:5000/graphql"
+themes:
+  - name: default
+    default: true
+    path: theme.ini 
