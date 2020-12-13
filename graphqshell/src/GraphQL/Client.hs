@@ -17,6 +17,10 @@ import           GraphQL.Client.Types
 import           Network.HTTP.Req
 import           Relude                  hiding ( Option )
 import qualified Text.URI                      as URI
+import           Lens.Micro.Platform            ( (^.) )
+import           Text.URI.Lens                  ( uriAuthority
+                                                , authPort
+                                                )
 
 data ClientError
   = InvalidURI URI.URI
@@ -46,26 +50,35 @@ instance GraphQLClient IOGraphQLClient where
     response      <- case useURI endpointURI of
       Nothing -> throw (InvalidURI endpointURI)
       (Just (Left (httpURI, _))) ->
-        runRequest' httpURI customHeaders requestBody
-      (Just (Right (httpsURI, _))) ->
-        runRequest' httpsURI customHeaders requestBody
+        runRequest' httpURI (endpointPort endpointURI) customHeaders requestBody
+      (Just (Right (httpsURI, _))) -> runRequest' httpsURI
+                                                  (endpointPort endpointURI)
+                                                  customHeaders
+                                                  requestBody
     case decodeGraphQLResponse response of
       (Left  e) -> throw (DecodingError e)
       (Right r) -> pure r
-    where requestBody = GraphQLBody query variables
+   where
+    requestBody = GraphQLBody query variables
+    endpointPort uri = case uri ^. uriAuthority of
+      (Left  _   ) -> Nothing
+      (Right auth) -> fromIntegral <$> (auth ^. authPort)
+
 
 runRequest'
   :: (J.ToJSON variables, MonadIO m)
   => Url scheme
+  -> Maybe Int
   -> [(ByteString, ByteString)]
   -> GraphQLBody variables
   -> m ByteString
-runRequest' url headers body = runReq defaultHttpConfig $ do
+runRequest' url customPort headers body = runReq defaultHttpConfig $ do
   resp <- req POST url (ReqBodyJson body) bsResponse requestOptions
   pure (responseBody resp)
  where
-  requestOptions   = mconcat customHeaderOpts
+  requestOptions   = requestPortOpt <> (mconcat customHeaderOpts)
   customHeaderOpts = map (\(k, v) -> header k v) headers
+  requestPortOpt   = fromMaybe mempty (port <$> customPort)
 
 decodeGraphQLResponse
   :: (J.FromJSON resp) => ByteString -> Either String (GraphQLResponse resp)
