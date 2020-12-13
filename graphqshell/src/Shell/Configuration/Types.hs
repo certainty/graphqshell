@@ -20,8 +20,9 @@ import qualified Data.Text.Encoding            as ByteString
 import qualified Data.Vector                   as Vector
 
 data ApplicationConfig = ApplicationConfig {
-  _defaultEndpointConfig :: EndpointConfig,
-  _defaultThemeConfig :: ThemeConfig,
+  _appConfigTickRate :: Maybe Int,
+  _appConfigDefaultEndpoint :: EndpointConfig,
+  _appConfigDefaultTheme :: ThemeConfig,
   _appConfigEndpoints :: [EndpointConfig],
   _appConfigThemes :: [ThemeConfig]
 } deriving (Generic, Eq)
@@ -57,55 +58,3 @@ instance IsDefaultConfig EndpointConfig where
 
 instance IsDefaultConfig ThemeConfig where
   isDefault = _themeIsDefault
-
--- Marshalling
-instance FromJSON ApplicationConfig where
-  parseJSON = withObject "ApplicationConfig" $ \o -> do
-    endpoints       <- o .: "endpoints"
-    themes          <- o .: "themes"
-    defaultTheme    <- findDefault "themes" themes
-    defaultEndpoint <- findDefault "endpoints" endpoints
-    pure (ApplicationConfig defaultEndpoint defaultTheme endpoints themes)
-   where
-    findDefault section items = do
-      case Relude.find isDefault items of
-        Nothing ->
-          fail
-            (  "No default in "
-            <> section
-            <> " configured. Make sure you defined one."
-            )
-        (Just elt) -> pure elt
-
-instance FromJSON EndpointConfig where
-  parseJSON = withObject "EndpointConfig" $ \o -> do
-    EndpointConfig
-      <$> (o .: "name")
-      <*> (o .:? "default" .!= False)
-      <*> ((o .: "url") >>= parseURI)
-      <*> ((o .:? "link") >>= parseMaybeURI)
-      <*> (o .:? "http")
-   where
-    parseMaybeURI u = sequence $ parseURI <$> u
-    parseURI uri = case (mkURI uri) :: Maybe URI of
-      (Just u) -> pure u
-      _        -> fail "Could not parse URI"
-
-instance FromJSON EndpointHttpConfig where
-  parseJSON = withObject "EndpointHttpConfig" $ \o -> do
-    headers       <- o .:? "custom-headers"
-    parsedHeaders <- sequence $ (parseCustomHeaders <$> headers)
-    pure $ EndpointHttpConfig parsedHeaders
-   where
-    parseCustomHeaders :: Value -> Parser [(ByteString, ByteString)]
-    parseCustomHeaders inp =
-      Vector.toList <$> withArray "headers" (traverse parsePairs) inp
-    parsePairs :: Value -> Parser (ByteString, ByteString)
-    parsePairs = withObject "header" $ \o -> do
-      key <- ByteString.encodeUtf8 <$> (o .: "name")
-      val <- ByteString.encodeUtf8 <$> (o .: "value")
-      pure (key, val)
-
-instance FromJSON ThemeConfig where
-  parseJSON = withObject "ThemeConfig" $ \o -> do
-    ThemeConfig <$> o .: "name" <*> o .:? "default" .!= False <*> o .: "path"

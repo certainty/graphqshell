@@ -24,8 +24,9 @@ import           Shell.Theme
 -- Main entry point to run the application
 run :: ApplicationConfig -> Int -> IO Main.State
 run config tickRate = do
-  appState <- initialState (API.mkApiSettings (config ^. defaultEndpointConfig))
-  theme     <- loadTheme (config ^. defaultThemeConfig)
+  appState <- initialState
+    (API.mkApiSettings (config ^. appConfigDefaultEndpoint))
+  theme     <- loadTheme (config ^. appConfigDefaultTheme)
   (_, chan) <- startTickThread tickRate
   vty       <- applicationVTY
   customMain vty

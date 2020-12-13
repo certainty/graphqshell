@@ -80,6 +80,7 @@ library:
     - time
     - yaml
     - validation-selective
+    - filepath
 
 flags:
   demo-server:

@@ -1,3 +1,6 @@
+application:
+  tickrate: 1000000 # microseconds
+
 endpoints:
   - name: example 
     default: true

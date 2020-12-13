@@ -29,8 +29,8 @@ main = do
 
 loadConfiguration :: FilePath -> IO ApplicationConfig
 loadConfiguration path = do
-  canonicalPath <- canonicalizePath path
-  (ByteString.readFile canonicalPath) >>= parseConfiguration
+  canonicalPath <- makeAbsolute path
+  (ByteString.readFile canonicalPath) >>= (parseConfiguration canonicalPath)
 
 options :: FilePath -> Parser Options
 options homePath =

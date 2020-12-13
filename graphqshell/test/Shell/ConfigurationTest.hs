@@ -13,40 +13,40 @@ spec_Configuration :: Spec
 spec_Configuration = do
   describe "parseConfiguration" $ do
     it "returns valid configuration" $ do
-      cfg <- parseConfiguration validConfiguration
+      cfg <- parseConfiguration "/test" validConfiguration
       null (_appConfigEndpoints cfg) `shouldBe` False
 
     context "endpoints section" $ do
       it "parses the url correctly" $ do
-        cfg <- parseConfiguration validConfiguration
+        cfg <- parseConfiguration "/test" validConfiguration
         let endpoint = (Unsafe.head (_appConfigEndpoints cfg))
         render (_endpointURL endpoint) `shouldBe` "https://example.com/api"
 
       it "allows to omit custom headers" $ do
-        cfg <- parseConfiguration validConfiguration
+        cfg <- parseConfiguration "/test" validConfiguration
         let endpoint = (Unsafe.head $ Unsafe.tail (_appConfigEndpoints cfg))
         _endpointHttpConfig endpoint `shouldBe` Nothing
 
       it "fails if two endpoints are marked as default" $ do
-        parseConfiguration twoDefaultEndpoints
+        parseConfiguration "/test" twoDefaultEndpoints
           `shouldThrow` (== InvalidConfig
                           [MultipleDefaultEndpoints ["weather", "other"]]
                         )
 
       it "fails if two endpoints have the same name" $ do
-        parseConfiguration duplicateEndpoints
-          `shouldThrow` (== InvalidConfig [DuplicateNames ["weather"]])
+        parseConfiguration "/test" duplicateEndpoints
+          `shouldThrow` (== InvalidConfig [DuplicateEndpointNames ["weather"]])
 
     context "themes section" $ do
       it "fails if two themes are marked as default" $ do
-        parseConfiguration twoDefaultThemes
+        parseConfiguration "/test" twoDefaultThemes
           `shouldThrow` (== InvalidConfig
                           [MultipleDefaultThemes ["default", "other"]]
                         )
 
       it "fails if two themes have the same name" $ do
-        parseConfiguration duplicateThemes
-          `shouldThrow` (== InvalidConfig [DuplicateNames ["weather"]])
+        parseConfiguration "/test" duplicateThemes
+          `shouldThrow` (== InvalidConfig [DuplicateThemeNames ["weather"]])
 
 duplicateThemes :: ByteString
 duplicateThemes = [r|
