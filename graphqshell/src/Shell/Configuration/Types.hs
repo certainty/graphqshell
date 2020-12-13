@@ -2,22 +2,8 @@
 
 module Shell.Configuration.Types where
 import           Relude
-import           Text.URI                       ( URI
-                                                , mkURI
-                                                )
-import           Data.Yaml                      ( withObject
-                                                , withArray
-                                                )
-import           Data.Yaml.Aeson                ( FromJSON(..)
-                                                , (.:)
-                                                , (.:?)
-                                                , (.!=)
-                                                , Parser
-                                                , Value
-                                                )
+import           Text.URI                       ( URI )
 import           Lens.Micro.Platform            ( makeLenses )
-import qualified Data.Text.Encoding            as ByteString
-import qualified Data.Vector                   as Vector
 
 data ApplicationConfig = ApplicationConfig {
   _appConfigTickRate :: Maybe Int,

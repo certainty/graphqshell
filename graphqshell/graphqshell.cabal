@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7adfeb65ab9b9a9bfaef76869190e020ed9dcb06bb64c530cfc2ccbbfdbc75f4
+-- hash: 21f323f7fb4979c74138f9c5669947559a4885c8be4350deddd29d48f30779ba
 
 name:           graphqshell
 version:        0.1.0.0
@@ -146,6 +146,7 @@ test-suite graphqshell-test
     , bytestring
     , graphqshell
     , hedgehog
+    , microlens-platform
     , microlens-th
     , modern-uri
     , raw-strings-qq

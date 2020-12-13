@@ -13,15 +13,12 @@ data Options = Options
   }
   deriving (Eq, Show)
 
-tickRate :: Int
-tickRate = 1 * 1000000
-
 main :: IO ()
 main = do
   userHomePath <- getHomeDirectory
   parsedOpts   <- execParser (opts userHomePath)
   config       <- loadConfiguration (configPath parsedOpts)
-  void $ Application.run config tickRate
+  void $ Application.run config
  where
   opts homePath = info
     ((options homePath) <**> helper)

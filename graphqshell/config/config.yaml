@@ -18,4 +18,4 @@ endpoints:
 themes:
   - name: default
     default: true
-    path: config/theme.ini 
+    path: theme.ini 

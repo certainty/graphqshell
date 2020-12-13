@@ -153,3 +153,4 @@ tests:
     - microlens-th
     - brick
     - modern-uri
+    - microlens-platform

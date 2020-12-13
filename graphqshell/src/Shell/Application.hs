@@ -22,13 +22,14 @@ import           Shell.Theme
 
 
 -- Main entry point to run the application
-run :: ApplicationConfig -> Int -> IO Main.State
-run config tickRate = do
+run :: ApplicationConfig -> IO Main.State
+run config = do
   appState <- initialState
     (API.mkApiSettings (config ^. appConfigDefaultEndpoint))
   theme     <- loadTheme (config ^. appConfigDefaultTheme)
-  (_, chan) <- startTickThread tickRate
-  vty       <- applicationVTY
+  (_, chan) <- startTickThread
+    (fromMaybe defaultTickRate (config ^. appConfigTickRate))
+  vty <- applicationVTY
   customMain vty
              applicationVTY
              (Just chan)
@@ -37,6 +38,8 @@ run config tickRate = do
  where
   initialState settings = Main.initialState settings <$> initialSchema settings
   initialSchema settings = API.runApiIO settings API.introspect
+  defaultTickRate = 1 * 1000000
+
 
 application :: AttrMap -> App Main.State Main.Event ComponentName
 application attrs = App { appDraw         = Main.view

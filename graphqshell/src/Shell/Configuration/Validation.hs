@@ -11,6 +11,7 @@ import           Validation
 import           System.FilePath                ( normalise
                                                 , isRelative
                                                 , (</>)
+                                                , takeDirectory
                                                 )
 import           Data.List                      ( (\\)
                                                 , nub
@@ -165,5 +166,7 @@ validateDefaultTheme themes configFilePath =
 
 createThemePath :: FilePath -> FilePath -> FilePath
 createThemePath configFilePath themeFilePath
-  | isRelative themeFilePath = configFilePath </> (normalise themeFilePath)
-  | otherwise                = normalise themeFilePath
+  | isRelative themeFilePath
+  = (takeDirectory configFilePath) </> (normalise themeFilePath)
+  | otherwise
+  = normalise themeFilePath
