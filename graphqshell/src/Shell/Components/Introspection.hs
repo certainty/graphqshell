@@ -16,9 +16,7 @@ import           Brick.Markup                   ( markup
                                                 )
 import           Brick.Widgets.Border
 import qualified Brick.Widgets.List            as L
-import           Data.Text.Markup               ( Markup(..)
-                                                , fromText
-                                                )
+import           Data.Text.Markup               ( fromText )
 import qualified Data.Text.Markup              as Markup
 import           Data.Vector                    ( (!?) )
 import           Data.Vector.Generic            ( foldl )
@@ -61,15 +59,15 @@ data FieldViewState = FieldViewState
 fieldOutputType :: Schema -> FieldType -> Maybe GraphQLType
 fieldOutputType schema (FieldType _ _ _ _ ref) = lookupType ref schema
 
-mkFieldViewState :: Schema -> GraphQLType -> FieldViewState
+mkFieldViewState :: Schema -> ObjectType -> FieldViewState
 mkFieldViewState schema selectedType = FieldViewState (L.list () fields 1)
                                                       selectedField
                                                       selectedOutputType
  where
     -- can also be something else
-  (Object (ObjectType _ _ fields _)) = selectedType
-  selectedField                      = fields !? 0
-  selectedOutputType                 = selectedField >>= fieldOutputType schema
+  (ObjectType _ _ fields _) = selectedType
+  selectedField             = fields !? 0
+  selectedOutputType        = selectedField >>= fieldOutputType schema
 
 makeLenses ''State
 makeLenses ''FieldViewState
@@ -79,11 +77,14 @@ attributes :: [(AttrName, Attr)]
 attributes =
   [ (L.listSelectedAttr, withStyle defAttr bold)
   , ("standout"        , withStyle defAttr standout)
+  , (attrSDLIdentifier , defAttr)
+  , (attrSDLKeyword    , defAttr)
+  , (attrSDLParens     , defAttr)
   ]
 
 mkState :: Schema -> GraphQLType -> State
-mkState schema selectedType@(Object _) =
-  State schema selectedType (Just (mkFieldViewState schema selectedType))
+mkState schema selectedType@(Object tpe) =
+  State schema selectedType (Just (mkFieldViewState schema tpe))
 mkState schema selectedType = State schema selectedType Nothing
 
 -- TODO: extract code to update subcomponents
@@ -200,8 +201,7 @@ fieldInfoView state =
   fieldType        = fieldTypeReference <$> selectedField
 
 fieldArgumentsView :: FieldViewState -> Widget ()
-fieldArgumentsView state = txt "Arguments view comes later"
-  where selectedField = state ^. sfvSelectedField
+fieldArgumentsView _state = txt "Arguments view comes later"
 
 -- The field data in the mainView
 renderField :: Schema -> Bool -> FieldType -> Widget ()
@@ -211,28 +211,37 @@ renderField _schema _    field = hBox [txt "  ", markup $ toSDL field]
 -- Helpers will later be extracted
 
 class ToSDL a where
-  toSDL :: a -> Markup AttrName
+  toSDL :: a -> Markup.Markup AttrName
 
 instance ToSDL TypeReference where
   toSDL (ListOf    tpe                ) = "[" <> toSDL tpe <> "]"
   toSDL (NonNullOf tpe                ) = toSDL tpe <> "!"
-  toSDL (Named     (NamedType tpeName)) = tpeName @? "typeName"
+  toSDL (Named     (NamedType tpeName)) = tpeName @? attrSDLIdentifier
 
 instance ToSDL FieldType where
   toSDL (FieldType fieldName _descr _depr _args outputRef) =
-    (fieldName @? "fieldName") <> "(...): " <> toSDL outputRef
+    (fieldName @? attrSDLIdentifier) <> "(...): " <> toSDL outputRef
 
 instance ToSDL GraphQLType where
   toSDL (Object (ObjectType tpeName _descr fields _interfaces)) =
-    ("type" @? "keyword")
+    ("type" @? attrSDLKeyword)
       <> " "
       <> fromText tpeName
       <> " "
-      <> ("{" @? "paren")
+      <> ("{" @? attrSDLParens)
       <> "\n"
       <> sdlFields
-      <> ("}" @? "paren")
+      <> ("}" @? attrSDLParens)
    where
     sdlFields = foldl sdlField "" fields
     sdlField accu field = accu <> "  " <> toSDL field <> "\n"
   toSDL _ = "unsupported"
+
+attrSDLParens :: AttrName
+attrSDLParens = "sdl" <> "paren"
+
+attrSDLKeyword :: AttrName
+attrSDLKeyword = "sdl" <> "keyword"
+
+attrSDLIdentifier :: AttrName
+attrSDLIdentifier = "sdl" <> "identifier"
