@@ -3,7 +3,7 @@ application:
 
 endpoints:
   - name: example 
-    default: false
+    default: true
     url: "https://api.react-finland.fi/graphql"
     link: "https://api.react-finland.fi/graphql"
   - name: weather
