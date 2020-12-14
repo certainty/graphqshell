@@ -9,18 +9,21 @@ module GraphQL.Client
   )
 where
 
-import           Control.Exception.Safe         ( MonadThrow
-                                                , throw
-                                                )
+import           Control.Exception.Safe                                                 ( MonadThrow
+                                                                                        , throw
+                                                                                        )
+
 import qualified Data.Aeson                    as J
 import           GraphQL.Client.Types
+import           Lens.Micro.Platform                                                    ( (^.)
+                                                                                        )
 import           Network.HTTP.Req
-import           Relude                  hiding ( Option )
+import           Relude                                                          hiding ( Option
+                                                                                        )
 import qualified Text.URI                      as URI
-import           Lens.Micro.Platform            ( (^.) )
-import           Text.URI.Lens                  ( uriAuthority
-                                                , authPort
-                                                )
+import           Text.URI.Lens                                                          ( authPort
+                                                                                        , uriAuthority
+                                                                                        )
 
 data ClientError
   = InvalidURI URI.URI
@@ -29,18 +32,18 @@ data ClientError
 
 instance Exception ClientError
 
-data ClientSettings = ClientSettings {
-    clientEndpoint :: URI.URI,
-    customHeaders :: Maybe [(ByteString, ByteString)]
-  } deriving (Eq, Show)
+data ClientSettings = ClientSettings
+  { clientEndpoint :: URI.URI
+  , customHeaders  :: Maybe [(ByteString, ByteString)]
+  }
+  deriving (Eq, Show)
 
 newtype IOGraphQLClient a = IOGraphQClient
   { runIOClient :: ReaderT ClientSettings IO a
   }
   deriving (Functor, Applicative, Monad, MonadIO, MonadThrow, MonadReader ClientSettings)
 
-runGraphQLClientIO
-  :: ClientSettings -> (forall m . GraphQLClient m => m a) -> IO a
+runGraphQLClientIO :: ClientSettings -> (forall m . GraphQLClient m => m a) -> IO a
 runGraphQLClientIO settings action = runReaderT (runIOClient action) settings
 
 instance GraphQLClient IOGraphQLClient where
@@ -51,10 +54,8 @@ instance GraphQLClient IOGraphQLClient where
       Nothing -> throw (InvalidURI endpointURI)
       (Just (Left (httpURI, _))) ->
         runRequest' httpURI (endpointPort endpointURI) customHeaders requestBody
-      (Just (Right (httpsURI, _))) -> runRequest' httpsURI
-                                                  (endpointPort endpointURI)
-                                                  customHeaders
-                                                  requestBody
+      (Just (Right (httpsURI, _))) ->
+        runRequest' httpsURI (endpointPort endpointURI) customHeaders requestBody
     case decodeGraphQLResponse response of
       (Left  e) -> throw (DecodingError e)
       (Right r) -> pure r

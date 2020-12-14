@@ -101,6 +101,7 @@ executables:
     - graphqshell
     - optparse-applicative
     - directory
+    - filepath
 
   demo_server:
     when:

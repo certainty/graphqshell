@@ -1,23 +1,27 @@
-module Main where
+module Main
+  ( main
+  )
+where
 
 import           Options.Applicative
 import           Relude
 import qualified Shell.Application             as Application
 import qualified Data.ByteString               as ByteString
 import           Shell.Configuration
-import           System.Directory
+import qualified System.Directory              as Directory
+import qualified System.FilePath               as FilePath
 
 data Options = Options
-  { verbose :: Bool,
-    configPath :: FilePath
+  { verbose    :: Bool
+  , configPath :: FilePath
   }
   deriving (Eq, Show)
 
 main :: IO ()
 main = do
-  userHomePath <- getHomeDirectory
-  parsedOpts   <- execParser (opts userHomePath)
-  config       <- loadConfiguration (configPath parsedOpts)
+  defaultConfigPath <- defaultConfigurationFilePath
+  parsedOpts        <- execParser (opts defaultConfigPath)
+  config            <- loadConfiguration (configPath parsedOpts)
   void $ Application.run config
  where
   opts homePath = info
@@ -26,21 +30,23 @@ main = do
 
 loadConfiguration :: FilePath -> IO ApplicationConfig
 loadConfiguration path = do
-  canonicalPath <- makeAbsolute path
-  (ByteString.readFile canonicalPath) >>= (parseConfiguration canonicalPath)
+  absolutePath <- Directory.makeAbsolute path
+  (ByteString.readFile absolutePath) >>= (parseConfiguration absolutePath)
+
+defaultConfigurationFilePath :: IO FilePath
+defaultConfigurationFilePath = do
+  configDirectory <- Directory.getXdgDirectory Directory.XdgConfig "graphqshell"
+  pure $ configDirectory FilePath.</> "config.yaml"
 
 options :: FilePath -> Parser Options
-options homePath =
+options defaultConfigPath =
   Options
-    <$> switch
-          (long "verbose" <> short 'v' <> help
-            "Print information during startup"
-          )
+    <$> switch (long "verbose" <> short 'v' <> help "Print information during startup")
     <*> strOption
           (  long "config"
           <> short 'c'
           <> help "The path to the configuration file"
           <> metavar "CONFIG_FILE"
           <> showDefault
-          <> value (homePath <> "/.graphqshell/config.yaml")
+          <> value defaultConfigPath
           )
