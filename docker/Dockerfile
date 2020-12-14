@@ -7,5 +7,5 @@ COPY ./graphqshell /mnt/build
 RUN stack install --flag graphqshell:demo-server
 
 COPY ./docker/entrypoint.sh /mnt/build
-RUN mkdir ~/.graphqshell
-RUN cp /mnt/build/config/* ~/.graphqshell/
+RUN mkdir -p ~/.config/graphqshell
+RUN cp /mnt/build/config/* ~/.config/graphqshell/
