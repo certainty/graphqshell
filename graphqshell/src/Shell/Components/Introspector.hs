@@ -27,6 +27,7 @@ import qualified Shell.SDL                     as SDL
 import qualified Shell.Components.Introspector.ObjectType
                                                as IntroObject
 
+import           Shell.Components.Utilities
 {-
   _____                 _
  | ____|_   _____ _ __ | |_
@@ -50,6 +51,7 @@ data Event = ObjectTypeEvent IntroObject.Event
 
 data State = State
   { _stSchema            :: Schema
+  , _stSelectedTypeStack :: [GraphQLType]
   , _stSelectedTypeState :: SelectedTypeState
   }
 
@@ -81,9 +83,8 @@ attributes = IntroObject.attributes ++ SDL.attributes
 
 initialState :: Schema -> GraphQLType -> State
 initialState schema (Object tpe) =
-  State schema (ObjectTypeState (IntroObject.initialState schema tpe))
-initialState schema _ = State schema UnsupportedTypeState
-
+  State schema [(Object tpe)] (ObjectTypeState (IntroObject.initialState schema tpe))
+initialState schema tpe = State schema [tpe] UnsupportedTypeState
 
 {-
   _   _           _       _
@@ -96,13 +97,14 @@ initialState schema _ = State schema UnsupportedTypeState
 
 update :: State -> BrickEvent ComponentName Event -> EventM ComponentName (Next State)
 -- Doesn't really belong here,, how do we emit an event in the subcomponent?
-update state@(State schema (ObjectTypeState tpeState)) (VtyEvent (V.EvKey V.KEnter [])) =
-  case selectedType of
+update state@(State schema _ (ObjectTypeState tpeState)) (VtyEvent (V.EvKey V.KEnter []))
+  = case selectedType of
     (Just tpe) -> continue (initialState schema tpe)
     Nothing    -> continue state
  where
   selectedType = tpeState ^. IntroObject.stFieldsView . IntroObject.sfvSelectedOutputType
-update state@(State _ (ObjectTypeState tpeState)) (VtyEvent ev) = do
+
+update state@(State _ _ (ObjectTypeState tpeState)) (VtyEvent ev) = do
   nextVal <- IntroObject.update tpeState (VtyEvent ev)
   pure
     $   (\newState -> set stSelectedTypeState (ObjectTypeState newState) state)
@@ -120,7 +122,7 @@ update state _ev = continue state
 -}
 
 view :: State -> Widget ()
-view (State _ (ObjectTypeState tpeState)) = IntroObject.view tpeState
+view (State _ _ (ObjectTypeState tpeState)) = IntroObject.view tpeState
 view _ = unsupportedView
 
 -- | Will go away
