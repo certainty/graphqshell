@@ -5,47 +5,50 @@ where
 
 import           Brick
 
-import           Brick.Themes                   ( themeToAttrMap )
+import           Brick.Themes                                                           ( themeToAttrMap
+                                                                                        )
 import qualified Brick.BChan                   as BCh
-import           Control.Concurrent             ( ThreadId
-                                                , forkIO
-                                                , threadDelay
-                                                )
+import           Control.Concurrent                                                     ( ThreadId
+                                                                                        , forkIO
+                                                                                        , threadDelay
+                                                                                        )
 import qualified GraphQL.API                   as API
 import qualified Graphics.Vty                  as V
-import           Relude                  hiding ( state )
+import           Relude                                                          hiding ( state
+                                                                                        )
 import qualified Shell.Components.Main         as Main
 import           Shell.Components.Types
-import           Lens.Micro.Platform            ( (^.) )
+import           Lens.Micro.Platform                                                    ( (^.)
+                                                                                        )
 import           Shell.Configuration
 import           Shell.Theme
+import           Brick.Themes
 
 
--- Main entry point to run the application
+defaultTickRate :: Int
+defaultTickRate = 1 * 1000000
+
 run :: ApplicationConfig -> IO Main.State
 run config = do
-  appState <- initialState
-    (API.mkApiSettings (config ^. appConfigDefaultEndpoint))
-  theme     <- loadTheme (config ^. appConfigDefaultTheme)
-  (_, chan) <- startTickThread
-    (fromMaybe defaultTickRate (config ^. appConfigTickRate))
-  vty <- applicationVTY
-  customMain vty
-             applicationVTY
-             (Just chan)
-             (application (themeToAttrMap theme))
-             appState
+  appState  <- initialState apiConfig
+  theme     <- loadTheme configuredTheme
+  (_, chan) <- startTickThread tickRate
+  vty       <- applicationVTY
+  customMain vty applicationVTY (Just chan) (application theme) appState
  where
+  apiConfig       = API.mkApiSettings (config ^. appConfigDefaultEndpoint)
+  configuredTheme = config ^. appConfigDefaultTheme
   initialState settings = Main.initialState settings <$> initialSchema settings
   initialSchema settings = API.runApiIO settings API.introspect
-  defaultTickRate = 1 * 1000000
+  tickRate = fromMaybe defaultTickRate (config ^. appConfigTickRate)
 
-
-application :: AttrMap -> App Main.State Main.Event ComponentName
-application attrs = App { appDraw         = Main.view
+-- We delegate most of the functions to the main component,
+-- which is what is shown first
+application :: Theme -> App Main.State Main.Event ComponentName
+application theme = App { appDraw         = Main.view
                         , appChooseCursor = neverShowCursor
                         , appHandleEvent  = Main.update
-                        , appAttrMap      = const attrs
+                        , appAttrMap      = const (themeToAttrMap theme)
                         , appStartEvent   = pure
                         }
 
