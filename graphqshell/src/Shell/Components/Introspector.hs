@@ -89,7 +89,7 @@ update
   -> BrickEvent ComponentName Event
   -> EventM ComponentName (Continuation Event State)
 update state (AppEvent (SelectedTypeChanged selectedType)) =
-  keepGoing (initialState (state ^. stSchema) selectedType)
+  keepGoing (pushSelectedType state selectedType)
 update state@(State _ _ (ObjectTypeState tpeState)) (VtyEvent ev) = do
   nextCont <- IntroObject.update tpeState (VtyEvent ev)
   pure
@@ -97,6 +97,19 @@ update state@(State _ _ (ObjectTypeState tpeState)) (VtyEvent ev) = do
     <$> nextCont
 -- catch all
 update state _ev = keepGoing state
+
+selectedTypeState :: Schema -> GraphQLType -> SelectedTypeState
+selectedTypeState schema (Object tpe) = ObjectTypeState  (IntroObject.initialState schema tpe)
+selectedTypeState _ _ = UnsupportedTypeState
+
+-- | Manage the type stack and state
+pushSelectedType :: State -> GraphQLType -> State
+pushSelectedType (State schema typeStack _) tpe = State schema (tpe : typeStack) (selectedTypeState schema tpe)
+
+popSelectedType :: State -> State
+popSelectedType (State schema [tpe] _) = State schema [tpe] (selectedTypeState schema tpe)
+popSelectedType (State schema (tpe : rest) _) = State schema rest (selectedTypeState schema tpe)
+popSelectedType s = s
 
 {-
  __     ___
