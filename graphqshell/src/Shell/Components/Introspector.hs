@@ -26,19 +26,8 @@ import           Shell.Components.Types
 import qualified Shell.SDL                     as SDL
 import qualified Shell.Components.Introspector.ObjectType
                                                as IntroObject
-
-import           Shell.Components.Utilities
-{-
-  _____                 _
- | ____|_   _____ _ __ | |_
- |  _| \ \ / / _ \ '_ \| __|
- | |___ \ V /  __/ | | | |_
- |_____| \_/ \___|_| |_|\__|
-
--}
-
-data Event = ObjectTypeEvent IntroObject.Event
-  deriving (Eq, Ord, Show)
+import           Shell.Continuation
+import           Shell.Components.Introspector.Event
 
 {-
   ____  _        _
@@ -95,22 +84,19 @@ initialState schema tpe = State schema [tpe] UnsupportedTypeState
        |_|
 -}
 
-update :: State -> BrickEvent ComponentName Event -> EventM ComponentName (Next State)
--- Doesn't really belong here,, how do we emit an event in the subcomponent?
-update state@(State schema _ (ObjectTypeState tpeState)) (VtyEvent (V.EvKey V.KEnter []))
-  = case selectedType of
-    (Just tpe) -> continue (initialState schema tpe)
-    Nothing    -> continue state
- where
-  selectedType = tpeState ^. IntroObject.stFieldsView . IntroObject.sfvSelectedOutputType
-
+update
+  :: State
+  -> BrickEvent ComponentName Event
+  -> EventM ComponentName (Continuation Event State)
+update state (AppEvent (SelectedTypeChanged selectedType)) =
+  keepGoing (initialState (state ^. stSchema) selectedType)
 update state@(State _ _ (ObjectTypeState tpeState)) (VtyEvent ev) = do
-  nextVal <- IntroObject.update tpeState (VtyEvent ev)
+  nextCont <- IntroObject.update tpeState (VtyEvent ev)
   pure
     $   (\newState -> set stSelectedTypeState (ObjectTypeState newState) state)
-    <$> nextVal
+    <$> nextCont
 -- catch all
-update state _ev = continue state
+update state _ev = keepGoing state
 
 {-
  __     ___

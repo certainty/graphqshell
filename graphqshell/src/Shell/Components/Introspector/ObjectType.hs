@@ -45,17 +45,8 @@ import           Relude                                                         
 import           Shell.Components.Types
 import           Shell.SDL                                                       hiding ( attributes
                                                                                         )
-{-
-  _____                 _
- | ____|_   _____ _ __ | |_
- |  _| \ \ / / _ \ '_ \| __|
- | |___ \ V /  __/ | | | |_
- |_____| \_/ \___|_| |_|\__|
-
--}
-
-data Event = Event
-  deriving (Eq, Ord, Show)
+import           Shell.Continuation
+import           Shell.Components.Introspector.Event
 
 
 {-
@@ -125,11 +116,20 @@ initialState schema selectedType = State fieldViewState selectedType schema
 
 -}
 
-update :: State -> BrickEvent ComponentName Event -> EventM ComponentName (Next State)
+update
+  :: State
+  -> BrickEvent ComponentName Event
+  -> EventM ComponentName (Continuation Event State)
+
+update state (VtyEvent (V.EvKey V.KEnter [])) = case selectedType of
+  (Just tpe) -> concurrently state (pure (SelectedTypeChanged tpe))
+  Nothing    -> keepGoing state
+  where selectedType = state ^. stFieldsView . sfvSelectedOutputType
+
 update state (VtyEvent ev) = do
   newState <- L.handleListEvent ev (state ^. stFieldsView . sfvFields)
   case L.listSelectedElement newState of
-    (Just (_, field)) -> continue
+    (Just (_, field)) -> keepGoing
       (  state
       &  stFieldsView
       .~ (FieldViewState newState
@@ -138,8 +138,8 @@ update state (VtyEvent ev) = do
          )
       )
     Nothing ->
-      continue (state & stFieldsView .~ (FieldViewState newState Nothing Nothing))
-update state _ev = continue state
+      keepGoing (state & stFieldsView .~ (FieldViewState newState Nothing Nothing))
+update state _ev = keepGoing state
 
 {-
  __     ___

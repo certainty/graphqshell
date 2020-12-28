@@ -5,8 +5,6 @@ where
 
 import           Brick
 
-import           Brick.Themes                                                           ( themeToAttrMap
-                                                                                        )
 import qualified Brick.BChan                   as BCh
 import           Control.Concurrent                                                     ( ThreadId
                                                                                         , forkIO
@@ -23,6 +21,7 @@ import           Lens.Micro.Platform                                            
 import           Shell.Configuration
 import           Shell.Theme
 import           Brick.Themes
+import           Shell.Continuation
 
 
 defaultTickRate :: Int
@@ -34,7 +33,7 @@ run config = do
   theme     <- loadTheme configuredTheme
   (_, chan) <- startTickThread tickRate
   vty       <- applicationVTY
-  customMain vty applicationVTY (Just chan) (application theme) appState
+  customMain vty applicationVTY (Just chan) (application chan theme) appState
  where
   apiConfig       = API.mkApiSettings (config ^. appConfigDefaultEndpoint)
   configuredTheme = config ^. appConfigDefaultTheme
@@ -44,13 +43,21 @@ run config = do
 
 -- We delegate most of the functions to the main component,
 -- which is what is shown first
-application :: Theme -> App Main.State Main.Event ComponentName
-application theme = App { appDraw         = Main.view
-                        , appChooseCursor = neverShowCursor
-                        , appHandleEvent  = Main.update
-                        , appAttrMap      = const (themeToAttrMap theme)
-                        , appStartEvent   = pure
-                        }
+application :: BCh.BChan Main.Event -> Theme -> App Main.State Main.Event ComponentName
+application chan theme = App { appDraw         = Main.view
+                             , appChooseCursor = neverShowCursor
+                             , appHandleEvent  = applicationUpdate chan
+                             , appAttrMap      = const (themeToAttrMap theme)
+                             , appStartEvent   = pure
+                             }
+
+-- Adapt the underlying update functions to match the brick continuations
+applicationUpdate
+  :: BCh.BChan Main.Event
+  -> Main.State
+  -> BrickEvent ComponentName Main.Event
+  -> EventM ComponentName (Next Main.State)
+applicationUpdate chan s evt = Main.update s evt >>= adaptToBrick chan
 
 applicationVTY :: IO V.Vty
 applicationVTY = V.mkVty V.defaultConfig
