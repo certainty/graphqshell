@@ -47,13 +47,13 @@ instance Bifunctor Continuation where
   bimap fa fs (Concurrently s a) = (Concurrently (fs s) (fa <$> a))
 
 instance Functor (Continuation e) where
-  fmap f (Continue s      ) = Continue (f s)
-  fmap f (Stop     s      ) = Stop (f s)
-  fmap f (Concurrently s a) = (Concurrently (f s) a)
+  fmap = second
 
+-- | Keep going with the execution
 keepGoing :: s -> EventM n (Continuation e s)
 keepGoing = pure . Continue
 
+-- | Stop the execution
 stopIt :: s -> EventM n (Continuation e s)
 stopIt = pure . Stop
 
@@ -67,6 +67,7 @@ concurrently s a = pure $ (Concurrently s (Action a))
 -- | @
 -- | update :: State -> BrickEvent n Event -> EventM n (Continuation State Event)
 -- | @
+-- TODO: actually make actions run concurrently
 adaptToBrick :: BCh.BChan e -> Continuation e s -> EventM n (Next s)
 adaptToBrick _ (Continue s) = continue s
 adaptToBrick _ (Stop     s) = halt s
@@ -74,21 +75,7 @@ adaptToBrick chan (Concurrently s action) =
   (liftIO $ (runAction action) >>= BCh.writeBChanNonBlocking chan) >> continue s
 
 
--- | Helper to update components more conveniently
--- updateComponent
---   :: a
---   -> Lens' a b
---   -> (e -> e2)
---   -> (b -> e -> EventM n (Continuation e b))
---   -> e
---   -> EventM n (Continuation e2 a)
--- updateComponent state target eventUpdate componentUpdate event = do
---   cont <- componentUpdate (view target state) event
---   let newCont = bimap eventUpdate stateUpdate cont
---   pure newCont
---   where stateUpdate s = set target s state
-
-
+-- | Update a subcomponent conveniently
 updateComponent
   ::
   -- | The main state of this component
