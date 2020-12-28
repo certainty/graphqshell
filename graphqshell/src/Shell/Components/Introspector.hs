@@ -90,6 +90,7 @@ update
   -> EventM ComponentName (Continuation Event State)
 update state (AppEvent (SelectedTypeChanged selectedType)) =
   keepGoing (pushSelectedType state selectedType)
+update state (VtyEvent (V.EvKey (V.KChar '[') [])) = keepGoing (popSelectedType state)
 update state@(State _ _ (ObjectTypeState tpeState)) (VtyEvent ev) = do
   nextCont <- IntroObject.update tpeState (VtyEvent ev)
   pure
