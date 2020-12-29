@@ -1,33 +1,36 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Shell.Components.Introspector
-  ( view
-  , Event(..)
-  , State
-  , update
-  , attributes
-  , initialState
+  ( view,
+    Event (..),
+    State,
+    update,
+    attributes,
+    initialState,
   )
 where
 
-import           Brick
-import           GraphQL.Introspection.Schema
-import qualified Graphics.Vty                  as V
-import           Graphics.Vty.Attributes                                                ( Attr
-                                                                                        )
-import           Lens.Micro.Platform                                                    ( makeLenses
-                                                                                        , (^.)
-                                                                                        , set
-                                                                                        )
-import           Relude                                                          hiding ( State
-                                                                                        , state
-                                                                                        )
-import           Shell.Components.Types
-import qualified Shell.SDL                     as SDL
-import qualified Shell.Components.Introspector.ObjectType
-                                               as IntroObject
-import           Shell.Continuation
-import           Shell.Components.Introspector.Event
+import Brick
+import GraphQL.Introspection.Schema
+import GraphQL.Introspection.Schema.Types (name)
+import qualified Graphics.Vty as V
+import Graphics.Vty.Attributes
+  ( Attr,
+  )
+import Lens.Micro.Platform
+  ( makeLenses,
+    set,
+  )
+import Relude hiding
+  ( State,
+    state,
+  )
+import Shell.Components.Introspector.Event
+import qualified Shell.Components.Introspector.ObjectType as IntroObject
+import Shell.Components.Types
+import Shell.Continuation
+import qualified Shell.SDL as SDL
+import Utils
 
 {-
   ____  _        _
@@ -39,13 +42,23 @@ import           Shell.Components.Introspector.Event
 -}
 
 data State = State
-  { _stSchema            :: Schema
-  , _stSelectedTypeStack :: [GraphQLType]
-  , _stSelectedTypeState :: SelectedTypeState
+  { _stSchema :: Schema,
+    _stSelectedTypeStack :: [GraphQLType],
+    _stSelectedTypeState :: SelectedTypeState
   }
+  deriving (Show)
 
-data SelectedTypeState = ObjectTypeState IntroObject.State
+instance Inspect State where
+  inspect (State _ typeStack s) = " IntrospectorState { stack: " <> (show (map name typeStack)) <> " selected = " <> inspect s <> "}"
+
+data SelectedTypeState
+  = ObjectTypeState IntroObject.State
   | UnsupportedTypeState
+  deriving (Show)
+
+instance Inspect SelectedTypeState where
+  inspect (ObjectTypeState tpe) = "ObjectState { tpe = " <> (inspect tpe) <> " }"
+  inspect UnsupportedTypeState = "UnsupportedTypeState"
 
 makeLenses ''State
 
@@ -84,23 +97,22 @@ initialState schema tpe = State schema [tpe] UnsupportedTypeState
        |_|
 -}
 
-update
-  :: State
-  -> BrickEvent ComponentName Event
-  -> EventM ComponentName (Continuation Event State)
-update state (AppEvent (SelectedTypeChanged selectedType)) =
-  keepGoing (pushSelectedType state selectedType)
+update ::
+  State ->
+  BrickEvent ComponentName Event ->
+  EventM ComponentName (Continuation Event State)
+update state (AppEvent (SelectedTypeChanged selectedType)) = keepGoing (pushSelectedType state selectedType)
 update state (VtyEvent (V.EvKey (V.KChar '[') [])) = keepGoing (popSelectedType state)
 update state@(State _ _ (ObjectTypeState tpeState)) (VtyEvent ev) = do
   nextCont <- IntroObject.update tpeState (VtyEvent ev)
-  pure
-    $   (\newState -> set stSelectedTypeState (ObjectTypeState newState) state)
-    <$> nextCont
+  pure $
+    (\newState -> set stSelectedTypeState (ObjectTypeState newState) state)
+      <$> nextCont
 -- catch all
 update state _ev = keepGoing state
 
 selectedTypeState :: Schema -> GraphQLType -> SelectedTypeState
-selectedTypeState schema (Object tpe) = ObjectTypeState  (IntroObject.initialState schema tpe)
+selectedTypeState schema (Object tpe) = ObjectTypeState (IntroObject.initialState schema tpe)
 selectedTypeState _ _ = UnsupportedTypeState
 
 -- | Manage the type stack and state
@@ -109,7 +121,7 @@ pushSelectedType (State schema typeStack _) tpe = State schema (tpe : typeStack)
 
 popSelectedType :: State -> State
 popSelectedType (State schema [tpe] _) = State schema [tpe] (selectedTypeState schema tpe)
-popSelectedType (State schema (tpe : rest) _) = State schema rest (selectedTypeState schema tpe)
+popSelectedType (State schema (_ : prev : rest) _) = State schema (prev : rest) (selectedTypeState schema prev)
 popSelectedType s = s
 
 {-

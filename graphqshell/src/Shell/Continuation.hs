@@ -13,7 +13,6 @@ module Shell.Continuation
   , stopIt
   , concurrently
   , adaptToBrick
-  , Action(..)
   , Continuation
   , updateComponent
   )
@@ -28,18 +27,13 @@ import           Lens.Micro.Platform                                            
                                                                                         )
 import           Shell.Components.Types                                                 ( )
 
-
--- An action is parameterized over the event that it might emit
-newtype Action e = Action { runAction :: IO e } deriving (Functor)
-
-
 data Continuation e s =
   -- | Continue with this state and don't perform any IO
  Continue s
  -- | Stop execution again without performing any IO
  | Stop s
   -- | Run the action concurrently
- | Concurrently s (Action e)
+ | Concurrently s (IO e)
 
 instance Bifunctor Continuation where
   bimap _  fs (Continue s      ) = Continue (fs s)
@@ -58,7 +52,7 @@ stopIt :: s -> EventM n (Continuation e s)
 stopIt = pure . Stop
 
 concurrently :: s -> IO e -> EventM n (Continuation e s)
-concurrently s a = pure $ (Concurrently s (Action a))
+concurrently s a = pure $ (Concurrently s a)
 
 -- | Adapt our own continuation to the brick continuation
 -- |
@@ -72,7 +66,7 @@ adaptToBrick :: BCh.BChan e -> Continuation e s -> EventM n (Next s)
 adaptToBrick _ (Continue s) = continue s
 adaptToBrick _ (Stop     s) = halt s
 adaptToBrick chan (Concurrently s action) =
-  (liftIO $ (runAction action) >>= BCh.writeBChanNonBlocking chan) >> continue s
+  (liftIO $ action >>= BCh.writeBChanNonBlocking chan) >> continue s
 
 
 -- | Update a subcomponent conveniently
