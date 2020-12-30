@@ -1,0 +1,25 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "graphqshell:lib"
+
+    - path: "./demo_server/Main.hs"
+      component: "graphqshell:exe:demo_server"
+
+    - path: "./demo_server/Paths_graphqshell.hs"
+      component: "graphqshell:exe:demo_server"
+
+    - path: "./app/Main.hs"
+      component: "graphqshell:exe:graphqshell-exe"
+
+    - path: "./app/Paths_graphqshell.hs"
+      component: "graphqshell:exe:graphqshell-exe"
+
+    - path: "./test"
+      component: "graphqshell:test:graphqshell-test"
+
+    - path: "./benchmark/Main.hs"
+      component: "graphqshell:bench:graphshell-benchmark"
+
+    - path: "./benchmark/Paths_graphqshell.hs"
+      component: "graphqshell:bench:graphshell-benchmark"

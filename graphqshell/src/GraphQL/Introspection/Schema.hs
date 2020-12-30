@@ -60,6 +60,7 @@ import GraphQL.Introspection.Schema.Types hiding (deprecationReason, description
 import qualified GraphQL.Introspection.Schema.Types as Types
 import Relude hiding (isPrefixOf)
 import qualified Text.Fuzzy as Fz
+import Utils
 
 data SchemaBuildError
   = MissingQueryType
@@ -88,6 +89,9 @@ data Schema = Schema
     typeNames :: [Text]
   }
   deriving (Eq, Show)
+
+instance Inspect Schema where
+  inspect _ = "Schema { .. }"
 
 mkSchema :: QueryType -> MutationType -> SubscriptionType -> [GraphQLType] -> Schema
 mkSchema queryType mutationType subscriptionType additionalTypes = Schema queryType mutationType subscriptionType typeUniverse typeIndex

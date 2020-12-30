@@ -1,44 +1,36 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Shell.Components.Introspector
-  ( view
-  , Event(..)
-  , State
-  , update
-  , attributes
-  , initialState
+  ( view,
+    Event (..),
+    State,
+    update,
+    attributes,
+    initialState,
   )
 where
 
-import           Brick
-import           GraphQL.Introspection.Schema
-import qualified Graphics.Vty                  as V
-import           Graphics.Vty.Attributes                                                ( Attr
-                                                                                        )
-import           Lens.Micro.Platform                                                    ( makeLenses
-                                                                                        , (^.)
-                                                                                        , set
-                                                                                        )
-import           Relude                                                          hiding ( State
-                                                                                        , state
-                                                                                        )
-import           Shell.Components.Types
-import qualified Shell.SDL                     as SDL
-import qualified Shell.Components.Introspector.ObjectType
-                                               as IntroObject
-
-import           Shell.Components.Utilities
-{-
-  _____                 _
- | ____|_   _____ _ __ | |_
- |  _| \ \ / / _ \ '_ \| __|
- | |___ \ V /  __/ | | | |_
- |_____| \_/ \___|_| |_|\__|
-
--}
-
-data Event = ObjectTypeEvent IntroObject.Event
-  deriving (Eq, Ord, Show)
+import Brick
+import GraphQL.Introspection.Schema
+import GraphQL.Introspection.Schema.Types (name)
+import qualified Graphics.Vty as V
+import Graphics.Vty.Attributes
+  ( Attr,
+  )
+import Lens.Micro.Platform
+  ( makeLenses,
+    set,
+  )
+import Relude hiding
+  ( State,
+    state,
+  )
+import Shell.Components.Introspector.Event
+import qualified Shell.Components.Introspector.ObjectType as IntroObject
+import Shell.Components.Types
+import Shell.Continuation
+import qualified Shell.SDL as SDL
+import Utils
 
 {-
   ____  _        _
@@ -50,13 +42,23 @@ data Event = ObjectTypeEvent IntroObject.Event
 -}
 
 data State = State
-  { _stSchema            :: Schema
-  , _stSelectedTypeStack :: [GraphQLType]
-  , _stSelectedTypeState :: SelectedTypeState
+  { _stSchema :: Schema,
+    _stSelectedTypeStack :: [GraphQLType],
+    _stSelectedTypeState :: SelectedTypeState
   }
+  deriving (Show)
 
-data SelectedTypeState = ObjectTypeState IntroObject.State
+instance Inspect State where
+  inspect (State _ typeStack s) = " IntrospectorState { stack: " <> show (map name typeStack) <> " selected = " <> inspect s <> "}"
+
+data SelectedTypeState
+  = ObjectTypeState IntroObject.State
   | UnsupportedTypeState
+  deriving (Show)
+
+instance Inspect SelectedTypeState where
+  inspect (ObjectTypeState tpe) = "ObjectState { tpe = " <> (inspect tpe) <> " }"
+  inspect UnsupportedTypeState = "UnsupportedTypeState"
 
 makeLenses ''State
 
@@ -95,22 +97,32 @@ initialState schema tpe = State schema [tpe] UnsupportedTypeState
        |_|
 -}
 
-update :: State -> BrickEvent ComponentName Event -> EventM ComponentName (Next State)
--- Doesn't really belong here,, how do we emit an event in the subcomponent?
-update state@(State schema _ (ObjectTypeState tpeState)) (VtyEvent (V.EvKey V.KEnter []))
-  = case selectedType of
-    (Just tpe) -> continue (initialState schema tpe)
-    Nothing    -> continue state
- where
-  selectedType = tpeState ^. IntroObject.stFieldsView . IntroObject.sfvSelectedOutputType
-
+update ::
+  State ->
+  BrickEvent ComponentName Event ->
+  EventM ComponentName (Continuation Event State)
+update state (AppEvent (SelectedTypeChanged selectedType)) = keepGoing (pushSelectedType state selectedType)
+update state (VtyEvent (V.EvKey (V.KChar '[') [])) = keepGoing (popSelectedType state)
 update state@(State _ _ (ObjectTypeState tpeState)) (VtyEvent ev) = do
-  nextVal <- IntroObject.update tpeState (VtyEvent ev)
-  pure
-    $   (\newState -> set stSelectedTypeState (ObjectTypeState newState) state)
-    <$> nextVal
+  nextCont <- IntroObject.update tpeState (VtyEvent ev)
+  pure $
+    (\newState -> set stSelectedTypeState (ObjectTypeState newState) state)
+      <$> nextCont
 -- catch all
-update state _ev = continue state
+update state _ev = keepGoing state
+
+selectedTypeState :: Schema -> GraphQLType -> SelectedTypeState
+selectedTypeState schema (Object tpe) = ObjectTypeState (IntroObject.initialState schema tpe)
+selectedTypeState _ _ = UnsupportedTypeState
+
+-- | Manage the type stack and state
+pushSelectedType :: State -> GraphQLType -> State
+pushSelectedType (State schema typeStack _) tpe = State schema (tpe : typeStack) (selectedTypeState schema tpe)
+
+popSelectedType :: State -> State
+popSelectedType (State schema [tpe] _) = State schema [tpe] (selectedTypeState schema tpe)
+popSelectedType (State schema (_ : prev : rest) _) = State schema (prev : rest) (selectedTypeState schema prev)
+popSelectedType s = s
 
 {-
  __     ___

@@ -31,14 +31,14 @@ import           Relude                                                         
                                                                                         )
 import qualified Shell.Components.Introspector as Intro
 import           Shell.Components.Types
-import           Shell.Components.Utilities
 import           Text.URI                                                               ( renderStr
                                                                                         )
+import           Shell.Continuation
 
 data Event
   = IntrospectorEvent Intro.Event
   | Tick
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Show)
 
 {-
   ____  _        _
@@ -95,13 +95,16 @@ initialState settings schema = State
 
 -}
 
-update :: State -> BrickEvent ComponentName Event -> EventM ComponentName (Next State)
-update s (VtyEvent (V.EvKey (V.KChar 'c') [V.MCtrl])) = halt s
+update
+  :: State
+  -> BrickEvent ComponentName Event
+  -> EventM ComponentName (Continuation Event State)
+update s (VtyEvent (V.EvKey (V.KChar 'c') [V.MCtrl])) = stopIt s
 update s (VtyEvent evt) =
-  updateComponent s stIntrospectorState Intro.update (VtyEvent evt)
-update s (AppEvent (IntrospectorEvent event)) =
-  updateComponent s stIntrospectorState Intro.update (AppEvent event)
-update s _ = continue s
+  updateComponent s stIntrospectorState IntrospectorEvent Intro.update (VtyEvent evt)
+update s (AppEvent (IntrospectorEvent evt)) =
+  updateComponent s stIntrospectorState IntrospectorEvent Intro.update (AppEvent evt)
+update s _ = keepGoing s
 
 {-
  __     ___
