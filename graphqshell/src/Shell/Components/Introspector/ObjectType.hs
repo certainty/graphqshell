@@ -11,19 +11,12 @@ module Shell.Components.Introspector.ObjectType where
 import Brick
 import Brick.Markup
   ( markup,
-    (@?),
   )
 import Brick.Widgets.Border
 import qualified Brick.Widgets.List as L
-import Data.Text.Markup
-  ( fromText,
-  )
 import qualified Data.Text.Markup as Markup
 import Data.Vector
   ( (!?),
-  )
-import Data.Vector.Generic
-  ( foldl,
   )
 import GraphQL.Introspection.Schema
 import GraphQL.Introspection.Schema.Types
@@ -31,9 +24,6 @@ import GraphQL.Introspection.Schema.Types
       ( name
       ),
     description,
-  )
-import Graphics.Vty
-  ( standout,
   )
 import qualified Graphics.Vty as V
 import Graphics.Vty.Attributes
@@ -76,7 +66,7 @@ data State = State
   deriving (Show)
 
 instance Inspect State where
-  inspect (State fields selected schema) = "State { selected = " <> (show (name selected)) <> " }"
+  inspect (State _ selected _) = "State { selected = " <> show (name selected) <> " }"
 
 data FieldViewState = FieldViewState
   { _sfvFields :: L.List () FieldType,

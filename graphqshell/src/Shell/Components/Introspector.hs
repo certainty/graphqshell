@@ -49,7 +49,7 @@ data State = State
   deriving (Show)
 
 instance Inspect State where
-  inspect (State _ typeStack s) = " IntrospectorState { stack: " <> (show (map name typeStack)) <> " selected = " <> inspect s <> "}"
+  inspect (State _ typeStack s) = " IntrospectorState { stack: " <> show (map name typeStack) <> " selected = " <> inspect s <> "}"
 
 data SelectedTypeState
   = ObjectTypeState IntroObject.State

@@ -85,4 +85,3 @@ instance J.FromJSON a => J.FromJSON (GraphQLResponse a) where
 
 emptyVariables :: Maybe ()
 emptyVariables = Nothing
-

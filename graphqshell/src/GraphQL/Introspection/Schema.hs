@@ -69,7 +69,6 @@ data SchemaBuildError
   | InvalidType Text
   deriving (Eq, Show)
 
-
 instance Exception SchemaBuildError
 
 type TypeUniverse = Dict.HashMap Text GraphQLType
@@ -90,7 +89,6 @@ data Schema = Schema
     typeNames :: [Text]
   }
   deriving (Eq, Show)
-
 
 instance Inspect Schema where
   inspect _ = "Schema { .. }"
