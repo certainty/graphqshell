@@ -2,20 +2,29 @@ module Shell.KeyMap
   ( cmd,
     sub,
     compile,
+    matchKey,
     KeyMapConfiguration,
     KeyMap,
+    KeyMapEntry (..),
+    KeyMapConfigError (..),
   )
 where
 
 import Control.Exception.Safe (MonadThrow, throw)
-import qualified Data.HashMap.Strict as Map
+import Control.Monad (foldM)
+import qualified Data.HashMap.Strict as HashMap
 import Relude
 
-newtype KeyMap a = KeyMap {underlying :: Map Char (KeyMapEntry a)}
+data KeyMapConfigError = DuplicateKeyDefined Char deriving (Eq, Show)
+
+instance Exception KeyMapConfigError
+
+newtype KeyMap a = KeyMap {underlying :: HashMap Char (KeyMapEntry a)} deriving (Eq, Show)
 
 data KeyMapEntry a
   = Command Text a
   | Group Text (KeyMap a)
+  deriving (Eq, Show)
 
 data KeyMapConfiguration a = CommandConfig Char Text a | GroupConfig [KeyMapConfiguration a] | SubGroupConfig Char Text (KeyMapConfiguration a)
 
@@ -37,4 +46,22 @@ sub :: Char -> Text -> KeyMapConfiguration a -> KeyMapConfiguration a
 sub = SubGroupConfig
 
 compile :: (MonadThrow m) => KeyMapConfiguration a -> m (KeyMap a)
-compile = undefined
+compile (CommandConfig c descr action) = pure $ KeyMap $ HashMap.fromList [(c, Command descr action)]
+compile (SubGroupConfig c descr groupCfg) = do
+  compiledGroup <- compile groupCfg
+  pure $ KeyMap (HashMap.singleton c (Group descr compiledGroup))
+compile (GroupConfig cfg) = KeyMap <$> foldM compile' HashMap.empty cfg
+
+compile' :: (MonadThrow m) => HashMap Char (KeyMapEntry a) -> KeyMapConfiguration a -> m (HashMap Char (KeyMapEntry a))
+compile' hashMap (CommandConfig c descr action)
+  | HashMap.member c hashMap = throw (DuplicateKeyDefined c)
+  | otherwise = pure (HashMap.insert c (Command descr action) hashMap)
+compile' hashMap (SubGroupConfig c descr groupCfg)
+  | HashMap.member c hashMap = throw (DuplicateKeyDefined c)
+  | otherwise = do
+    compiled <- compile groupCfg
+    pure $ HashMap.insert c (Group descr compiled) hashMap
+compile' hashMap (GroupConfig groupCfg) = foldM compile' hashMap groupCfg
+
+matchKey :: KeyMap a -> Char -> Maybe (KeyMapEntry a)
+matchKey (KeyMap keyMap) char = HashMap.lookup char keyMap
