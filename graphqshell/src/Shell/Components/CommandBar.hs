@@ -1,30 +1,17 @@
 {-# LANGUAGE TemplateHaskell #-}
 
--- which implements which-key like guided / contextual commands
-
 -- | Provides the command bar compnent
+-- which implements which-key like guided / contextual commands
 module Shell.Components.CommandBar where
 
 import Brick
-import qualified Brick.Focus as Focus
-import Brick.Widgets.Border
-import Brick.Widgets.Border.Style
 import qualified Data.Text as Text
-import qualified GraphQL.API as API
-import GraphQL.Introspection.Schema
-  ( GraphQLType
-      ( Object
-      ),
-    Schema,
-    query,
-  )
 import qualified Graphics.Vty as V
 import Graphics.Vty.Attributes
   ( Attr,
   )
 import Lens.Micro.Platform
   ( makeLenses,
-    (^.),
   )
 import Relude hiding
   ( State,
