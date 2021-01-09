@@ -32,3 +32,5 @@ parseConfiguration configFilePath fileContent = do
   case fromMarshalled configFilePath cfg of
     (Failure f           ) -> throw (InvalidConfig (NonEmpty.toList f))
     (Success validatedCfg) -> pure validatedCfg
+
+

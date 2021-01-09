@@ -52,7 +52,7 @@ instance Inspect State where
   inspect (State _ typeStack s) = " IntrospectorState { stack: " <> show (map name typeStack) <> " selected = " <> inspect s <> "}"
 
 data SelectedTypeState
-  = ObjectTypeState IntroObject.State
+  = ObjectTypeState (IntroObject.State ComponentName)
   | UnsupportedTypeState
   deriving (Show)
 
@@ -85,7 +85,7 @@ attributes = IntroObject.attributes ++ SDL.attributes
 
 initialState :: Schema -> GraphQLType -> State
 initialState schema (Object tpe) =
-  State schema [(Object tpe)] (ObjectTypeState (IntroObject.initialState schema tpe))
+  State schema [(Object tpe)] (ObjectTypeState (IntroObject.initialState IntrospectorComponent schema tpe))
 initialState schema tpe = State schema [tpe] UnsupportedTypeState
 
 {-
@@ -112,7 +112,7 @@ update state@(State _ _ (ObjectTypeState tpeState)) (VtyEvent ev) = do
 update state _ev = keepGoing state
 
 selectedTypeState :: Schema -> GraphQLType -> SelectedTypeState
-selectedTypeState schema (Object tpe) = ObjectTypeState (IntroObject.initialState schema tpe)
+selectedTypeState schema (Object tpe) = ObjectTypeState (IntroObject.initialState IntrospectorComponent schema tpe)
 selectedTypeState _ _ = UnsupportedTypeState
 
 -- | Manage the type stack and state
@@ -133,10 +133,10 @@ popSelectedType s = s
 
 -}
 
-view :: State -> Widget ()
+view :: State -> Widget ComponentName
 view (State _ _ (ObjectTypeState tpeState)) = IntroObject.view tpeState
 view _ = unsupportedView
 
 -- | Will go away
-unsupportedView :: Widget ()
+unsupportedView :: Widget ComponentName
 unsupportedView = padBottom Max $ txt "This type is not yet supported"

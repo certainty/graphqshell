@@ -171,3 +171,4 @@ instance HasDescription GraphQLType where
   description (Interface t) = description t
   description (Union t) = description t
   description (Input t) = description t
+

@@ -42,7 +42,6 @@ import Relude hiding
     state,
   )
 import Shell.Components.Introspector.Event
-import Shell.Components.Types
 import Shell.Continuation
 import Shell.SDL hiding
   ( attributes,
@@ -58,18 +57,18 @@ import Utils
 
 -}
 
-data State = State
-  { _stFieldsView :: FieldViewState,
+data State a = State
+  { _stFieldsView :: FieldViewState a,
     _stSelectedType :: ObjectType,
     _stSchema :: Schema
   }
   deriving (Show)
 
-instance Inspect State where
+instance Inspect (State a) where
   inspect (State _ selected _) = "State { selected = " <> show (name selected) <> " }"
 
-data FieldViewState = FieldViewState
-  { _sfvFields :: L.List () FieldType,
+data FieldViewState a = FieldViewState
+  { _sfvFields :: L.List a FieldType,
     _sfvSelectedField :: Maybe FieldType,
     _sfvSelectedOutputType :: Maybe GraphQLType
   }
@@ -100,11 +99,11 @@ attributes = [(L.listSelectedAttr, withStyle defAttr bold)]
 
 -}
 
-initialState :: Schema -> ObjectType -> State
-initialState schema selectedType = State fieldViewState selectedType schema
+initialState :: a -> Schema -> ObjectType -> State a
+initialState resource schema selectedType = State fieldViewState selectedType schema
   where
     (ObjectType _ _ fields _) = selectedType
-    fieldViewState = FieldViewState (L.list () fields 1) selectedField outputType
+    fieldViewState = FieldViewState (L.list resource fields 1) selectedField outputType
     selectedField = fields !? 0
     outputType = selectedField >>= fieldOutputType schema
 
@@ -119,9 +118,11 @@ initialState schema selectedType = State fieldViewState selectedType schema
 -}
 
 update ::
-  State ->
-  BrickEvent ComponentName Event ->
-  EventM ComponentName (Continuation Event State)
+  (Ord a) =>
+  State
+    a ->
+  BrickEvent a Event ->
+  EventM a (Continuation Event (State a))
 update state (VtyEvent (V.EvKey V.KEnter [])) = case selectedType of
   (Just tpe) -> concurrently state (pure (SelectedTypeChanged tpe))
   Nothing -> keepGoing state
@@ -153,10 +154,10 @@ update state _ev = keepGoing state
 
 -}
 
-view :: State -> Widget ()
-view state = padBottom Max $ vLimitPercent 30 (typeInfoView state) <=> fieldsView state
+view :: (Ord a, Show a) => State a -> Widget a
+view state = padBottom Max $ vLimitPercent 30 (typeInfoView state) <=> hBorder <=> fieldsView state
 
-typeInfoView :: State -> Widget ()
+typeInfoView :: State a -> Widget a
 typeInfoView state =
   ( info "Type" typeName
       <+> info "Kind" (Just "Object")
@@ -171,29 +172,29 @@ typeInfoView state =
     typeDescr = description selectedType
     selectedType = state ^. stSelectedType
 
-fieldsView :: State -> Widget ()
+fieldsView :: (Ord a, Show a) => State a -> Widget a
 fieldsView state =
   hLimitPercent 30 (hBorderWithLabel (txt " Fields ") <=> fieldsMainView state)
     <+> vBorder
     <+> (hBorderWithLabel (txt "Field Info") <=> fieldsDetailView state)
 
-fieldsMainView :: State -> Widget ()
+fieldsMainView :: (Ord a, Show a) => State a -> Widget a
 fieldsMainView state =
   padBottom (Pad 2) $
     L.renderList (renderField state) True (state ^. stFieldsView . sfvFields)
 
-renderField :: State -> Bool -> FieldType -> Widget ()
+renderField :: State a -> Bool -> FieldType -> Widget a
 renderField _state True field = hBox [txt "• ", markup $ toSDL field]
 renderField _state _ field = hBox [txt "  ", markup $ toSDL field]
 
-fieldsDetailView :: State -> Widget ()
+fieldsDetailView :: State a -> Widget a
 fieldsDetailView state =
   fieldInfoView state
     <=> hBorderWithLabel (txt " Arguments ")
     <=> fieldArgumentsView state
 
 -- Show information about the selected field
-fieldInfoView :: State -> Widget ()
+fieldInfoView :: State a -> Widget a
 fieldInfoView state =
   info "Name" fieldName
     <+> info "Type" fieldTypeName
@@ -207,7 +208,7 @@ fieldInfoView state =
     fieldType = fieldTypeReference <$> selectedField
     selectedField = state ^. stFieldsView . sfvSelectedField
 
-fieldArgumentsView :: State -> Widget ()
+fieldArgumentsView :: State a -> Widget a
 fieldArgumentsView _state = txt "Arguments view comes later"
 
 -- View helpers

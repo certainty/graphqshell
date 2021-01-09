@@ -18,6 +18,5 @@ throwEither (Right v) = pure v
 class Inspect a where
   inspect :: a -> Text
 
-
 instance Inspect a => Inspect [a] where
   inspect elements = "[" <> T.intercalate ", " (map inspect elements) <> "]"

@@ -84,3 +84,4 @@ runRequest' url customPort headers body = runReq defaultHttpConfig $ do
 decodeGraphQLResponse
   :: (J.FromJSON resp) => ByteString -> Either String (GraphQLResponse resp)
 decodeGraphQLResponse = J.eitherDecodeStrict
+
