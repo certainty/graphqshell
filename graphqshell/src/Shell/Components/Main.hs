@@ -16,6 +16,7 @@ import qualified Brick.Focus as Focus
 import Brick.Widgets.Border
 import Brick.Widgets.Border.Style
 import Control.Exception.Safe (MonadThrow)
+import Data.Char (isSpace)
 import qualified GraphQL.API as API
 import GraphQL.Introspection.Schema
   ( GraphQLType
@@ -84,7 +85,10 @@ globalKeyMapConfig :: KeyMapConfiguration Command
 globalKeyMapConfig = cmd 'q' "Quit" (Global CmdQuit)
 
 contextKeyMapConfig :: KeyMapConfiguration Command
-contextKeyMapConfig = cmd 'a' "Test" (Context Noop)
+contextKeyMapConfig =
+  cmd 'a' "Test" (Context Noop)
+    <> cmd 'b' "Test 2" (Context Noop)
+    <> (sub 'c' "+Group" (cmd 's' "Foobar" (Context Noop)))
 
 {-
   ___       _ _
@@ -124,6 +128,14 @@ activateComponent s component = set stComponentStack (component : stack) s
 deactivateCurrentComponent :: State -> State
 deactivateCurrentComponent s = set stComponentStack (drop 1 $ s ^. stComponentStack) s
 
+deactivateCommandBars :: State -> State
+deactivateCommandBars state =
+  deactivateCurrentComponent $
+    state
+      { _stGlobalCommandBarState = (CommandBar.resetState (state ^. stGlobalCommandBarState)),
+        _stContextCommandBarState = (CommandBar.resetState (state ^. stContextCommandBarState))
+      }
+
 {-
   _   _           _       _
  | | | |_ __   __| | __ _| |_ ___
@@ -154,14 +166,13 @@ updateVTY ::
   State ->
   V.Event ->
   EventM ComponentName (Continuation Event State)
-updateVTY _ s (V.EvKey (V.KChar 'c') [V.MCtrl]) = stopIt s
-updateVTY _ s (V.EvKey (V.KChar 'r') []) = keepGoing (activateComponent s GlobalCommandBarComponent)
-updateVTY _ s (V.EvKey (V.KChar ' ') []) = keepGoing (activateComponent s ContextCommandBarComponent)
-updateVTY MainComponent s _ = keepGoing s
-updateVTY GlobalCommandBarComponent s (V.EvKey V.KEsc _) = keepGoing (deactivateCurrentComponent s)
+updateVTY GlobalCommandBarComponent s (V.EvKey V.KEsc _) = keepGoing (deactivateCommandBars s)
+updateVTY ContextCommandBarComponent s (V.EvKey V.KEsc _) = keepGoing (deactivateCommandBars s)
+updateVTY ContextCommandBarComponent s evt = updateComponent s stContextCommandBarState CommandBarEvent CommandBar.update (VtyEvent evt)
 updateVTY GlobalCommandBarComponent s evt = updateComponent s stGlobalCommandBarState CommandBarEvent CommandBar.update (VtyEvent evt)
-updateVTY ContextCommandBarComponent s (V.EvKey V.KEsc _) = keepGoing (deactivateCurrentComponent s)
-updateVTY ContextCommandBarComponent s _ = keepGoing s
+updateVTY _ s (V.EvKey (V.KChar ' ') []) = keepGoing (activateComponent s ContextCommandBarComponent)
+updateVTY _ s (V.EvKey (V.KChar '/') []) = keepGoing (activateComponent s GlobalCommandBarComponent)
+updateVTY MainComponent s _ = keepGoing s
 updateVTY IntrospectorComponent s evt = updateComponent s stIntrospectorState IntrospectorEvent Intro.update (VtyEvent evt)
 
 updateAppEvent ::
@@ -213,4 +224,4 @@ statusLine :: State -> Widget ComponentName
 statusLine state = case (activeComponent state) of
   GlobalCommandBarComponent -> CommandBar.view (state ^. stGlobalCommandBarState)
   ContextCommandBarComponent -> CommandBar.view (state ^. stContextCommandBarState)
-  _ -> hBox [padRight Max $ padLeft (Pad 1) $ str "<SPACE>: Context Command  <S-Space>: Global Command"]
+  _ -> hBox [padRight Max $ padLeft (Pad 1) $ str "Ctrl-c → Quit <SPACE> → QContext Command  / → Global Command"]

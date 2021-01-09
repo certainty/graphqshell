@@ -72,6 +72,9 @@ attributes =
 initialState :: KeyMap.KeyMap a -> State a
 initialState keyMap = State keyMap keyMap
 
+resetState :: State a -> State a
+resetState (State rootKeyMap _) = State rootKeyMap rootKeyMap
+
 {-
   _   _           _       _
  | | | |_ __   __| | __ _| |_ ___
@@ -106,5 +109,5 @@ view :: State a -> Widget b
 view (State _ activeKeyMap) = hBox bindingEntries
   where
     bindingEntries = map bindingEntry (KeyMap.bindings activeKeyMap)
-    bindingEntry (c, descr) = padLeft (Pad 1) $ txt (Text.singleton c <> " " <> separator <> " " <> descr)
+    bindingEntry (c, descr) = padRight (Pad 2) $ padLeft (Pad 2) $ txt (Text.singleton c <> " " <> separator <> " " <> descr)
     separator = "→"
