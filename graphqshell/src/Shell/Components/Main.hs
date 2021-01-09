@@ -15,6 +15,7 @@ import Brick
 import qualified Brick.Focus as Focus
 import Brick.Widgets.Border
 import Brick.Widgets.Border.Style
+import Control.Exception.Safe (MonadThrow)
 import qualified GraphQL.API as API
 import GraphQL.Introspection.Schema
   ( GraphQLType
@@ -26,15 +27,18 @@ import GraphQL.Introspection.Schema
 import qualified Graphics.Vty as V
 import Lens.Micro.Platform
   ( makeLenses,
+    set,
     (^.),
   )
 import Relude hiding
   ( State,
     state,
   )
+import qualified Shell.Components.CommandBar as CommandBar
 import qualified Shell.Components.Introspector as Intro
 import Shell.Components.Types
 import Shell.Continuation
+import Shell.KeyMap
 import Text.URI
   ( renderStr,
   )
@@ -62,11 +66,19 @@ data State = State
     _stApiSettings :: API.ApiSettings,
     -- | Manage which component has the focus
     _stFocus :: !(Focus.FocusRing ComponentName),
+    -- |
+    _stComponentStack :: ![ComponentName],
     -- | State for the introspector component
-    _stIntrospectorState :: Intro.State
+    _stIntrospectorState :: Intro.State,
+    -- | State for the introspector component
+    _stCommandBarState :: CommandBar.State Command
   }
 
 makeLenses ''State
+
+-- KeyMap
+keyMapConfig :: KeyMapConfiguration Command
+keyMapConfig = cmd 'q' "Quit" KeyCmdQuit
 
 {-
   ___       _ _
@@ -77,15 +89,32 @@ makeLenses ''State
 
 -}
 
-initialState :: API.ApiSettings -> Schema -> State
-initialState settings schema =
-  State
-    schema
-    settings
-    (Focus.focusRing components)
-    (Intro.initialState schema (Object (query schema)))
+initialState :: (MonadThrow m) => API.ApiSettings -> Schema -> m State
+initialState settings schema = do
+  keyMap <- compile keyMapConfig
+  pure $
+    State
+      schema
+      settings
+      (Focus.focusRing components)
+      [IntrospectorComponent, MainComponent]
+      (Intro.initialState schema (Object (query schema)))
+      (CommandBar.initialState keyMap)
   where
-    components = [()]
+    components = [MainComponent, CommandBarComponent, IntrospectorComponent]
+
+activeComponent :: State -> ComponentName
+activeComponent s = case s ^. stComponentStack of
+  [] -> MainComponent
+  (active : _) -> active
+
+activateComponent :: State -> ComponentName -> State
+activateComponent s component = set stComponentStack (component : stack) s
+  where
+    stack = s ^. stComponentStack
+
+deactivateCurrentComponent :: State -> State
+deactivateCurrentComponent s = set stComponentStack (drop 1 $ s ^. stComponentStack) s
 
 {-
   _   _           _       _
@@ -101,12 +130,29 @@ update ::
   State ->
   BrickEvent ComponentName Event ->
   EventM ComponentName (Continuation Event State)
-update s (VtyEvent (V.EvKey (V.KChar 'c') [V.MCtrl])) = stopIt s
-update s (VtyEvent evt) =
-  updateComponent s stIntrospectorState IntrospectorEvent Intro.update (VtyEvent evt)
-update s (AppEvent (IntrospectorEvent evt)) =
-  updateComponent s stIntrospectorState IntrospectorEvent Intro.update (AppEvent evt)
+update s (VtyEvent evt) = updateVTY (activeComponent s) s evt
+update s (AppEvent evt) = updateAppEvent (activeComponent s) s evt
 update s _ = keepGoing s
+
+updateVTY ::
+  ComponentName ->
+  State ->
+  V.Event ->
+  EventM ComponentName (Continuation Event State)
+updateVTY _ s (V.EvKey (V.KChar 'c') [V.MCtrl]) = stopIt s
+updateVTY _ s (V.EvKey (V.KChar ' ') []) = keepGoing (activateComponent s CommandBarComponent)
+updateVTY MainComponent s _ = keepGoing s
+updateVTY CommandBarComponent s (V.EvKey V.KEsc _) = keepGoing (deactivateCurrentComponent s)
+updateVTY CommandBarComponent s _ = keepGoing s
+updateVTY IntrospectorComponent s evt = updateComponent s stIntrospectorState IntrospectorEvent Intro.update (VtyEvent evt)
+
+updateAppEvent ::
+  ComponentName ->
+  State ->
+  Event ->
+  EventM ComponentName (Continuation Event State)
+updateAppEvent IntrospectorComponent s (IntrospectorEvent evt) = updateComponent s stIntrospectorState IntrospectorEvent Intro.update (AppEvent evt)
+updateAppEvent _ s _ = keepGoing s
 
 {-
  __     ___
@@ -138,12 +184,14 @@ mainViewPort state =
       <=> hBorder
       <=> Intro.view (state ^. stIntrospectorState)
       <=> hBorder
-      <=> statusLine
+      <=> statusLine state
 
 -- TODO: extract into component
 tabLine :: Widget ComponentName
 tabLine = hBox [padRight Max $ padLeft (Pad 1) $ txt "[ Introspector ] | [ Query ]"]
 
 -- TODO: extract into component
-statusLine :: Widget ComponentName
-statusLine = hBox [padRight Max $ padLeft (Pad 1) $ str "C-c: Exit"]
+statusLine :: State -> Widget ComponentName
+statusLine state = case (activeComponent state) of
+  CommandBarComponent -> CommandBar.view (state ^. stCommandBarState)
+  _ -> hBox [padRight Max $ padLeft (Pad 1) $ str "C-c: Exit <SPACE>: Command"]

@@ -1,7 +1,6 @@
 module Shell.KeyMapTest where
 
 import Relude
-import qualified Relude.Unsafe as Unsafe
 import Shell.KeyMap
 import Test.Tasty ()
 import Test.Tasty.Hspec
@@ -29,3 +28,7 @@ spec_KeyMap = do
     it "finds the match" $ do
       keyMap <- compile $ (cmd 'a' "Command A" CommandA) <> (sub 'b' "Group" (cmd 'b' "Command B" CommandB) <> (cmd 'c' "Command C" CommandC))
       (matchKey keyMap 'a') `shouldBe` (Just (Command "Command A" CommandA))
+
+    it "returns nothing when there is no match" $ do
+      keyMap <- compile $ (cmd 'a' "Command A" CommandA) <> (sub 'b' "Group" (cmd 'b' "Command B" CommandB) <> (cmd 'c' "Command C" CommandC))
+      (matchKey keyMap 'n') `shouldBe` Nothing

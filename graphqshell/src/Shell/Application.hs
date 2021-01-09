@@ -38,7 +38,7 @@ run config = do
   where
     apiConfig = API.mkApiSettings (config ^. appConfigDefaultEndpoint)
     configuredTheme = config ^. appConfigDefaultTheme
-    initialState settings = Main.initialState settings <$> initialSchema settings
+    initialState settings = initialSchema settings >>= Main.initialState settings
     initialSchema settings = API.runApiIO settings API.introspect
     tickRate = fromMaybe defaultTickRate (config ^. appConfigTickRate)
 
