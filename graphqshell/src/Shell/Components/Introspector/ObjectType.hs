@@ -137,7 +137,7 @@ update state (VtyEvent ev) = do
             .~ ( FieldViewState
                    newState
                    (Just field)
-                   (fieldOutputType (state ^. stSchema) field)
+                   (fieldOutputType (state ^. stSchema) field) 
                )
         )
     Nothing ->

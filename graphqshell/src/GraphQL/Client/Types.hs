@@ -18,11 +18,20 @@ import qualified Data.Aeson as J
 import GraphQL.Marshalling.Utils (aesonOptions)
 import Relude
 
-class (Monad m, MonadThrow m) => GraphQLClient m where
-  runGraphQLRequest :: (ToJSON variables, FromJSON resp) => GraphQLQuery -> Maybe variables -> m (GraphQLResponse resp)
+class
+  (Monad m, MonadThrow m) =>
+  GraphQLClient m
+  where
+  runGraphQLRequest ::
+    (ToJSON variables, FromJSON resp) =>
+    GraphQLQuery ->
+    Maybe variables ->
+    m (GraphQLResponse resp)
 
 -- Request portion
-newtype GraphQLQuery = GraphQLQuery {unGraphQLQuery :: Text}
+newtype GraphQLQuery = GraphQLQuery
+  { unGraphQLQuery :: Text
+  }
   deriving (Show, Eq, J.ToJSON, J.FromJSON, IsString, Generic)
 
 data GraphQLBody a = GraphQLBody
@@ -67,21 +76,24 @@ instance J.FromJSON Location where
 
 data GraphQLResponse a
   = SuccessResponse a
-  | PartialResponse a [GraphQLError]
+  | PartialResponse
+      a
+      [GraphQLError]
   | ErrorResponse [GraphQLError]
   | EmptyResponse
   deriving (Eq, Show, Generic)
 
 instance J.FromJSON a => J.FromJSON (GraphQLResponse a) where
-  parseJSON = J.withObject "GraphQLResponse" $ \obj -> do
-    responseData <- obj .:? "data"
-    responseErrors <- obj .:? "errors"
-    case (responseData, responseErrors) of
-      (Nothing, Nothing) -> pure EmptyResponse
-      (Just d, Just []) -> pure (SuccessResponse d)
-      (Just d, Nothing) -> pure (SuccessResponse d)
-      (Just d, Just e) -> pure (PartialResponse d e)
-      (Nothing, Just e) -> pure (ErrorResponse e)
+  parseJSON =
+    J.withObject "GraphQLResponse" $ \obj -> do
+      responseData <- obj .:? "data"
+      responseErrors <- obj .:? "errors"
+      case (responseData, responseErrors) of
+        (Nothing, Nothing) -> pure EmptyResponse
+        (Just d, Just []) -> pure (SuccessResponse d)
+        (Just d, Nothing) -> pure (SuccessResponse d)
+        (Just d, Just e) -> pure (PartialResponse d e)
+        (Nothing, Just e) -> pure (ErrorResponse e)
 
 emptyVariables :: Maybe ()
 emptyVariables = Nothing

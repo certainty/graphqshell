@@ -223,3 +223,4 @@ guardNonWrapperType _ _ = throw (InvalidType "Named type reference without name"
 maybeToVec :: Maybe (Vector.Vector a) -> Vector.Vector a
 maybeToVec (Just v) = v
 maybeToVec Nothing = Vector.empty
+

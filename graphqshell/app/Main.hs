@@ -31,7 +31,7 @@ main = do
 loadConfiguration :: FilePath -> IO ApplicationConfig
 loadConfiguration path = do
   absolutePath <- Directory.makeAbsolute path
-  (ByteString.readFile absolutePath) >>= (parseConfiguration absolutePath)
+  ByteString.readFile absolutePath >>= (parseConfiguration absolutePath)
 
 defaultConfigurationFilePath :: IO FilePath
 defaultConfigurationFilePath = do

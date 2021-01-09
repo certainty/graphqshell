@@ -3,37 +3,41 @@
 -- | The main component of the application.
 -- Use this as the entry point to understand how the app works.
 module Shell.Components.Main
-  ( update
-  , view
-  , State
-  , Event(..)
-  , initialState
+  ( update,
+    view,
+    State,
+    Event (..),
+    initialState,
   )
 where
 
-import           Brick
-import qualified Brick.Focus                   as Focus
-import           Brick.Widgets.Border
-import           Brick.Widgets.Border.Style
-import qualified GraphQL.API                   as API
-import           GraphQL.Introspection.Schema                                           ( GraphQLType
-                                                                                          ( Object
-                                                                                          )
-                                                                                        , Schema
-                                                                                        , query
-                                                                                        )
-import qualified Graphics.Vty                  as V
-import           Lens.Micro.Platform                                                    ( makeLenses
-                                                                                        , (^.)
-                                                                                        )
-import           Relude                                                          hiding ( State
-                                                                                        , state
-                                                                                        )
+import Brick
+import qualified Brick.Focus as Focus
+import Brick.Widgets.Border
+import Brick.Widgets.Border.Style
+import qualified GraphQL.API as API
+import GraphQL.Introspection.Schema
+  ( GraphQLType
+      ( Object
+      ),
+    Schema,
+    query,
+  )
+import qualified Graphics.Vty as V
+import Lens.Micro.Platform
+  ( makeLenses,
+    (^.),
+  )
+import Relude hiding
+  ( State,
+    state,
+  )
 import qualified Shell.Components.Introspector as Intro
-import           Shell.Components.Types
-import           Text.URI                                                               ( renderStr
-                                                                                        )
-import           Shell.Continuation
+import Shell.Components.Types
+import Shell.Continuation
+import Text.URI
+  ( renderStr,
+  )
 
 data Event
   = IntrospectorEvent Intro.Event
@@ -53,14 +57,11 @@ data Event
 -- The application will delegate updates to the currently active component automatically.
 data State = State
   { -- | The 'Schema' of the currently connected GraphQL API
-    _stSchema            :: Schema
-  ,
+    _stSchema :: Schema,
     -- | settings for the 'API' client
-    _stApiSettings       :: API.ApiSettings
-  ,
+    _stApiSettings :: API.ApiSettings,
     -- | Manage which component has the focus
-    _stFocus             :: !(Focus.FocusRing ComponentName)
-  ,
+    _stFocus :: !(Focus.FocusRing ComponentName),
     -- | State for the introspector component
     _stIntrospectorState :: Intro.State
   }
@@ -76,14 +77,15 @@ makeLenses ''State
 
 -}
 
-
 initialState :: API.ApiSettings -> Schema -> State
-initialState settings schema = State
-  schema
-  settings
-  (Focus.focusRing components)
-  (Intro.initialState schema (Object (query schema)))
-  where components = [()]
+initialState settings schema =
+  State
+    schema
+    settings
+    (Focus.focusRing components)
+    (Intro.initialState schema (Object (query schema)))
+  where
+    components = [()]
 
 {-
   _   _           _       _
@@ -95,10 +97,10 @@ initialState settings schema = State
 
 -}
 
-update
-  :: State
-  -> BrickEvent ComponentName Event
-  -> EventM ComponentName (Continuation Event State)
+update ::
+  State ->
+  BrickEvent ComponentName Event ->
+  EventM ComponentName (Continuation Event State)
 update s (VtyEvent (V.EvKey (V.KChar 'c') [V.MCtrl])) = stopIt s
 update s (VtyEvent evt) =
   updateComponent s stIntrospectorState IntrospectorEvent Intro.update (VtyEvent evt)
@@ -124,18 +126,19 @@ mainWidget state = withBorderStyle unicodeRounded $ joinBorders $ mainViewPort s
 -- TODO: extract into component
 topBar :: State -> Widget ComponentName
 topBar state = hBox [padRight Max $ padLeft (Pad 1) $ txt (toText url)]
-  where url = renderStr . API.apiURI $ state ^. stApiSettings
+  where
+    url = renderStr . API.apiURI $ state ^. stApiSettings
 
 mainViewPort :: State -> Widget ComponentName
 mainViewPort state =
-  border
-    $   topBar state
-    <=> hBorder
-    <=> tabLine
-    <=> hBorder
-    <=> Intro.view (state ^. stIntrospectorState)
-    <=> hBorder
-    <=> statusLine
+  border $
+    topBar state
+      <=> hBorder
+      <=> tabLine
+      <=> hBorder
+      <=> Intro.view (state ^. stIntrospectorState)
+      <=> hBorder
+      <=> statusLine
 
 -- TODO: extract into component
 tabLine :: Widget ComponentName
