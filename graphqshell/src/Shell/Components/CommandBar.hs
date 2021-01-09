@@ -9,6 +9,7 @@ import Brick
 import qualified Brick.Focus as Focus
 import Brick.Widgets.Border
 import Brick.Widgets.Border.Style
+import qualified Data.Text as Text
 import qualified GraphQL.API as API
 import GraphQL.Introspection.Schema
   ( GraphQLType
@@ -31,13 +32,13 @@ import Relude hiding
   )
 import Shell.Components.Types
 import Shell.Continuation
-import Shell.KeyMap
+import qualified Shell.KeyMap as KeyMap
 
-type Event = ()
+data Event a = CommandSelected a deriving (Eq, Show)
 
 data State a = State
-  { _stRootKeyMap :: KeyMap a,
-    _stActiveKeyMap :: KeyMap a
+  { _stRootKeyMap :: KeyMap.KeyMap a,
+    _stActiveKeyMap :: KeyMap.KeyMap a
   }
 
 makeLenses ''State
@@ -68,7 +69,7 @@ attributes =
 
 -}
 
-initialState :: KeyMap a -> State a
+initialState :: KeyMap.KeyMap a -> State a
 initialState keyMap = State keyMap keyMap
 
 {-
@@ -83,9 +84,14 @@ initialState keyMap = State keyMap keyMap
 
 update ::
   State a ->
-  BrickEvent ComponentName Event ->
-  EventM ComponentName (Continuation Event (State a))
-update = undefined
+  BrickEvent ComponentName (Event a) ->
+  EventM ComponentName (Continuation (Event a) (State a))
+update state@(State rootKeyMap activeKeyMap) (VtyEvent (V.EvKey (V.KChar c) [])) =
+  case KeyMap.matchKey activeKeyMap c of
+    (Just (KeyMap.Command _ cmd)) -> concurrently state (pure (CommandSelected cmd))
+    (Just (KeyMap.Group _ keyMap)) -> keepGoing (State rootKeyMap keyMap)
+    Nothing -> keepGoing state
+update s _ = keepGoing s
 
 {-
  __     ___
@@ -97,4 +103,8 @@ update = undefined
 -}
 
 view :: State a -> Widget b
-view (State _ activeKeyMap) = hBox [padRight Max $ padLeft (Pad 1) $ txt "The Command Bar"]
+view (State _ activeKeyMap) = hBox bindingEntries
+  where
+    bindingEntries = map bindingEntry (KeyMap.bindings activeKeyMap)
+    bindingEntry (c, descr) = padLeft (Pad 1) $ txt (Text.singleton c <> " " <> separator <> " " <> descr)
+    separator = "→"

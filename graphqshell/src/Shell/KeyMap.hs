@@ -3,6 +3,7 @@ module Shell.KeyMap
     sub,
     compile,
     matchKey,
+    bindings,
     KeyMapConfiguration,
     KeyMap,
     KeyMapEntry (..),
@@ -65,3 +66,10 @@ compile' hashMap (GroupConfig groupCfg) = foldM compile' hashMap groupCfg
 
 matchKey :: KeyMap a -> Char -> Maybe (KeyMapEntry a)
 matchKey (KeyMap keyMap) char = HashMap.lookup char keyMap
+
+-- | Returns sorted list of keys in the current keymap
+bindings :: KeyMap a -> [(Char, Text)]
+bindings (KeyMap keyMap) = map extractBindings (HashMap.toList keyMap)
+  where
+    extractBindings (c, (Command descr _)) = (c, descr)
+    extractBindings (c, (Group descr _)) = (c, descr)

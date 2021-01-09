@@ -45,6 +45,7 @@ import Text.URI
 
 data Event
   = IntrospectorEvent Intro.Event
+  | CommandBarEvent (CommandBar.Event Command)
   | Tick
   deriving (Eq, Show)
 
@@ -71,14 +72,19 @@ data State = State
     -- | State for the introspector component
     _stIntrospectorState :: Intro.State,
     -- | State for the introspector component
-    _stCommandBarState :: CommandBar.State Command
+    _stGlobalCommandBarState :: CommandBar.State Command,
+    -- |
+    _stContextCommandBarState :: CommandBar.State Command
   }
 
 makeLenses ''State
 
 -- KeyMap
-keyMapConfig :: KeyMapConfiguration Command
-keyMapConfig = cmd 'q' "Quit" KeyCmdQuit
+globalKeyMapConfig :: KeyMapConfiguration Command
+globalKeyMapConfig = cmd 'q' "Quit" (Global CmdQuit)
+
+contextKeyMapConfig :: KeyMapConfiguration Command
+contextKeyMapConfig = cmd 'a' "Test" (Context Noop)
 
 {-
   ___       _ _
@@ -91,7 +97,8 @@ keyMapConfig = cmd 'q' "Quit" KeyCmdQuit
 
 initialState :: (MonadThrow m) => API.ApiSettings -> Schema -> m State
 initialState settings schema = do
-  keyMap <- compile keyMapConfig
+  globalKeyMap <- compile globalKeyMapConfig
+  contextKeyMap <- compile contextKeyMapConfig
   pure $
     State
       schema
@@ -99,9 +106,10 @@ initialState settings schema = do
       (Focus.focusRing components)
       [IntrospectorComponent, MainComponent]
       (Intro.initialState schema (Object (query schema)))
-      (CommandBar.initialState keyMap)
+      (CommandBar.initialState globalKeyMap)
+      (CommandBar.initialState contextKeyMap)
   where
-    components = [MainComponent, CommandBarComponent, IntrospectorComponent]
+    components = [MainComponent, GlobalCommandBarComponent, ContextCommandBarComponent, IntrospectorComponent]
 
 activeComponent :: State -> ComponentName
 activeComponent s = case s ^. stComponentStack of
@@ -131,8 +139,15 @@ update ::
   BrickEvent ComponentName Event ->
   EventM ComponentName (Continuation Event State)
 update s (VtyEvent evt) = updateVTY (activeComponent s) s evt
+update s (AppEvent (CommandBarEvent (CommandBar.CommandSelected (Global evt)))) = updateGlobalCommandBarEvent (activeComponent s) s evt
+update s (AppEvent (CommandBarEvent (CommandBar.CommandSelected (Context evt)))) = updateContextCommandBarEvent (activeComponent s) s evt
 update s (AppEvent evt) = updateAppEvent (activeComponent s) s evt
 update s _ = keepGoing s
+
+updateGlobalCommandBarEvent _ s CmdQuit = stopIt s
+updateGlobalCommandBarEvent _ s _ = keepGoing s
+
+updateContextCommandBarEvent _ s _ = keepGoing s
 
 updateVTY ::
   ComponentName ->
@@ -140,10 +155,13 @@ updateVTY ::
   V.Event ->
   EventM ComponentName (Continuation Event State)
 updateVTY _ s (V.EvKey (V.KChar 'c') [V.MCtrl]) = stopIt s
-updateVTY _ s (V.EvKey (V.KChar ' ') []) = keepGoing (activateComponent s CommandBarComponent)
+updateVTY _ s (V.EvKey (V.KChar 'r') []) = keepGoing (activateComponent s GlobalCommandBarComponent)
+updateVTY _ s (V.EvKey (V.KChar ' ') []) = keepGoing (activateComponent s ContextCommandBarComponent)
 updateVTY MainComponent s _ = keepGoing s
-updateVTY CommandBarComponent s (V.EvKey V.KEsc _) = keepGoing (deactivateCurrentComponent s)
-updateVTY CommandBarComponent s _ = keepGoing s
+updateVTY GlobalCommandBarComponent s (V.EvKey V.KEsc _) = keepGoing (deactivateCurrentComponent s)
+updateVTY GlobalCommandBarComponent s evt = updateComponent s stGlobalCommandBarState CommandBarEvent CommandBar.update (VtyEvent evt)
+updateVTY ContextCommandBarComponent s (V.EvKey V.KEsc _) = keepGoing (deactivateCurrentComponent s)
+updateVTY ContextCommandBarComponent s _ = keepGoing s
 updateVTY IntrospectorComponent s evt = updateComponent s stIntrospectorState IntrospectorEvent Intro.update (VtyEvent evt)
 
 updateAppEvent ::
@@ -193,5 +211,6 @@ tabLine = hBox [padRight Max $ padLeft (Pad 1) $ txt "[ Introspector ] | [ Query
 -- TODO: extract into component
 statusLine :: State -> Widget ComponentName
 statusLine state = case (activeComponent state) of
-  CommandBarComponent -> CommandBar.view (state ^. stCommandBarState)
-  _ -> hBox [padRight Max $ padLeft (Pad 1) $ str "C-c: Exit <SPACE>: Command"]
+  GlobalCommandBarComponent -> CommandBar.view (state ^. stGlobalCommandBarState)
+  ContextCommandBarComponent -> CommandBar.view (state ^. stContextCommandBarState)
+  _ -> hBox [padRight Max $ padLeft (Pad 1) $ str "<SPACE>: Context Command  <S-Space>: Global Command"]
