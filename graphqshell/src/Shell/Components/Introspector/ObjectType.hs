@@ -42,7 +42,6 @@ import Relude hiding
     state,
   )
 import Shell.Components.Introspector.Event
-import Shell.Components.Types
 import Shell.Continuation
 import Shell.SDL hiding
   ( attributes,
@@ -119,7 +118,7 @@ initialState resource schema selectedType = State fieldViewState selectedType sc
 -}
 
 update ::
-  (Ord a, Show a) =>
+  (Ord a) =>
   State
     a ->
   BrickEvent a Event ->
@@ -156,7 +155,7 @@ update state _ev = keepGoing state
 -}
 
 view :: (Ord a, Show a) => State a -> Widget a
-view state = padBottom Max $ vLimitPercent 30 (typeInfoView state) <=> fieldsView state
+view state = padBottom Max $ vLimitPercent 30 (typeInfoView state) <=> hBorder <=> fieldsView state
 
 typeInfoView :: State a -> Widget a
 typeInfoView state =

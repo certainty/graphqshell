@@ -16,7 +16,6 @@ import qualified Brick.Focus as Focus
 import Brick.Widgets.Border
 import Brick.Widgets.Border.Style
 import Control.Exception.Safe (MonadThrow)
-import Data.Char (isSpace)
 import qualified GraphQL.API as API
 import GraphQL.Introspection.Schema
   ( GraphQLType
@@ -171,7 +170,7 @@ updateVTY ContextCommandBarComponent s (V.EvKey V.KEsc _) = keepGoing (deactivat
 updateVTY ContextCommandBarComponent s evt = updateComponent s stContextCommandBarState CommandBarEvent CommandBar.update (VtyEvent evt)
 updateVTY GlobalCommandBarComponent s evt = updateComponent s stGlobalCommandBarState CommandBarEvent CommandBar.update (VtyEvent evt)
 updateVTY _ s (V.EvKey (V.KChar ' ') []) = keepGoing (activateComponent s ContextCommandBarComponent)
-updateVTY _ s (V.EvKey (V.KChar '/') []) = keepGoing (activateComponent s GlobalCommandBarComponent)
+updateVTY _ s (V.EvKey (V.KChar 'c') [V.MCtrl]) = keepGoing (activateComponent s GlobalCommandBarComponent)
 updateVTY MainComponent s _ = keepGoing s
 updateVTY IntrospectorComponent s evt = updateComponent s stIntrospectorState IntrospectorEvent Intro.update (VtyEvent evt)
 
@@ -222,6 +221,8 @@ tabLine = hBox [padRight Max $ padLeft (Pad 1) $ txt "[ Introspector ] | [ Query
 -- TODO: extract into component
 statusLine :: State -> Widget ComponentName
 statusLine state = case (activeComponent state) of
-  GlobalCommandBarComponent -> CommandBar.view (state ^. stGlobalCommandBarState)
-  ContextCommandBarComponent -> CommandBar.view (state ^. stContextCommandBarState)
-  _ -> hBox [padRight Max $ padLeft (Pad 1) $ str "Ctrl-c → Quit <SPACE> → QContext Command  / → Global Command"]
+  GlobalCommandBarComponent -> CommandBar.view (state ^. stGlobalCommandBarState) <=> hBorder <=> status
+  ContextCommandBarComponent -> CommandBar.view (state ^. stContextCommandBarState) <=> hBorder <=> status
+  _ -> status
+  where
+    status = hBox [padRight Max $ padLeft (Pad 1) $ txt "Status bar will be used for updates soon"]

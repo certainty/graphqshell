@@ -52,12 +52,24 @@ makeLenses ''State
 
 -}
 
+attrDescription :: AttrName
+attrDescription = "commandBar" <> "description"
+
+attrCommand :: AttrName
+attrCommand = "commandBar" <> "command"
+
+attrSeparator :: AttrName
+attrSeparator = "commandBar" <> "separator"
+
+attrGroup :: AttrName
+attrGroup = "commandBar" <> "group"
+
 attributes :: [(AttrName, Attr)]
 attributes =
-  [ ("commandBar" <> "description", V.defAttr),
-    ("commandBar" <> "command", V.defAttr),
-    ("commandBar" <> "separator", V.defAttr),
-    ("commandBar" <> "group", V.defAttr)
+  [ (attrDescription, V.defAttr),
+    (attrCommand, V.defAttr),
+    (attrSeparator, V.defAttr),
+    (attrGroup, V.defAttr)
   ]
 
 {-
@@ -109,5 +121,12 @@ view :: State a -> Widget b
 view (State _ activeKeyMap) = hBox bindingEntries
   where
     bindingEntries = map bindingEntry (KeyMap.bindings activeKeyMap)
-    bindingEntry (c, descr) = padRight (Pad 2) $ padLeft (Pad 2) $ txt (Text.singleton c <> " " <> separator <> " " <> descr)
+    bindingEntry (c, descr) =
+      padRight (Pad 2) $
+        padLeft (Pad 2) $
+          hBox
+            [ withAttr attrCommand $ txt (Text.singleton c),
+              withAttr attrSeparator $ padLeft (Pad 1) $ txt separator,
+              withAttr attrDescription $ padLeft (Pad 1) $ txt descr
+            ]
     separator = "→"
