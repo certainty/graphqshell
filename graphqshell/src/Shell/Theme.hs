@@ -12,6 +12,7 @@ import Lens.Micro.Platform
 import Relude
 import qualified Shell.Components.CommandBar as CommandBar
 import qualified Shell.Components.Introspector as Intro
+import qualified Shell.Components.Main as Main
 import Shell.Configuration
 
 data ThemeError = ThemeLoadError Text
@@ -23,7 +24,7 @@ instance Exception ThemeError
 defaultTheme :: Theme
 defaultTheme = newTheme V.defAttr allAttributes
   where
-    allAttributes = Intro.attributes ++ CommandBar.attributes
+    allAttributes = Intro.attributes ++ CommandBar.attributes ++ Main.attributes
 
 loadTheme :: (MonadThrow m, MonadIO m) => ThemeConfig -> m Theme
 loadTheme config = do

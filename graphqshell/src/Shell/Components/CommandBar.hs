@@ -112,8 +112,10 @@ view (State _ activeKeyMap) = hBox bindingEntries
       padRight (Pad 2) $
         padLeft (Pad 2) $
           hBox
-            [ withAttr attrCommand $ txt (Text.singleton c),
+            [ withAttr attrCommand $ txt (translateKey c),
               withAttr attrSeparator $ padLeft (Pad 1) $ txt separator,
               withAttr attrDescription $ padLeft (Pad 1) $ txt descr
             ]
     separator = "→"
+    translateKey ' ' = "<SPACE>"
+    translateKey c = Text.singleton c

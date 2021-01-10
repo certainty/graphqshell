@@ -8,6 +8,7 @@ module Shell.Components.Main
     State,
     Event (..),
     initialState,
+    attributes,
   )
 where
 
@@ -24,6 +25,9 @@ import GraphQL.Introspection.Schema
     query,
   )
 import qualified Graphics.Vty as V
+import Graphics.Vty.Attributes
+  ( Attr,
+  )
 import Lens.Micro.Platform
   ( makeLenses,
     set,
@@ -73,6 +77,7 @@ data State = State
     -- | settings for the 'API' client
     _stApiSettings :: API.ApiSettings,
     -- | the registered components
+    _stKeyMap :: KeyMap Command,
     _stComponentStack :: ![ComponentName],
     _stCommandBarRecord :: ComponentRecord (CommandBar.State Command),
     _stIntrospectorRecord :: ComponentRecord Intro.State
@@ -80,9 +85,35 @@ data State = State
 
 makeLenses ''State
 
+{-
+  _  __
+ | |/ /___ _  _ _ __  __ _ _ __
+ | ' </ -_) || | '  \/ _` | '_ \
+ |_|\_\___|\_, |_|_|_\__,_| .__/
+           |__/           |_|
+
+-}
 -- Application KeyMap
 mainKeyMapConfig :: KeyMapConfiguration Command
-mainKeyMapConfig = cmd 'q' "Quit" CmdQuit
+mainKeyMapConfig = cmd 'q' "quit" CmdQuit
+
+{-
+     _   _   _        _ _           _
+    / \ | |_| |_ _ __(_) |__  _   _| |_ ___  ___
+   / _ \| __| __| '__| | '_ \| | | | __/ _ \/ __|
+  / ___ \ |_| |_| |  | | |_) | |_| | ||  __/\__ \
+ /_/   \_\__|\__|_|  |_|_.__/ \__,_|\__\___||___/
+
+-}
+
+attrStatusLine :: AttrName
+attrStatusLine = "main" <> "statusLine"
+
+attrTopBar :: AttrName
+attrTopBar = "main" <> "topBar"
+
+attributes :: [(AttrName, Attr)]
+attributes = [(attrStatusLine, V.defAttr), (attrTopBar, V.defAttr)]
 
 {-
   ___       _ _
@@ -96,13 +127,18 @@ mainKeyMapConfig = cmd 'q' "Quit" CmdQuit
 initialState :: (MonadThrow m) => API.ApiSettings -> Schema -> m State
 initialState settings schema = do
   mainKeyMap <- fromConfiguration mainKeyMapConfig
+  introspectorKeyMap <- sequence (fromConfiguration <$> Intro.keyMapConfig)
   pure $
-    State
-      schema
-      settings
-      componentStack
-      (commandBarRecord mainKeyMap)
-      (introspectorRecord Nothing)
+    activateComponent
+      ( State
+          schema
+          settings
+          mainKeyMap
+          componentStack
+          (commandBarRecord mainKeyMap)
+          (introspectorRecord introspectorKeyMap)
+      )
+      IntrospectorComponent
   where
     componentStack = [IntrospectorComponent, MainComponent]
     commandBarRecord keyMap = ComponentRecord CommandBarComponent (CommandBar.initialState keyMap) Nothing
@@ -125,8 +161,17 @@ deactivateCurrentComponent s = activateComponentKeyMap (activeComponent stateWit
 
 activateComponentKeyMap :: ComponentName -> State -> State
 activateComponentKeyMap MainComponent s = s
-activateComponentKeyMap IntrospectorComponent s = s
+activateComponentKeyMap IntrospectorComponent s = case s ^. stIntrospectorRecord . crKeyMap of
+  (Just keyMap) -> activateComponentKeyMap' s keyMap "+introspector"
+  Nothing -> s
 activateComponentKeyMap CommandBarComponent s = s
+
+activateComponentKeyMap' :: State -> KeyMap Command -> Text -> State
+activateComponentKeyMap' s componentKeyMap caption =
+  set (stCommandBarRecord . crState) updatedCommandBarState (set stKeyMap updatedKeyMap s)
+  where
+    updatedCommandBarState = CommandBar.initialState updatedKeyMap
+    updatedKeyMap = insertBinding (s ^. stKeyMap) ' ' (Group caption componentKeyMap)
 
 deactivateCommandBar :: State -> State
 deactivateCommandBar state = deactivateCurrentComponent $ set cmdState updatedCommandBarState state
@@ -198,7 +243,7 @@ mainWidget state = withBorderStyle unicodeRounded $ joinBorders $ mainViewPort s
 
 -- TODO: extract into component
 topBar :: State -> Widget ComponentName
-topBar state = hBox [padRight Max $ padLeft (Pad 1) $ txt (toText url)]
+topBar state = withAttr attrTopBar $ hBox [padRight Max $ txt (toText url)]
   where
     url = renderStr . API.apiURI $ state ^. stApiSettings
 
@@ -207,20 +252,18 @@ mainViewPort state =
   border $
     topBar state
       <=> hBorder
-      <=> tabLine
-      <=> hBorder
       <=> Intro.view (state ^. stIntrospectorRecord . crState)
       <=> hBorder
       <=> statusLine state
 
--- TODO: extract into component
-tabLine :: Widget ComponentName
-tabLine = hBox [padRight Max $ padLeft (Pad 1) $ txt "[ Introspector ] | [ Query ]"]
-
--- TODO: extract into component
 statusLine :: State -> Widget ComponentName
 statusLine state = case (activeComponent state) of
-  CommandBarComponent -> CommandBar.view (state ^. stCommandBarRecord . crState) <=> hBorder <=> status
-  _ -> status
+  CommandBarComponent -> CommandBar.view (state ^. stCommandBarRecord . crState) <=> hBorder <=> status (statusLineComponentName CommandBarComponent)
+  name -> status (statusLineComponentName name)
   where
-    status = hBox [padRight Max $ padLeft (Pad 1) $ txt "Status bar will be used for updates soon"]
+    status componentName = withAttr attrStatusLine $ hBox [padRight Max $ padLeft (Pad 1) $ txt componentName]
+
+statusLineComponentName :: ComponentName -> Text
+statusLineComponentName CommandBarComponent = "Menu"
+statusLineComponentName IntrospectorComponent = "Introspector"
+statusLineComponentName MainComponent = "Main"

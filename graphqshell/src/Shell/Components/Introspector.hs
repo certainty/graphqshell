@@ -7,6 +7,7 @@ module Shell.Components.Introspector
     update,
     attributes,
     initialState,
+    keyMapConfig,
   )
 where
 
@@ -29,6 +30,7 @@ import Shell.Components.Introspector.Event
 import qualified Shell.Components.Introspector.ObjectType as IntroObject
 import Shell.Components.Types
 import Shell.Continuation
+import Shell.KeyMap
 import qualified Shell.SDL as SDL
 import Utils
 
@@ -61,6 +63,17 @@ instance Inspect SelectedTypeState where
   inspect UnsupportedTypeState = "UnsupportedTypeState"
 
 makeLenses ''State
+
+{-
+  _  __
+ | |/ /___ _  _ _ __  __ _ _ __
+ | ' </ -_) || | '  \/ _` | '_ \
+ |_|\_\___|\_, |_|_|_\__,_| .__/
+           |__/           |_|
+
+-}
+keyMapConfig :: Maybe (KeyMapConfiguration Command)
+keyMapConfig = Just (cmd 'f' "Test" Noop)
 
 {-
      _   _   _        _ _           _
