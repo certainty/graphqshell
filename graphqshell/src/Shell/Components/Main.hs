@@ -194,7 +194,7 @@ update ::
   BrickEvent ComponentName Event ->
   EventM ComponentName (Continuation Event State)
 update s (VtyEvent evt) = updateVTY (activeComponent s) s evt
-update s (AppEvent (CommandBarEvent (CommandBar.CommandSelected evt))) = updateCommandBarEvent (activeComponent s) s evt
+update s (AppEvent (CommandBarEvent (CommandBar.CommandSelected evt))) = fmap deactivateCommandBar <$> updateCommandBarEvent (activeComponent s) s evt
 update s (AppEvent evt) = updateAppEvent (activeComponent s) s evt
 update s _ = keepGoing s
 
