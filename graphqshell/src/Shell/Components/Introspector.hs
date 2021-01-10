@@ -72,8 +72,8 @@ makeLenses ''State
            |__/           |_|
 
 -}
-keyMapConfig :: Maybe (KeyMapConfiguration Command)
-keyMapConfig = Just (cmd 'f' "Test" Noop)
+keyMapConfig :: Maybe (KeyMapConfiguration CommandBarCommand)
+keyMapConfig = Just (cmd 'f' "Test" CmdNoop)
 
 {-
      _   _   _        _ _           _

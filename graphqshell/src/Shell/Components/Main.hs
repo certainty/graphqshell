@@ -48,7 +48,7 @@ import Text.URI
 
 data Event
   = IntrospectorEvent Intro.Event
-  | CommandBarEvent (CommandBar.Event Command)
+  | CommandBarEvent (CommandBar.Event CommandBarCommand)
   | Tick
   deriving (Eq, Show)
 
@@ -64,7 +64,7 @@ data Event
 data ComponentRecord s = ComponentRecord
   { _crName :: ComponentName,
     _crState :: s,
-    _crKeyMap :: Maybe (KeyMap Command)
+    _crKeyMap :: Maybe (KeyMap CommandBarCommand)
   }
 
 makeLenses ''ComponentRecord
@@ -77,9 +77,9 @@ data State = State
     -- | settings for the 'API' client
     _stApiSettings :: API.ApiSettings,
     -- | the registered components
-    _stKeyMap :: KeyMap Command,
+    _stKeyMap :: KeyMap CommandBarCommand,
     _stComponentStack :: ![ComponentName],
-    _stCommandBarRecord :: ComponentRecord (CommandBar.State Command),
+    _stCommandBarRecord :: ComponentRecord (CommandBar.State CommandBarCommand),
     _stIntrospectorRecord :: ComponentRecord Intro.State
   }
 
@@ -94,7 +94,7 @@ makeLenses ''State
 
 -}
 -- Application KeyMap
-mainKeyMapConfig :: KeyMapConfiguration Command
+mainKeyMapConfig :: KeyMapConfiguration CommandBarCommand
 mainKeyMapConfig = cmd 'q' "quit" CmdQuit
 
 {-
@@ -166,7 +166,7 @@ activateComponentKeyMap IntrospectorComponent s = case s ^. stIntrospectorRecord
   Nothing -> s
 activateComponentKeyMap CommandBarComponent s = s
 
-activateComponentKeyMap' :: State -> KeyMap Command -> Text -> State
+activateComponentKeyMap' :: State -> KeyMap CommandBarCommand -> Text -> State
 activateComponentKeyMap' s componentKeyMap caption =
   set (stCommandBarRecord . crState) updatedCommandBarState (set stKeyMap updatedKeyMap s)
   where
@@ -199,12 +199,12 @@ update s (AppEvent evt) = updateAppEvent (activeComponent s) s evt
 update s _ = keepGoing s
 
 updateCommandBarEvent ::
-  p ->
+  ComponentName ->
   s ->
-  Command ->
+  CommandBarCommand ->
   EventM n (Continuation e s)
 updateCommandBarEvent _ s CmdQuit = stopIt s
-updateCommandBarEvent _ s _ = keepGoing s
+updateCommandBarEvent IntrospectorComponent s cmd = keepGoing s -- TODO: implement this so that the component is updated. But first Continuation needs to become a monad
 
 updateVTY ::
   ComponentName ->
