@@ -12,7 +12,6 @@ module Shell.Components.Main
 where
 
 import Brick
-import qualified Brick.Focus as Focus
 import Brick.Widgets.Border
 import Brick.Widgets.Border.Style
 import Control.Exception.Safe (MonadThrow)
@@ -58,6 +57,14 @@ data Event
 
 -}
 
+data ComponentRecord s = ComponentRecord
+  { _crName :: ComponentName,
+    _crState :: s,
+    _crKeyMap :: Maybe (KeyMap Command)
+  }
+
+makeLenses ''ComponentRecord
+
 -- | The application state holds global data and component specific data.
 -- The application will delegate updates to the currently active component automatically.
 data State = State
@@ -65,29 +72,17 @@ data State = State
     _stSchema :: Schema,
     -- | settings for the 'API' client
     _stApiSettings :: API.ApiSettings,
-    -- | Manage which component has the focus
-    _stFocus :: !(Focus.FocusRing ComponentName),
-    -- |
+    -- | the registered components
     _stComponentStack :: ![ComponentName],
-    -- | State for the introspector component
-    _stIntrospectorState :: Intro.State,
-    -- | State for the introspector component
-    _stGlobalCommandBarState :: CommandBar.State Command,
-    -- |
-    _stContextCommandBarState :: CommandBar.State Command
+    _stCommandBarRecord :: ComponentRecord (CommandBar.State Command),
+    _stIntrospectorRecord :: ComponentRecord Intro.State
   }
 
 makeLenses ''State
 
--- KeyMap
-globalKeyMapConfig :: KeyMapConfiguration Command
-globalKeyMapConfig = cmd 'q' "Quit" (Global CmdQuit)
-
-contextKeyMapConfig :: KeyMapConfiguration Command
-contextKeyMapConfig =
-  cmd 'a' "Test" (Context Noop)
-    <> cmd 'b' "Test 2" (Context Noop)
-    <> (sub 'c' "+Group" (cmd 's' "Foobar" (Context Noop)))
+-- Application KeyMap
+mainKeyMapConfig :: KeyMapConfiguration Command
+mainKeyMapConfig = cmd 'q' "Quit" CmdQuit
 
 {-
   ___       _ _
@@ -100,19 +95,18 @@ contextKeyMapConfig =
 
 initialState :: (MonadThrow m) => API.ApiSettings -> Schema -> m State
 initialState settings schema = do
-  globalKeyMap <- compile globalKeyMapConfig
-  contextKeyMap <- compile contextKeyMapConfig
+  mainKeyMap <- fromConfiguration mainKeyMapConfig
   pure $
     State
       schema
       settings
-      (Focus.focusRing components)
-      [IntrospectorComponent, MainComponent]
-      (Intro.initialState schema (Object (query schema)))
-      (CommandBar.initialState globalKeyMap)
-      (CommandBar.initialState contextKeyMap)
+      componentStack
+      (commandBarRecord mainKeyMap)
+      (introspectorRecord Nothing)
   where
-    components = [MainComponent, GlobalCommandBarComponent, ContextCommandBarComponent, IntrospectorComponent]
+    componentStack = [IntrospectorComponent, MainComponent]
+    commandBarRecord keyMap = ComponentRecord CommandBarComponent (CommandBar.initialState keyMap) Nothing
+    introspectorRecord keyMap = ComponentRecord IntrospectorComponent (Intro.initialState schema (Object (query schema))) keyMap
 
 activeComponent :: State -> ComponentName
 activeComponent s = case s ^. stComponentStack of
@@ -120,20 +114,25 @@ activeComponent s = case s ^. stComponentStack of
   (active : _) -> active
 
 activateComponent :: State -> ComponentName -> State
-activateComponent s component = set stComponentStack (component : stack) s
+activateComponent s component = activateComponentKeyMap component (set stComponentStack (component : stack) s)
   where
     stack = s ^. stComponentStack
 
 deactivateCurrentComponent :: State -> State
-deactivateCurrentComponent s = set stComponentStack (drop 1 $ s ^. stComponentStack) s
+deactivateCurrentComponent s = activateComponentKeyMap (activeComponent stateWithUpdatedStack) stateWithUpdatedStack
+  where
+    stateWithUpdatedStack = set stComponentStack (drop 1 $ s ^. stComponentStack) s
 
-deactivateCommandBars :: State -> State
-deactivateCommandBars state =
-  deactivateCurrentComponent $
-    state
-      { _stGlobalCommandBarState = (CommandBar.resetState (state ^. stGlobalCommandBarState)),
-        _stContextCommandBarState = (CommandBar.resetState (state ^. stContextCommandBarState))
-      }
+activateComponentKeyMap :: ComponentName -> State -> State
+activateComponentKeyMap MainComponent s = s
+activateComponentKeyMap IntrospectorComponent s = s
+activateComponentKeyMap CommandBarComponent s = s
+
+deactivateCommandBar :: State -> State
+deactivateCommandBar state = deactivateCurrentComponent $ set cmdState updatedCommandBarState state
+  where
+    cmdState = stCommandBarRecord . crState
+    updatedCommandBarState = CommandBar.resetState (state ^. stCommandBarRecord . crState)
 
 {-
   _   _           _       _
@@ -150,36 +149,36 @@ update ::
   BrickEvent ComponentName Event ->
   EventM ComponentName (Continuation Event State)
 update s (VtyEvent evt) = updateVTY (activeComponent s) s evt
-update s (AppEvent (CommandBarEvent (CommandBar.CommandSelected (Global evt)))) = updateGlobalCommandBarEvent (activeComponent s) s evt
-update s (AppEvent (CommandBarEvent (CommandBar.CommandSelected (Context evt)))) = updateContextCommandBarEvent (activeComponent s) s evt
+update s (AppEvent (CommandBarEvent (CommandBar.CommandSelected evt))) = updateCommandBarEvent (activeComponent s) s evt
 update s (AppEvent evt) = updateAppEvent (activeComponent s) s evt
 update s _ = keepGoing s
 
-updateGlobalCommandBarEvent _ s CmdQuit = stopIt s
-updateGlobalCommandBarEvent _ s _ = keepGoing s
-
-updateContextCommandBarEvent _ s _ = keepGoing s
+updateCommandBarEvent ::
+  p ->
+  s ->
+  Command ->
+  EventM n (Continuation e s)
+updateCommandBarEvent _ s CmdQuit = stopIt s
+updateCommandBarEvent _ s _ = keepGoing s
 
 updateVTY ::
   ComponentName ->
   State ->
   V.Event ->
   EventM ComponentName (Continuation Event State)
-updateVTY GlobalCommandBarComponent s (V.EvKey V.KEsc _) = keepGoing (deactivateCommandBars s)
-updateVTY ContextCommandBarComponent s (V.EvKey V.KEsc _) = keepGoing (deactivateCommandBars s)
-updateVTY ContextCommandBarComponent s evt = updateComponent s stContextCommandBarState CommandBarEvent CommandBar.update (VtyEvent evt)
-updateVTY GlobalCommandBarComponent s evt = updateComponent s stGlobalCommandBarState CommandBarEvent CommandBar.update (VtyEvent evt)
-updateVTY _ s (V.EvKey (V.KChar ' ') []) = keepGoing (activateComponent s ContextCommandBarComponent)
-updateVTY _ s (V.EvKey (V.KChar 'c') [V.MCtrl]) = keepGoing (activateComponent s GlobalCommandBarComponent)
+updateVTY CommandBarComponent s (V.EvKey V.KEsc _) = keepGoing (deactivateCommandBar s)
+updateVTY CommandBarComponent s evt = updateComponent s (stCommandBarRecord . crState) CommandBarEvent CommandBar.update (VtyEvent evt)
+updateVTY _ s (V.EvKey (V.KChar ' ') []) = keepGoing (activateComponent s CommandBarComponent)
+updateVTY _ s (V.EvKey (V.KChar 'c') [V.MCtrl]) = stopIt s
 updateVTY MainComponent s _ = keepGoing s
-updateVTY IntrospectorComponent s evt = updateComponent s stIntrospectorState IntrospectorEvent Intro.update (VtyEvent evt)
+updateVTY IntrospectorComponent s evt = updateComponent s (stIntrospectorRecord . crState) IntrospectorEvent Intro.update (VtyEvent evt)
 
 updateAppEvent ::
   ComponentName ->
   State ->
   Event ->
   EventM ComponentName (Continuation Event State)
-updateAppEvent IntrospectorComponent s (IntrospectorEvent evt) = updateComponent s stIntrospectorState IntrospectorEvent Intro.update (AppEvent evt)
+updateAppEvent IntrospectorComponent s (IntrospectorEvent evt) = updateComponent s (stIntrospectorRecord . crState) IntrospectorEvent Intro.update (AppEvent evt)
 updateAppEvent _ s _ = keepGoing s
 
 {-
@@ -210,7 +209,7 @@ mainViewPort state =
       <=> hBorder
       <=> tabLine
       <=> hBorder
-      <=> Intro.view (state ^. stIntrospectorState)
+      <=> Intro.view (state ^. stIntrospectorRecord . crState)
       <=> hBorder
       <=> statusLine state
 
@@ -221,8 +220,7 @@ tabLine = hBox [padRight Max $ padLeft (Pad 1) $ txt "[ Introspector ] | [ Query
 -- TODO: extract into component
 statusLine :: State -> Widget ComponentName
 statusLine state = case (activeComponent state) of
-  GlobalCommandBarComponent -> CommandBar.view (state ^. stGlobalCommandBarState) <=> hBorder <=> status
-  ContextCommandBarComponent -> CommandBar.view (state ^. stContextCommandBarState) <=> hBorder <=> status
+  CommandBarComponent -> CommandBar.view (state ^. stCommandBarRecord . crState) <=> hBorder <=> status
   _ -> status
   where
     status = hBox [padRight Max $ padLeft (Pad 1) $ txt "Status bar will be used for updates soon"]

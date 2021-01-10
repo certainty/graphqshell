@@ -1,9 +1,10 @@
 module Shell.KeyMap
   ( cmd,
     sub,
-    compile,
+    fromConfiguration,
     matchKey,
     bindings,
+    insertBinding,
     KeyMapConfiguration,
     KeyMap,
     KeyMapEntry (..),
@@ -46,30 +47,33 @@ cmd = CommandConfig
 sub :: Char -> Text -> KeyMapConfiguration a -> KeyMapConfiguration a
 sub = SubGroupConfig
 
-compile :: (MonadThrow m) => KeyMapConfiguration a -> m (KeyMap a)
-compile (CommandConfig c descr action) = pure $ KeyMap $ HashMap.fromList [(c, Command descr action)]
-compile (SubGroupConfig c descr groupCfg) = do
-  compiledGroup <- compile groupCfg
+fromConfiguration :: (MonadThrow m) => KeyMapConfiguration a -> m (KeyMap a)
+fromConfiguration (CommandConfig c descr action) = pure $ KeyMap $ HashMap.fromList [(c, Command descr action)]
+fromConfiguration (SubGroupConfig c descr groupCfg) = do
+  compiledGroup <- fromConfiguration groupCfg
   pure $ KeyMap (HashMap.singleton c (Group descr compiledGroup))
-compile (GroupConfig cfg) = KeyMap <$> foldM compile' HashMap.empty cfg
+fromConfiguration (GroupConfig cfg) = KeyMap <$> foldM fromConfiguration' HashMap.empty cfg
 
-compile' :: (MonadThrow m) => HashMap Char (KeyMapEntry a) -> KeyMapConfiguration a -> m (HashMap Char (KeyMapEntry a))
-compile' hashMap (CommandConfig c descr action)
+fromConfiguration' :: (MonadThrow m) => HashMap Char (KeyMapEntry a) -> KeyMapConfiguration a -> m (HashMap Char (KeyMapEntry a))
+fromConfiguration' hashMap (CommandConfig c descr action)
   | HashMap.member c hashMap = throw (DuplicateKeyDefined c)
   | otherwise = pure (HashMap.insert c (Command descr action) hashMap)
-compile' hashMap (SubGroupConfig c descr groupCfg)
+fromConfiguration' hashMap (SubGroupConfig c descr groupCfg)
   | HashMap.member c hashMap = throw (DuplicateKeyDefined c)
   | otherwise = do
-    compiled <- compile groupCfg
+    compiled <- fromConfiguration groupCfg
     pure $ HashMap.insert c (Group descr compiled) hashMap
-compile' hashMap (GroupConfig groupCfg) = foldM compile' hashMap groupCfg
+fromConfiguration' hashMap (GroupConfig groupCfg) = foldM fromConfiguration' hashMap groupCfg
 
 matchKey :: KeyMap a -> Char -> Maybe (KeyMapEntry a)
 matchKey (KeyMap keyMap) char = HashMap.lookup char keyMap
 
+insertBinding :: KeyMap a -> Char -> KeyMapEntry a -> KeyMap a
+insertBinding (KeyMap keyMap) c entry = KeyMap (HashMap.insert c entry keyMap)
+
 -- | Returns sorted list of keys in the current keymap
 bindings :: KeyMap a -> [(Char, Text)]
-bindings (KeyMap keyMap) = map extractBindings (HashMap.toList keyMap)
+bindings (KeyMap keyMap) = sortOn fst $ map extractBindings (HashMap.toList keyMap)
   where
-    extractBindings (c, (Command descr _)) = (c, descr)
-    extractBindings (c, (Group descr _)) = (c, descr)
+    extractBindings (c, Command descr _) = (c, descr)
+    extractBindings (c, Group descr _) = (c, descr)
