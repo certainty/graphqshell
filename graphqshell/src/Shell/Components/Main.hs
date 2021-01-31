@@ -200,11 +200,12 @@ update s _ = keepGoing s
 
 updateCommandBarEvent ::
   ComponentName ->
-  s ->
+  State ->
   CommandBarCommand ->
-  EventM n (Continuation e s)
+  EventM ComponentName (Continuation Event State)
 updateCommandBarEvent _ s CmdQuit = stopIt s
-updateCommandBarEvent IntrospectorComponent s cmd = keepGoing s -- TODO: implement this so that the component is updated. But first Continuation needs to become a monad
+updateCommandBarEvent IntrospectorComponent s _ = keepGoing s
+updateCommandBarEvent _ s _ = keepGoing s
 
 updateVTY ::
   ComponentName ->

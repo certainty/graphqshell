@@ -19,6 +19,7 @@ where
 
 import Brick
 import qualified Brick.BChan as BCh
+import Control.Applicative
 import Lens.Micro.Platform
   ( Lens',
     set,
@@ -54,7 +55,7 @@ stopIt :: s -> EventM n (Continuation e s)
 stopIt = pure . Stop
 
 concurrently :: s -> IO e -> EventM n (Continuation e s)
-concurrently s a = pure $ (Concurrently s a)
+concurrently s a = pure $ Concurrently s a
 
 -- | Adapt our own continuation to the brick continuation
 -- |
