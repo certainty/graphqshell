@@ -12,8 +12,10 @@ module Shell.Continuation
     stopIt,
     concurrently,
     adaptToBrick,
+    emitEvent,
     Continuation,
     updateComponent,
+    updateComponentNew,
   )
 where
 
@@ -57,6 +59,10 @@ stopIt = pure . Stop
 concurrently :: s -> IO e -> EventM n (Continuation e s)
 concurrently s a = pure $ Concurrently s a
 
+emitEvent :: BCh.BChan e -> s -> e -> EventM n (Next s)
+emitEvent chan state event =
+  suspendAndResume (liftIO $ BCh.writeBChanNonBlocking chan event >> pure state)
+
 -- | Adapt our own continuation to the brick continuation
 -- |
 -- | All functions beneath that should us a the following signature for update
@@ -70,6 +76,19 @@ adaptToBrick _ (Continue s) = continue s
 adaptToBrick _ (Stop s) = halt s
 adaptToBrick chan (Concurrently s action) =
   (liftIO $ action >>= BCh.writeBChanNonBlocking chan) >> continue s
+
+type ComponentUpdateFunction state event resource = (BCh.BChan event -> state -> event -> EventM resource (Next state))
+
+updateComponentNew ::
+  BCh.BChan event ->
+  mainState ->
+  Lens' mainState componentState ->
+  ComponentUpdateFunction componentState event resource ->
+  event ->
+  EventM resource (Next mainState)
+updateComponentNew chan mainState componentStateLens componentUpdate event = do
+  next <- componentUpdate chan (view componentStateLens mainState) event
+  pure $ (\newComponentState -> set componentStateLens newComponentState mainState) <$> next
 
 -- | Update a subcomponent conveniently
 updateComponent ::

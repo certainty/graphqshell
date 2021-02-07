@@ -8,6 +8,7 @@ module Shell.Components.Introspector
     attributes,
     initialState,
     keyMapConfig,
+    updateNew,
   )
 where
 
@@ -28,7 +29,8 @@ import Relude hiding
   )
 import Shell.Components.Introspector.Event
 import qualified Shell.Components.Introspector.ObjectType as IntroObject
-import Shell.Components.Types
+import Shell.Components.Types hiding (Event)
+import qualified Shell.Components.Types as New
 import Shell.Continuation
 import Shell.KeyMap
 import qualified Shell.SDL as SDL
@@ -109,6 +111,13 @@ initialState schema tpe = State schema [tpe] UnsupportedTypeState
   \___/| .__/ \__,_|\__,_|\__\___|
        |_|
 -}
+
+updateNew ::
+  New.EventChan ->
+  State ->
+  New.Event ->
+  EventM ComponentName (Next State)
+updateNew chan state evt = continue state
 
 update ::
   State ->

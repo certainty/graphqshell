@@ -21,6 +21,7 @@ import Relude hiding
   )
 import qualified Shell.Components.Main as Main
 import Shell.Components.Types
+import qualified Shell.Components.Types as New
 import Shell.Configuration
 import Shell.Continuation
 import Shell.Theme
@@ -44,15 +45,22 @@ run config = do
 
 -- We delegate most of the functions to the main component,
 -- which is what is shown first
-application :: BCh.BChan Main.Event -> Theme -> App Main.State Main.Event ComponentName
+application :: New.EventChan -> Theme -> App Main.State New.Event ComponentName
 application chan theme =
   App
     { appDraw = Main.view,
       appChooseCursor = neverShowCursor,
-      appHandleEvent = applicationUpdate chan,
+      appHandleEvent = applicationUpdateNew chan,
       appAttrMap = const (themeToAttrMap theme),
       appStartEvent = pure
     }
+
+applicationUpdateNew ::
+  New.EventChan ->
+  Main.State ->
+  BrickEvent ComponentName New.Event ->
+  EventM ComponentName (Next Main.State)
+applicationUpdateNew chan mainState event = Main.updateNew chan mainState event
 
 -- Adapt the underlying update functions to match the brick continuations
 applicationUpdate ::
@@ -72,11 +80,11 @@ startTickThread ::
   -- | The tick rate in microseconds
   Int ->
   -- | 'ThreadId' of the tick thread and the channel that is used to write to
-  IO (ThreadId, BCh.BChan Main.Event)
+  IO (ThreadId, New.EventChan)
 startTickThread tickRate = do
   chan <- BCh.newBChan 5
   thread <- forkIO $
     forever $ do
-      BCh.writeBChan chan Main.Tick
+      BCh.writeBChan chan New.Tick
       threadDelay tickRate
   pure (thread, chan)

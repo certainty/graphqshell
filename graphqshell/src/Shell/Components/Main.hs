@@ -4,6 +4,7 @@
 -- Use this as the entry point to understand how the app works.
 module Shell.Components.Main
   ( update,
+    updateNew,
     view,
     State,
     Event (..),
@@ -39,7 +40,8 @@ import Relude hiding
   )
 import qualified Shell.Components.CommandBar as CommandBar
 import qualified Shell.Components.Introspector as Intro
-import Shell.Components.Types
+import Shell.Components.Types hiding (Event)
+import qualified Shell.Components.Types as New
 import Shell.Continuation
 import Shell.KeyMap
 import Text.URI
@@ -188,6 +190,48 @@ deactivateCommandBar state = deactivateCurrentComponent $ set cmdState updatedCo
        |_|
 
 -}
+
+updateNew ::
+  New.EventChan ->
+  State ->
+  BrickEvent ComponentName New.Event ->
+  EventM ComponentName (Next State)
+updateNew chan s (VtyEvent evt) = updateVTYNew (activeComponent s) chan s evt
+updateNew _ s (AppEvent evt@(New.KeyCommand _)) = fmap deactivateCommandBar <$> updateCommandBarEventNew (activeComponent s) s evt
+updateNew chan s (AppEvent evt) = updateAppEventNew (activeComponent s) chan s evt
+updateNew _ s _ = continue s
+
+updateCommandBarEventNew ::
+  ComponentName ->
+  State ->
+  New.Event ->
+  EventM ComponentName (Next State)
+updateCommandBarEventNew _ s (New.KeyCommand CmdQuit) = halt s
+updateCommandBarEventNew IntrospectorComponent s _ = continue s
+updateCommandBarEventNew _ s _ = continue s
+
+updateVTYNew ::
+  ComponentName ->
+  New.EventChan ->
+  State ->
+  V.Event ->
+  EventM ComponentName (Next State)
+updateVTYNew CommandBarComponent _ s (V.EvKey V.KEsc _) = continue (deactivateCommandBar s)
+updateVTYNew CommandBarComponent chan s evt = do
+  next <- CommandBar.updateNew chan (s ^. stCommandBarRecord . crState) (VtyEvent evt)
+  pure $ (\newS -> set (stCommandBarRecord . crState) newS s) <$> next
+updateVTYNew _ chan s (V.EvKey (V.KChar ' ') []) = continue (activateComponent s CommandBarComponent)
+updateVTYNew _ chan s (V.EvKey (V.KChar 'c') [V.MCtrl]) = halt s
+updateVTYNew _ _ s _ = continue s
+
+updateAppEventNew ::
+  ComponentName ->
+  New.EventChan ->
+  State ->
+  New.Event ->
+  EventM ComponentName (Next State)
+updateAppEventNew IntrospectorComponent chan s evt = updateComponentNew chan s (stIntrospectorRecord . crState) Intro.updateNew evt
+updateAppEventNew _ _ s _ = continue s
 
 update ::
   State ->

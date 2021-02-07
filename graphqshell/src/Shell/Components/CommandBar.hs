@@ -17,15 +17,16 @@ import Relude hiding
   ( State,
     state,
   )
-import Shell.Components.Types
+import Shell.Components.Types hiding (Event)
+import qualified Shell.Components.Types as New
 import Shell.Continuation
 import qualified Shell.KeyMap as KeyMap
 
 data Event a = CommandSelected a deriving (Eq, Show)
 
 data State a = State
-  { _stRootKeyMap :: KeyMap.KeyMap a,
-    _stActiveKeyMap :: KeyMap.KeyMap a
+  { _stRootKeyMap :: KeyMap.KeyMap CommandBarCommand,
+    _stActiveKeyMap :: KeyMap.KeyMap CommandBarCommand
   }
 
 makeLenses ''State
@@ -68,7 +69,7 @@ attributes =
 
 -}
 
-initialState :: KeyMap.KeyMap a -> State a
+initialState :: KeyMap.KeyMap CommandBarCommand -> State a
 initialState keyMap = State keyMap keyMap
 
 resetState :: State a -> State a
@@ -84,15 +85,27 @@ resetState (State rootKeyMap _) = State rootKeyMap rootKeyMap
 
 -}
 
+updateNew ::
+  New.EventChan ->
+  State a ->
+  BrickEvent ComponentName New.Event ->
+  EventM ComponentName (Next (State a))
+updateNew chan state@(State rootKeyMap activeKeyMap) (VtyEvent (V.EvKey (V.KChar c) [])) =
+  case KeyMap.matchKey activeKeyMap c of
+    (Just (KeyMap.Command _ cmd)) -> emitEvent chan state (New.KeyCommand cmd)
+    (Just (KeyMap.Group _ keyMap)) -> continue (State rootKeyMap keyMap)
+    Nothing -> continue state
+updateNew _ s _ = continue s
+
 update ::
   State a ->
   BrickEvent ComponentName (Event a) ->
   EventM ComponentName (Continuation (Event a) (State a))
-update state@(State rootKeyMap activeKeyMap) (VtyEvent (V.EvKey (V.KChar c) [])) =
-  case KeyMap.matchKey activeKeyMap c of
-    (Just (KeyMap.Command _ cmd)) -> concurrently state (pure (CommandSelected cmd))
-    (Just (KeyMap.Group _ keyMap)) -> keepGoing (State rootKeyMap keyMap)
-    Nothing -> keepGoing state
+update state@(State rootKeyMap activeKeyMap) (VtyEvent (V.EvKey (V.KChar c) [])) = undefined
+--case KeyMap.matchKey activeKeyMap c of
+--(Just (KeyMap.Command _ cmd)) -> concurrently state (pure (CommandSelected cmd))
+--(Just (KeyMap.Group _ keyMap)) -> keepGoing (State rootKeyMap keyMap)
+--Nothing -> keepGoing state
 update s _ = keepGoing s
 
 {-
