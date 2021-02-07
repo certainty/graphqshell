@@ -8,7 +8,6 @@ module Shell.Components.Introspector
     attributes,
     initialState,
     keyMapConfig,
-    updateNew,
   )
 where
 
@@ -27,10 +26,8 @@ import Relude hiding
   ( State,
     state,
   )
-import Shell.Components.Introspector.Event
 import qualified Shell.Components.Introspector.ObjectType as IntroObject
-import Shell.Components.Types hiding (Event)
-import qualified Shell.Components.Types as New
+import Shell.Components.Types
 import Shell.Continuation
 import Shell.KeyMap
 import qualified Shell.SDL as SDL
@@ -112,13 +109,14 @@ initialState schema tpe = State schema [tpe] UnsupportedTypeState
        |_|
 -}
 
-updateNew ::
-  New.EventChan ->
+update ::
+  EventChan ->
   State ->
-  New.Event ->
+  Event ->
   EventM ComponentName (Next State)
-updateNew chan state evt = continue state
+update chan state evt = continue state
 
+{-
 update ::
   State ->
   BrickEvent ComponentName Event ->
@@ -132,6 +130,7 @@ update state@(State _ _ (ObjectTypeState tpeState)) (VtyEvent ev) = do
       <$> nextCont
 -- catch all
 update state _ev = keepGoing state
+-}
 
 selectedTypeState :: Schema -> GraphQLType -> SelectedTypeState
 selectedTypeState schema (Object tpe) = ObjectTypeState (IntroObject.initialState IntrospectorComponent schema tpe)
