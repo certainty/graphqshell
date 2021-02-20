@@ -38,8 +38,7 @@ import Relude hiding
   )
 import qualified Shell.Components.CommandBar as CommandBar
 import qualified Shell.Components.Introspector as Intro
-import Shell.Components.Types
-import Shell.Continuation (relayUpdate)
+import Shell.Components.Shared
 import Shell.KeyMap
 import Text.URI
   ( renderStr,
@@ -209,7 +208,7 @@ updateVTY ::
   EventM ComponentName (Next State)
 updateVTY CommandBarComponent _ s (V.EvKey V.KEsc _) = continue (deactivateCommandBar s)
 updateVTY CommandBarComponent chan s evt = do
-  next <- CommandBar.updateNew chan (s ^. stCommandBarRecord . crState) (VtyEvent evt)
+  next <- CommandBar.update chan (s ^. stCommandBarRecord . crState) (VtyEvent evt)
   pure $ (\newS -> set (stCommandBarRecord . crState) newS s) <$> next
 updateVTY _ chan s (V.EvKey (V.KChar ' ') []) = continue (activateComponent s CommandBarComponent)
 updateVTY _ chan s (V.EvKey (V.KChar 'c') [V.MCtrl]) = halt s

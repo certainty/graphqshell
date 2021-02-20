@@ -27,8 +27,7 @@ import Relude hiding
     state,
   )
 import qualified Shell.Components.Introspector.ObjectType as IntroObject
-import Shell.Components.Types
-import Shell.Continuation
+import Shell.Components.Shared
 import Shell.KeyMap
 import qualified Shell.SDL as SDL
 import Utils

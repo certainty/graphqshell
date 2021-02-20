@@ -20,7 +20,7 @@ import Relude hiding
   ( state,
   )
 import qualified Shell.Components.Main as Main
-import Shell.Components.Types
+import Shell.Components.Shared
 import Shell.Configuration
 import Shell.Theme
 
