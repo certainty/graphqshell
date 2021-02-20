@@ -6,7 +6,7 @@ import Test.Tasty ()
 import Test.Tasty.Hspec
 
 compileMaybe :: KeyMapConfiguration a -> Maybe (KeyMap a)
-compileMaybe = compile
+compileMaybe = fromConfiguration
 
 data MyCommands = CommandA | CommandB | CommandC deriving (Eq, Show)
 
@@ -22,13 +22,13 @@ spec_KeyMap = do
       isJust keyMap `shouldBe` True
 
     it "fails to build with duplicate entries on the same level" $ do
-      (compile $ (cmd 'a' "" ()) <> (cmd 'a' "" ())) `shouldThrow` (== DuplicateKeyDefined 'a')
+      (fromConfiguration $ (cmd 'a' "" ()) <> (cmd 'a' "" ())) `shouldThrow` (== DuplicateKeyDefined 'a')
 
   describe "Find matchining command" $ do
     it "finds the match" $ do
-      keyMap <- compile $ (cmd 'a' "Command A" CommandA) <> (sub 'b' "Group" (cmd 'b' "Command B" CommandB) <> (cmd 'c' "Command C" CommandC))
+      keyMap <- fromConfiguration $ (cmd 'a' "Command A" CommandA) <> (sub 'b' "Group" (cmd 'b' "Command B" CommandB) <> (cmd 'c' "Command C" CommandC))
       (matchKey keyMap 'a') `shouldBe` (Just (Command "Command A" CommandA))
 
     it "returns nothing when there is no match" $ do
-      keyMap <- compile $ (cmd 'a' "Command A" CommandA) <> (sub 'b' "Group" (cmd 'b' "Command B" CommandB) <> (cmd 'c' "Command C" CommandC))
+      keyMap <- fromConfiguration $ (cmd 'a' "Command A" CommandA) <> (sub 'b' "Group" (cmd 'b' "Command B" CommandB) <> (cmd 'c' "Command C" CommandC))
       (matchKey keyMap 'n') `shouldBe` Nothing

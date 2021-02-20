@@ -41,8 +41,7 @@ import Relude hiding
   ( State,
     state,
   )
-import Shell.Components.Introspector.Event
-import Shell.Continuation
+import Shell.Components.Shared
 import Shell.SDL hiding
   ( attributes,
   )
@@ -119,20 +118,20 @@ initialState resource schema selectedType = State fieldViewState selectedType sc
 
 update ::
   (Ord a) =>
-  State
-    a ->
+  EventChan ->
   BrickEvent a Event ->
-  EventM a (Continuation Event (State a))
-update state (VtyEvent (V.EvKey V.KEnter [])) = case selectedType of
-  (Just tpe) -> concurrently state (pure (SelectedTypeChanged tpe))
-  Nothing -> keepGoing state
+  State a ->
+  EventM a (Next (State a))
+update chan (VtyEvent (V.EvKey V.KEnter [])) state = case selectedType of
+  (Just tpe) -> emitEvent chan state (SelectedTypeChanged tpe)
+  Nothing -> continue state
   where
     selectedType = state ^. stFieldsView . sfvSelectedOutputType
-update state (VtyEvent ev) = do
+update chan (VtyEvent ev) state = do
   newState <- L.handleListEvent ev (state ^. stFieldsView . sfvFields)
   case L.listSelectedElement newState of
     (Just (_, field)) ->
-      keepGoing
+      continue
         ( state
             & stFieldsView
             .~ ( FieldViewState
@@ -142,8 +141,8 @@ update state (VtyEvent ev) = do
                )
         )
     Nothing ->
-      keepGoing (state & stFieldsView .~ (FieldViewState newState Nothing Nothing))
-update state _ev = keepGoing state
+      continue (state & stFieldsView .~ (FieldViewState newState Nothing Nothing))
+update _ _ev state = continue state
 
 {-
  __     ___

@@ -6,13 +6,12 @@ module Shell.Components.Main
   ( update,
     view,
     State,
-    Event (..),
     initialState,
+    attributes,
   )
 where
 
 import Brick
-import qualified Brick.Focus as Focus
 import Brick.Widgets.Border
 import Brick.Widgets.Border.Style
 import Control.Exception.Safe (MonadThrow)
@@ -25,6 +24,9 @@ import GraphQL.Introspection.Schema
     query,
   )
 import qualified Graphics.Vty as V
+import Graphics.Vty.Attributes
+  ( Attr,
+  )
 import Lens.Micro.Platform
   ( makeLenses,
     set,
@@ -36,18 +38,12 @@ import Relude hiding
   )
 import qualified Shell.Components.CommandBar as CommandBar
 import qualified Shell.Components.Introspector as Intro
-import Shell.Components.Types
-import Shell.Continuation
+import Shell.Components.Shared
 import Shell.KeyMap
 import Text.URI
   ( renderStr,
   )
-
-data Event
-  = IntrospectorEvent Intro.Event
-  | CommandBarEvent (CommandBar.Event Command)
-  | Tick
-  deriving (Eq, Show)
+import Utils
 
 {-
   ____  _        _
@@ -58,6 +54,14 @@ data Event
 
 -}
 
+data ComponentRecord s = ComponentRecord
+  { _crName :: ComponentName,
+    _crState :: s,
+    _crKeyMap :: Maybe (KeyMap CommandBarCommand)
+  }
+
+makeLenses ''ComponentRecord
+
 -- | The application state holds global data and component specific data.
 -- The application will delegate updates to the currently active component automatically.
 data State = State
@@ -65,29 +69,44 @@ data State = State
     _stSchema :: Schema,
     -- | settings for the 'API' client
     _stApiSettings :: API.ApiSettings,
-    -- | Manage which component has the focus
-    _stFocus :: !(Focus.FocusRing ComponentName),
-    -- |
+    -- | the registered components
+    _stKeyMap :: KeyMap CommandBarCommand,
     _stComponentStack :: ![ComponentName],
-    -- | State for the introspector component
-    _stIntrospectorState :: Intro.State,
-    -- | State for the introspector component
-    _stGlobalCommandBarState :: CommandBar.State Command,
-    -- |
-    _stContextCommandBarState :: CommandBar.State Command
+    _stCommandBarRecord :: ComponentRecord (CommandBar.State CommandBarCommand),
+    _stIntrospectorRecord :: ComponentRecord Intro.State
   }
 
 makeLenses ''State
 
--- KeyMap
-globalKeyMapConfig :: KeyMapConfiguration Command
-globalKeyMapConfig = cmd 'q' "Quit" (Global CmdQuit)
+{-
+  _  __
+ | |/ /___ _  _ _ __  __ _ _ __
+ | ' </ -_) || | '  \/ _` | '_ \
+ |_|\_\___|\_, |_|_|_\__,_| .__/
+           |__/           |_|
 
-contextKeyMapConfig :: KeyMapConfiguration Command
-contextKeyMapConfig =
-  cmd 'a' "Test" (Context Noop)
-    <> cmd 'b' "Test 2" (Context Noop)
-    <> (sub 'c' "+Group" (cmd 's' "Foobar" (Context Noop)))
+-}
+-- Application KeyMap
+mainKeyMapConfig :: KeyMapConfiguration CommandBarCommand
+mainKeyMapConfig = cmd 'q' "quit" CmdQuit
+
+{-
+     _   _   _        _ _           _
+    / \ | |_| |_ _ __(_) |__  _   _| |_ ___  ___
+   / _ \| __| __| '__| | '_ \| | | | __/ _ \/ __|
+  / ___ \ |_| |_| |  | | |_) | |_| | ||  __/\__ \
+ /_/   \_\__|\__|_|  |_|_.__/ \__,_|\__\___||___/
+
+-}
+
+attrStatusLine :: AttrName
+attrStatusLine = "main" <> "statusLine"
+
+attrTopBar :: AttrName
+attrTopBar = "main" <> "topBar"
+
+attributes :: [(AttrName, Attr)]
+attributes = [(attrStatusLine, V.defAttr), (attrTopBar, V.defAttr)]
 
 {-
   ___       _ _
@@ -100,19 +119,23 @@ contextKeyMapConfig =
 
 initialState :: (MonadThrow m) => API.ApiSettings -> Schema -> m State
 initialState settings schema = do
-  globalKeyMap <- compile globalKeyMapConfig
-  contextKeyMap <- compile contextKeyMapConfig
+  mainKeyMap <- fromConfiguration mainKeyMapConfig
+  introspectorKeyMap <- sequence (fromConfiguration <$> Intro.keyMapConfig)
   pure $
-    State
-      schema
-      settings
-      (Focus.focusRing components)
-      [IntrospectorComponent, MainComponent]
-      (Intro.initialState schema (Object (query schema)))
-      (CommandBar.initialState globalKeyMap)
-      (CommandBar.initialState contextKeyMap)
+    activateComponent
+      ( State
+          schema
+          settings
+          mainKeyMap
+          componentStack
+          (commandBarRecord mainKeyMap)
+          (introspectorRecord introspectorKeyMap)
+      )
+      IntrospectorComponent
   where
-    components = [MainComponent, GlobalCommandBarComponent, ContextCommandBarComponent, IntrospectorComponent]
+    componentStack = [IntrospectorComponent, MainComponent]
+    commandBarRecord keyMap = ComponentRecord CommandBarComponent (CommandBar.initialState keyMap) Nothing
+    introspectorRecord keyMap = ComponentRecord IntrospectorComponent (Intro.initialState schema (Object (query schema))) keyMap
 
 activeComponent :: State -> ComponentName
 activeComponent s = case s ^. stComponentStack of
@@ -120,20 +143,34 @@ activeComponent s = case s ^. stComponentStack of
   (active : _) -> active
 
 activateComponent :: State -> ComponentName -> State
-activateComponent s component = set stComponentStack (component : stack) s
+activateComponent s component = activateComponentKeyMap component (set stComponentStack (component : stack) s)
   where
     stack = s ^. stComponentStack
 
 deactivateCurrentComponent :: State -> State
-deactivateCurrentComponent s = set stComponentStack (drop 1 $ s ^. stComponentStack) s
+deactivateCurrentComponent s = activateComponentKeyMap (activeComponent stateWithUpdatedStack) stateWithUpdatedStack
+  where
+    stateWithUpdatedStack = set stComponentStack (drop 1 $ s ^. stComponentStack) s
 
-deactivateCommandBars :: State -> State
-deactivateCommandBars state =
-  deactivateCurrentComponent $
-    state
-      { _stGlobalCommandBarState = (CommandBar.resetState (state ^. stGlobalCommandBarState)),
-        _stContextCommandBarState = (CommandBar.resetState (state ^. stContextCommandBarState))
-      }
+activateComponentKeyMap :: ComponentName -> State -> State
+activateComponentKeyMap MainComponent s = s
+activateComponentKeyMap IntrospectorComponent s = case s ^. stIntrospectorRecord . crKeyMap of
+  (Just keyMap) -> activateComponentKeyMap' s keyMap "+introspector"
+  Nothing -> s
+activateComponentKeyMap CommandBarComponent s = s
+
+activateComponentKeyMap' :: State -> KeyMap CommandBarCommand -> Text -> State
+activateComponentKeyMap' s componentKeyMap caption =
+  set (stCommandBarRecord . crState) updatedCommandBarState (set stKeyMap updatedKeyMap s)
+  where
+    updatedCommandBarState = CommandBar.initialState updatedKeyMap
+    updatedKeyMap = insertBinding (s ^. stKeyMap) ' ' (Group caption componentKeyMap)
+
+deactivateCommandBar :: State -> State
+deactivateCommandBar state = deactivateCurrentComponent $ set cmdState updatedCommandBarState state
+  where
+    cmdState = stCommandBarRecord . crState
+    updatedCommandBarState = CommandBar.resetState (state ^. stCommandBarRecord . crState)
 
 {-
   _   _           _       _
@@ -146,41 +183,49 @@ deactivateCommandBars state =
 -}
 
 update ::
+  EventChan ->
   State ->
   BrickEvent ComponentName Event ->
-  EventM ComponentName (Continuation Event State)
-update s (VtyEvent evt) = updateVTY (activeComponent s) s evt
-update s (AppEvent (CommandBarEvent (CommandBar.CommandSelected (Global evt)))) = updateGlobalCommandBarEvent (activeComponent s) s evt
-update s (AppEvent (CommandBarEvent (CommandBar.CommandSelected (Context evt)))) = updateContextCommandBarEvent (activeComponent s) s evt
-update s (AppEvent evt) = updateAppEvent (activeComponent s) s evt
-update s _ = keepGoing s
+  EventM ComponentName (Next State)
+update chan s (VtyEvent evt) = updateVTY (activeComponent s) chan s evt
+update chan s (AppEvent evt@(KeyCommand _)) = do
+  let newState = deactivateCommandBar s
+  updateCommandBarEvent (activeComponent newState) chan newState evt
+update chan s (AppEvent evt) = updateAppEvent (activeComponent s) chan s evt
+update _ s _ = continue s
 
-updateGlobalCommandBarEvent _ s CmdQuit = stopIt s
-updateGlobalCommandBarEvent _ s _ = keepGoing s
-
-updateContextCommandBarEvent _ s _ = keepGoing s
+updateCommandBarEvent ::
+  ComponentName ->
+  EventChan ->
+  State ->
+  Event ->
+  EventM ComponentName (Next State)
+updateCommandBarEvent _ _ s (KeyCommand CmdQuit) = halt s
+updateCommandBarEvent IntrospectorComponent chan s keyCommand = relayUpdate s (stIntrospectorRecord . crState) (Intro.update chan) (AppEvent keyCommand)
+updateCommandBarEvent _ _ s _ = continue s
 
 updateVTY ::
   ComponentName ->
+  EventChan ->
   State ->
   V.Event ->
-  EventM ComponentName (Continuation Event State)
-updateVTY GlobalCommandBarComponent s (V.EvKey V.KEsc _) = keepGoing (deactivateCommandBars s)
-updateVTY ContextCommandBarComponent s (V.EvKey V.KEsc _) = keepGoing (deactivateCommandBars s)
-updateVTY ContextCommandBarComponent s evt = updateComponent s stContextCommandBarState CommandBarEvent CommandBar.update (VtyEvent evt)
-updateVTY GlobalCommandBarComponent s evt = updateComponent s stGlobalCommandBarState CommandBarEvent CommandBar.update (VtyEvent evt)
-updateVTY _ s (V.EvKey (V.KChar ' ') []) = keepGoing (activateComponent s ContextCommandBarComponent)
-updateVTY _ s (V.EvKey (V.KChar 'c') [V.MCtrl]) = keepGoing (activateComponent s GlobalCommandBarComponent)
-updateVTY MainComponent s _ = keepGoing s
-updateVTY IntrospectorComponent s evt = updateComponent s stIntrospectorState IntrospectorEvent Intro.update (VtyEvent evt)
+  EventM ComponentName (Next State)
+updateVTY CommandBarComponent _ s (V.EvKey V.KEsc _) = continue (deactivateCommandBar s)
+updateVTY CommandBarComponent chan s evt = relayUpdate s (stCommandBarRecord . crState) (CommandBar.update chan) (VtyEvent evt)
+updateVTY _ _ s (V.EvKey (V.KChar ' ') []) = continue (activateComponent s CommandBarComponent)
+updateVTY _ _ s (V.EvKey (V.KChar 'c') [V.MCtrl]) = halt s
+updateVTY MainComponent _ s _ = continue s
+updateVTY IntrospectorComponent chan s evt = relayUpdate s (stIntrospectorRecord . crState) (Intro.update chan) (VtyEvent evt)
+updateVTY _ _ s _ = continue s
 
 updateAppEvent ::
   ComponentName ->
+  EventChan ->
   State ->
   Event ->
-  EventM ComponentName (Continuation Event State)
-updateAppEvent IntrospectorComponent s (IntrospectorEvent evt) = updateComponent s stIntrospectorState IntrospectorEvent Intro.update (AppEvent evt)
-updateAppEvent _ s _ = keepGoing s
+  EventM ComponentName (Next State)
+updateAppEvent IntrospectorComponent chan s evt = relayUpdate s (stIntrospectorRecord . crState) (Intro.update chan) (AppEvent evt)
+updateAppEvent _ _ s _ = continue s
 
 {-
  __     ___
@@ -199,7 +244,7 @@ mainWidget state = withBorderStyle unicodeRounded $ joinBorders $ mainViewPort s
 
 -- TODO: extract into component
 topBar :: State -> Widget ComponentName
-topBar state = hBox [padRight Max $ padLeft (Pad 1) $ txt (toText url)]
+topBar state = withAttr attrTopBar $ hBox [padRight Max $ txt (toText url)]
   where
     url = renderStr . API.apiURI $ state ^. stApiSettings
 
@@ -208,21 +253,18 @@ mainViewPort state =
   border $
     topBar state
       <=> hBorder
-      <=> tabLine
-      <=> hBorder
-      <=> Intro.view (state ^. stIntrospectorState)
+      <=> Intro.view (state ^. stIntrospectorRecord . crState)
       <=> hBorder
       <=> statusLine state
 
--- TODO: extract into component
-tabLine :: Widget ComponentName
-tabLine = hBox [padRight Max $ padLeft (Pad 1) $ txt "[ Introspector ] | [ Query ]"]
-
--- TODO: extract into component
 statusLine :: State -> Widget ComponentName
 statusLine state = case (activeComponent state) of
-  GlobalCommandBarComponent -> CommandBar.view (state ^. stGlobalCommandBarState) <=> hBorder <=> status
-  ContextCommandBarComponent -> CommandBar.view (state ^. stContextCommandBarState) <=> hBorder <=> status
-  _ -> status
+  CommandBarComponent -> CommandBar.view (state ^. stCommandBarRecord . crState) <=> hBorder <=> status (statusLineComponentName CommandBarComponent)
+  name -> status (statusLineComponentName name)
   where
-    status = hBox [padRight Max $ padLeft (Pad 1) $ txt "Status bar will be used for updates soon"]
+    status componentName = withAttr attrStatusLine $ hBox [padRight Max $ padLeft (Pad 1) $ txt componentName]
+
+statusLineComponentName :: ComponentName -> Text
+statusLineComponentName CommandBarComponent = "Menu"
+statusLineComponentName IntrospectorComponent = "Introspector"
+statusLineComponentName MainComponent = "Main"

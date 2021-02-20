@@ -7,6 +7,7 @@ module Shell.Components.Introspector
     update,
     attributes,
     initialState,
+    keyMapConfig,
   )
 where
 
@@ -20,15 +21,15 @@ import Graphics.Vty.Attributes
 import Lens.Micro.Platform
   ( makeLenses,
     set,
+    (^.),
   )
 import Relude hiding
   ( State,
     state,
   )
-import Shell.Components.Introspector.Event
 import qualified Shell.Components.Introspector.ObjectType as IntroObject
-import Shell.Components.Types
-import Shell.Continuation
+import Shell.Components.Shared
+import Shell.KeyMap
 import qualified Shell.SDL as SDL
 import Utils
 
@@ -61,6 +62,17 @@ instance Inspect SelectedTypeState where
   inspect UnsupportedTypeState = "UnsupportedTypeState"
 
 makeLenses ''State
+
+{-
+  _  __
+ | |/ /___ _  _ _ __  __ _ _ __
+ | ' </ -_) || | '  \/ _` | '_ \
+ |_|\_\___|\_, |_|_|_\__,_| .__/
+           |__/           |_|
+
+-}
+keyMapConfig :: Maybe (KeyMapConfiguration CommandBarCommand)
+keyMapConfig = Just (cmd 'q' "Query Type" CmdIntrospectorGotoQuery)
 
 {-
      _   _   _        _ _           _
@@ -98,18 +110,23 @@ initialState schema tpe = State schema [tpe] UnsupportedTypeState
 -}
 
 update ::
-  State ->
+  EventChan ->
   BrickEvent ComponentName Event ->
-  EventM ComponentName (Continuation Event State)
-update state (AppEvent (SelectedTypeChanged selectedType)) = keepGoing (pushSelectedType state selectedType)
-update state (VtyEvent (V.EvKey (V.KChar '[') [])) = keepGoing (popSelectedType state)
-update state@(State _ _ (ObjectTypeState tpeState)) (VtyEvent ev) = do
-  nextCont <- IntroObject.update tpeState (VtyEvent ev)
+  State ->
+  EventM ComponentName (Next State)
+update _ (AppEvent (KeyCommand CmdIntrospectorGotoQuery)) state = do
+  _ <- putStrLn "HELLL YEAH"
+  continue (initialState (state ^. stSchema) (Object (query (state ^. stSchema))))
+update _ (AppEvent (SelectedTypeChanged selectedType)) state = continue (pushSelectedType state selectedType)
+update _ (VtyEvent (V.EvKey (V.KChar '[') [])) state = continue (popSelectedType state)
+-- TODO: simplify this
+update chan (VtyEvent ev) state@(State _ _ (ObjectTypeState tpeState)) = do
+  nextCont <- IntroObject.update chan (VtyEvent ev) tpeState
   pure $
     (\newState -> set stSelectedTypeState (ObjectTypeState newState) state)
       <$> nextCont
 -- catch all
-update state _ev = keepGoing state
+update _ _ state = continue state
 
 selectedTypeState :: Schema -> GraphQLType -> SelectedTypeState
 selectedTypeState schema (Object tpe) = ObjectTypeState (IntroObject.initialState IntrospectorComponent schema tpe)

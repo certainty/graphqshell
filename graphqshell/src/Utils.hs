@@ -1,18 +1,17 @@
 -- |
 module Utils
   ( throwEither,
-    Inspect(..)
+    Inspect (..),
   )
 where
 
 import Control.Exception.Safe (MonadThrow, throw)
-import Relude
 import qualified Data.Text as T
+import Relude
 
 throwEither :: (MonadThrow m, Exception a) => Either a b -> m b
 throwEither (Left e) = throw e
 throwEither (Right v) = pure v
-
 
 -- | A type class similar to show but meant for inspection of types
 class Inspect a where

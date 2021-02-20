@@ -20,9 +20,8 @@ import Relude hiding
   ( state,
   )
 import qualified Shell.Components.Main as Main
-import Shell.Components.Types
+import Shell.Components.Shared
 import Shell.Configuration
-import Shell.Continuation
 import Shell.Theme
 
 defaultTickRate :: Int
@@ -44,23 +43,15 @@ run config = do
 
 -- We delegate most of the functions to the main component,
 -- which is what is shown first
-application :: BCh.BChan Main.Event -> Theme -> App Main.State Main.Event ComponentName
+application :: EventChan -> Theme -> App Main.State Event ComponentName
 application chan theme =
   App
     { appDraw = Main.view,
       appChooseCursor = neverShowCursor,
-      appHandleEvent = applicationUpdate chan,
+      appHandleEvent = Main.update chan,
       appAttrMap = const (themeToAttrMap theme),
       appStartEvent = pure
     }
-
--- Adapt the underlying update functions to match the brick continuations
-applicationUpdate ::
-  BCh.BChan Main.Event ->
-  Main.State ->
-  BrickEvent ComponentName Main.Event ->
-  EventM ComponentName (Next Main.State)
-applicationUpdate chan s evt = Main.update s evt >>= adaptToBrick chan
 
 applicationVTY :: IO V.Vty
 applicationVTY = V.mkVty V.defaultConfig
@@ -72,11 +63,11 @@ startTickThread ::
   -- | The tick rate in microseconds
   Int ->
   -- | 'ThreadId' of the tick thread and the channel that is used to write to
-  IO (ThreadId, BCh.BChan Main.Event)
+  IO (ThreadId, EventChan)
 startTickThread tickRate = do
   chan <- BCh.newBChan 5
   thread <- forkIO $
     forever $ do
-      BCh.writeBChan chan Main.Tick
+      BCh.writeBChan chan Tick
       threadDelay tickRate
   pure (thread, chan)

@@ -17,15 +17,12 @@ import Relude hiding
   ( State,
     state,
   )
-import Shell.Components.Types
-import Shell.Continuation
+import Shell.Components.Shared
 import qualified Shell.KeyMap as KeyMap
 
-data Event a = CommandSelected a deriving (Eq, Show)
-
 data State a = State
-  { _stRootKeyMap :: KeyMap.KeyMap a,
-    _stActiveKeyMap :: KeyMap.KeyMap a
+  { _stRootKeyMap :: KeyMap.KeyMap CommandBarCommand,
+    _stActiveKeyMap :: KeyMap.KeyMap CommandBarCommand
   }
 
 makeLenses ''State
@@ -68,7 +65,7 @@ attributes =
 
 -}
 
-initialState :: KeyMap.KeyMap a -> State a
+initialState :: KeyMap.KeyMap CommandBarCommand -> State a
 initialState keyMap = State keyMap keyMap
 
 resetState :: State a -> State a
@@ -85,15 +82,16 @@ resetState (State rootKeyMap _) = State rootKeyMap rootKeyMap
 -}
 
 update ::
+  EventChan ->
+  BrickEvent ComponentName Event ->
   State a ->
-  BrickEvent ComponentName (Event a) ->
-  EventM ComponentName (Continuation (Event a) (State a))
-update state@(State rootKeyMap activeKeyMap) (VtyEvent (V.EvKey (V.KChar c) [])) =
+  EventM ComponentName (Next (State a))
+update chan (VtyEvent (V.EvKey (V.KChar c) [])) state@(State rootKeyMap activeKeyMap) =
   case KeyMap.matchKey activeKeyMap c of
-    (Just (KeyMap.Command _ cmd)) -> concurrently state (pure (CommandSelected cmd))
-    (Just (KeyMap.Group _ keyMap)) -> keepGoing (State rootKeyMap keyMap)
-    Nothing -> keepGoing state
-update s _ = keepGoing s
+    (Just (KeyMap.Command _ cmd)) -> emitEvent chan state (KeyCommand cmd)
+    (Just (KeyMap.Group _ keyMap)) -> continue (State rootKeyMap keyMap)
+    Nothing -> continue state
+update _ _ s = continue s
 
 {-
  __     ___
@@ -112,8 +110,10 @@ view (State _ activeKeyMap) = hBox bindingEntries
       padRight (Pad 2) $
         padLeft (Pad 2) $
           hBox
-            [ withAttr attrCommand $ txt (Text.singleton c),
+            [ withAttr attrCommand $ txt (translateKey c),
               withAttr attrSeparator $ padLeft (Pad 1) $ txt separator,
               withAttr attrDescription $ padLeft (Pad 1) $ txt descr
             ]
     separator = "→"
+    translateKey ' ' = "<SPACE>"
+    translateKey c = Text.singleton c
