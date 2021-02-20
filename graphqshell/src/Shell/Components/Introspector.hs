@@ -111,10 +111,10 @@ initialState schema tpe = State schema [tpe] UnsupportedTypeState
 
 update ::
   EventChan ->
+  BrickEvent ComponentName Event ->
   State ->
-  Event ->
   EventM ComponentName (Next State)
-update chan state evt = continue state
+update chan evt state = continue state
 
 {-
 update ::

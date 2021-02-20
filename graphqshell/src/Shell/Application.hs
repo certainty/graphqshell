@@ -22,7 +22,6 @@ import Relude hiding
 import qualified Shell.Components.Main as Main
 import Shell.Components.Types
 import Shell.Configuration
-import Shell.Continuation
 import Shell.Theme
 
 defaultTickRate :: Int
@@ -49,27 +48,10 @@ application chan theme =
   App
     { appDraw = Main.view,
       appChooseCursor = neverShowCursor,
-      appHandleEvent = applicationUpdateNew chan,
+      appHandleEvent = Main.update chan,
       appAttrMap = const (themeToAttrMap theme),
       appStartEvent = pure
     }
-
-applicationUpdateNew ::
-  EventChan ->
-  Main.State ->
-  BrickEvent ComponentName Event ->
-  EventM ComponentName (Next Main.State)
-applicationUpdateNew chan mainState event = Main.update chan mainState event
-
--- Adapt the underlying update functions to match the brick continuations
-{-
-applicationUpdate ::
-  BCh.BChan Main.Event ->
-  Main.State ->
-  BrickEvent ComponentName Main.Event ->
-  EventM ComponentName (Next Main.State)
-applicationUpdate chan s evt = Main.update s evt >>= adaptToBrick chan
--}
 
 applicationVTY :: IO V.Vty
 applicationVTY = V.mkVty V.defaultConfig

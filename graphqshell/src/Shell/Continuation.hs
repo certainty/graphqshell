@@ -13,9 +13,8 @@ module Shell.Continuation
     concurrently,
     adaptToBrick,
     emitEvent,
+    relayUpdate,
     Continuation,
-    updateComponent,
-    updateComponentNew,
   )
 where
 
@@ -59,6 +58,17 @@ stopIt = pure . Stop
 concurrently :: s -> IO e -> EventM n (Continuation e s)
 concurrently s a = pure $ Concurrently s a
 
+-- Relay the update to a sub component
+relayUpdate ::
+  a -> -- the state
+  Lens' a b -> -- the lens to focus the target state
+  (e -> b -> EventM n (Next b)) -> -- the event handler
+  e -> -- the event
+  EventM n (Next a) -- the result
+relayUpdate st componentStateLens componentUpdate evt = do
+  nextComponentState <- componentUpdate evt (view componentStateLens st)
+  pure $ (\newState -> set componentStateLens newState st) <$> nextComponentState
+
 emitEvent :: BCh.BChan e -> s -> e -> EventM n (Next s)
 emitEvent chan state event =
   suspendAndResume (liftIO $ BCh.writeBChanNonBlocking chan event >> pure state)
@@ -76,42 +86,3 @@ adaptToBrick _ (Continue s) = continue s
 adaptToBrick _ (Stop s) = halt s
 adaptToBrick chan (Concurrently s action) =
   (liftIO $ action >>= BCh.writeBChanNonBlocking chan) >> continue s
-
-type ComponentUpdateFunction state event resource = (BCh.BChan event -> state -> event -> EventM resource (Next state))
-
-updateComponentNew ::
-  BCh.BChan event ->
-  mainState ->
-  Lens' mainState componentState ->
-  ComponentUpdateFunction componentState event resource ->
-  event ->
-  EventM resource (Next mainState)
-updateComponentNew chan mainState componentStateLens componentUpdate event = do
-  next <- componentUpdate chan (view componentStateLens mainState) event
-  pure $ (\newComponentState -> set componentStateLens newComponentState mainState) <$> next
-
--- | Update a subcomponent conveniently
-updateComponent ::
-  -- | The main state of this component
-  state ->
-  -- |  The lens to focus the state of the subcomponent
-  Lens' state componentState ->
-  -- | A function mapping the events of the underlying component
-  (componentEvent -> event) ->
-  -- | The update function of the subcomponent
-  ( componentState ->
-    (BrickEvent resource componentEvent) ->
-    EventM resource (Continuation componentEvent componentState)
-  ) ->
-  -- | The event to feed into the update function of the subcomponent
-  BrickEvent resource componentEvent ->
-  EventM resource (Continuation event state)
-updateComponent state componentStateLens componentEventMap componentUpdate componentEvent =
-  do
-    cont <- componentUpdate (view componentStateLens state) componentEvent
-    let newCont =
-          bimap
-            componentEventMap
-            (\newComponentState -> set componentStateLens newComponentState state)
-            cont
-    pure newCont
