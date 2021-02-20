@@ -83,15 +83,15 @@ resetState (State rootKeyMap _) = State rootKeyMap rootKeyMap
 
 update ::
   EventChan ->
-  State a ->
   BrickEvent ComponentName Event ->
+  State a ->
   EventM ComponentName (Next (State a))
-update chan state@(State rootKeyMap activeKeyMap) (VtyEvent (V.EvKey (V.KChar c) [])) =
+update chan (VtyEvent (V.EvKey (V.KChar c) [])) state@(State rootKeyMap activeKeyMap) =
   case KeyMap.matchKey activeKeyMap c of
     (Just (KeyMap.Command _ cmd)) -> emitEvent chan state (KeyCommand cmd)
     (Just (KeyMap.Group _ keyMap)) -> continue (State rootKeyMap keyMap)
     Nothing -> continue state
-update _ s _ = continue s
+update _ _ s = continue s
 
 {-
  __     ___

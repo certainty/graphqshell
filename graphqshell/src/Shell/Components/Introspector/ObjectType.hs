@@ -119,15 +119,15 @@ initialState resource schema selectedType = State fieldViewState selectedType sc
 update ::
   (Ord a) =>
   EventChan ->
-  State a ->
   BrickEvent a Event ->
+  State a ->
   EventM a (Next (State a))
-update chan state (VtyEvent (V.EvKey V.KEnter [])) = case selectedType of
+update chan (VtyEvent (V.EvKey V.KEnter [])) state = case selectedType of
   (Just tpe) -> emitEvent chan state (SelectedTypeChanged tpe)
   Nothing -> continue state
   where
     selectedType = state ^. stFieldsView . sfvSelectedOutputType
-update chan state (VtyEvent ev) = do
+update chan (VtyEvent ev) state = do
   newState <- L.handleListEvent ev (state ^. stFieldsView . sfvFields)
   case L.listSelectedElement newState of
     (Just (_, field)) ->
@@ -142,7 +142,7 @@ update chan state (VtyEvent ev) = do
         )
     Nothing ->
       continue (state & stFieldsView .~ (FieldViewState newState Nothing Nothing))
-update _ state _ev = continue state
+update _ _ev state = continue state
 
 {-
  __     ___

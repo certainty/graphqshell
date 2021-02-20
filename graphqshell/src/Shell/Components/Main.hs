@@ -43,6 +43,7 @@ import Shell.KeyMap
 import Text.URI
   ( renderStr,
   )
+import Utils
 
 {-
   ____  _        _
@@ -187,18 +188,21 @@ update ::
   BrickEvent ComponentName Event ->
   EventM ComponentName (Next State)
 update chan s (VtyEvent evt) = updateVTY (activeComponent s) chan s evt
-update _ s (AppEvent evt@(KeyCommand _)) = fmap deactivateCommandBar <$> updateCommandBarEvent (activeComponent s) s evt
+update chan s (AppEvent evt@(KeyCommand _)) = do
+  let newState = deactivateCommandBar s
+  updateCommandBarEvent (activeComponent newState) chan newState evt
 update chan s (AppEvent evt) = updateAppEvent (activeComponent s) chan s evt
 update _ s _ = continue s
 
 updateCommandBarEvent ::
   ComponentName ->
+  EventChan ->
   State ->
   Event ->
   EventM ComponentName (Next State)
-updateCommandBarEvent _ s (KeyCommand CmdQuit) = halt s
-updateCommandBarEvent IntrospectorComponent s _ = continue s
-updateCommandBarEvent _ s _ = continue s
+updateCommandBarEvent _ _ s (KeyCommand CmdQuit) = halt s
+updateCommandBarEvent IntrospectorComponent chan s keyCommand = relayUpdate s (stIntrospectorRecord . crState) (Intro.update chan) (AppEvent keyCommand)
+updateCommandBarEvent _ _ s _ = continue s
 
 updateVTY ::
   ComponentName ->
@@ -207,11 +211,9 @@ updateVTY ::
   V.Event ->
   EventM ComponentName (Next State)
 updateVTY CommandBarComponent _ s (V.EvKey V.KEsc _) = continue (deactivateCommandBar s)
-updateVTY CommandBarComponent chan s evt = do
-  next <- CommandBar.update chan (s ^. stCommandBarRecord . crState) (VtyEvent evt)
-  pure $ (\newS -> set (stCommandBarRecord . crState) newS s) <$> next
-updateVTY _ chan s (V.EvKey (V.KChar ' ') []) = continue (activateComponent s CommandBarComponent)
-updateVTY _ chan s (V.EvKey (V.KChar 'c') [V.MCtrl]) = halt s
+updateVTY CommandBarComponent chan s evt = relayUpdate s (stCommandBarRecord . crState) (CommandBar.update chan) (VtyEvent evt)
+updateVTY _ _ s (V.EvKey (V.KChar ' ') []) = continue (activateComponent s CommandBarComponent)
+updateVTY _ _ s (V.EvKey (V.KChar 'c') [V.MCtrl]) = halt s
 updateVTY MainComponent _ s _ = continue s
 updateVTY IntrospectorComponent chan s evt = relayUpdate s (stIntrospectorRecord . crState) (Intro.update chan) (VtyEvent evt)
 updateVTY _ _ s _ = continue s
@@ -224,48 +226,6 @@ updateAppEvent ::
   EventM ComponentName (Next State)
 updateAppEvent IntrospectorComponent chan s evt = relayUpdate s (stIntrospectorRecord . crState) (Intro.update chan) (AppEvent evt)
 updateAppEvent _ _ s _ = continue s
-
-{-
-
-update ::
-  State ->
-  BrickEvent ComponentName Event ->
-  EventM ComponentName (Continuation Event State)
-update s (VtyEvent evt) = updateVTY (activeComponent s) s evt
-update s (AppEvent (CommandBarEvent (CommandBar.CommandSelected evt))) = fmap deactivateCommandBar <$> updateCommandBarEvent (activeComponent s) s evt
-update s (AppEvent evt) = updateAppEvent (activeComponent s) s evt
-update s _ = keepGoing s
-
-updateCommandBarEvent ::
-  ComponentName ->
-  State ->
-  CommandBarCommand ->
-  EventM ComponentName (Continuation Event State)
-updateCommandBarEvent _ s CmdQuit = stopIt s
-updateCommandBarEvent IntrospectorComponent s _ = keepGoing s
-updateCommandBarEvent _ s _ = keepGoing s
-
-updateVTY ::
-  ComponentName ->
-  State ->
-  V.Event ->
-  EventM ComponentName (Continuation Event State)
-updateVTY CommandBarComponent s (V.EvKey V.KEsc _) = keepGoing (deactivateCommandBar s)
-updateVTY CommandBarComponent s evt = updateComponent s (stCommandBarRecord . crState) CommandBarEvent CommandBar.update (VtyEvent evt)
-updateVTY _ s (V.EvKey (V.KChar ' ') []) = keepGoing (activateComponent s CommandBarComponent)
-updateVTY _ s (V.EvKey (V.KChar 'c') [V.MCtrl]) = stopIt s
-updateVTY MainComponent s _ = keepGoing s
-updateVTY IntrospectorComponent s evt = updateComponent s (stIntrospectorRecord . crState) IntrospectorEvent Intro.update (VtyEvent evt)
-
-updateAppEvent ::
-  ComponentName ->
-  State ->
-  Event ->
-  EventM ComponentName (Continuation Event State)
-updateAppEvent IntrospectorComponent s (IntrospectorEvent evt) = updateComponent s (stIntrospectorRecord . crState) IntrospectorEvent Intro.update (AppEvent evt)
-updateAppEvent _ s _ = keepGoing s
-
--}
 
 {-
  __     ___

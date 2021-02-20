@@ -21,6 +21,7 @@ data ComponentName = MainComponent | IntrospectorComponent | CommandBarComponent
 data CommandBarCommand
   = CmdQuit
   | CmdNoop
+  | CmdIntrospectorGotoQuery
   deriving (Eq, Show)
 
 -- Application Events for all components
@@ -46,5 +47,6 @@ relayUpdate st componentStateLens componentUpdate evt = do
   pure $ (\newState -> set componentStateLens newState st) <$> nextComponentState
 
 emitEvent :: BCh.BChan e -> s -> e -> EventM n (Next s)
-emitEvent chan state event =
-  suspendAndResume (liftIO $ BCh.writeBChanNonBlocking chan event >> pure state)
+emitEvent chan state event = do
+  _ <- liftIO $ BCh.writeBChanNonBlocking chan event
+  continue state

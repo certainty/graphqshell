@@ -21,6 +21,7 @@ import Graphics.Vty.Attributes
 import Lens.Micro.Platform
   ( makeLenses,
     set,
+    (^.),
   )
 import Relude hiding
   ( State,
@@ -71,7 +72,7 @@ makeLenses ''State
 
 -}
 keyMapConfig :: Maybe (KeyMapConfiguration CommandBarCommand)
-keyMapConfig = Just (cmd 'f' "Test" CmdNoop)
+keyMapConfig = Just (cmd 'q' "Query Type" CmdIntrospectorGotoQuery)
 
 {-
      _   _   _        _ _           _
@@ -113,23 +114,19 @@ update ::
   BrickEvent ComponentName Event ->
   State ->
   EventM ComponentName (Next State)
-update chan evt state = continue state
-
-{-
-update ::
-  State ->
-  BrickEvent ComponentName Event ->
-  EventM ComponentName (Continuation Event State)
-update state (AppEvent (SelectedTypeChanged selectedType)) = keepGoing (pushSelectedType state selectedType)
-update state (VtyEvent (V.EvKey (V.KChar '[') [])) = keepGoing (popSelectedType state)
-update state@(State _ _ (ObjectTypeState tpeState)) (VtyEvent ev) = do
-  nextCont <- IntroObject.update tpeState (VtyEvent ev)
+update _ (AppEvent (KeyCommand CmdIntrospectorGotoQuery)) state = do
+  _ <- putStrLn "HELLL YEAH"
+  continue (initialState (state ^. stSchema) (Object (query (state ^. stSchema))))
+update _ (AppEvent (SelectedTypeChanged selectedType)) state = continue (pushSelectedType state selectedType)
+update _ (VtyEvent (V.EvKey (V.KChar '[') [])) state = continue (popSelectedType state)
+-- TODO: simplify this
+update chan (VtyEvent ev) state@(State _ _ (ObjectTypeState tpeState)) = do
+  nextCont <- IntroObject.update chan (VtyEvent ev) tpeState
   pure $
     (\newState -> set stSelectedTypeState (ObjectTypeState newState) state)
       <$> nextCont
 -- catch all
-update state _ev = keepGoing state
--}
+update _ _ state = continue state
 
 selectedTypeState :: Schema -> GraphQLType -> SelectedTypeState
 selectedTypeState schema (Object tpe) = ObjectTypeState (IntroObject.initialState IntrospectorComponent schema tpe)
