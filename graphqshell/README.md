@@ -11,13 +11,15 @@ stack exec graphqshell -- --config path/to/your/config
 ```
 
 This will get you into the client which will look something like this:
-
+![Screenshot 2021-10-09 at 18 11 56](https://user-images.githubusercontent.com/338957/136666434-608af1ab-20db-426d-bf24-5d96b8a15f4d.png)
 
 ### Exiting the shell
 
 The client aims to have a discoverable navigation, but you first need to know how to enable it.
 Just hit the `<space>` key and the menu will pop-up at the bottom of the client. 
 Now you can hit `q` to exit the client or `esc` to close the menu bar. 
+
+![Screenshot 2021-10-09 at 18 12 15](https://user-images.githubusercontent.com/338957/136666428-e659772c-4d4c-4e33-a559-3c0a347c5bb1.png)
 
 For vim users, this should be familiar if you have used the which-key extension, which
 was the inspiration for the menu system.
