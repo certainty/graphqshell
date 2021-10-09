@@ -1,5 +1,9 @@
 name: Haskell CI
 
+defaults:
+  run:
+    working-directory: graphqshell
+
 on:
   push:
     branches: [ main ]
