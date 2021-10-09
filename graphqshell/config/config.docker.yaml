@@ -1,8 +1,10 @@
+# configuration to use with dockerized setup
+# have a look at the Makefile in the root of the repository to learn how to run the dockerized demo
 endpoints:
-  - name: demo 
+  - name: demo
     default: true
     url: "http://server:5000/graphql"
 themes:
   - name: default
     default: true
-    path: theme.ini 
+    path: theme.ini

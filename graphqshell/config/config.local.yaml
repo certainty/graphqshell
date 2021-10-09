@@ -1,0 +1,11 @@
+# configuration to use for local development
+# this requires the demo server to run. Just run $ make demo_server in the graphqshell directory
+
+endpoints:
+  - name: demo
+    default: true
+    url: "http://127.0.0.1:5050/graphql"
+themes:
+  - name: default
+    default: true
+    path: theme.ini

@@ -1,13 +1,13 @@
-name:                graphqshell
-version:             0.1.0.0
-github:              "certainty/graphqshell"
-license:             BSD3
-author:              "certainty"
-maintainer:          "david.krentzlin@gmail.com"
+name: graphqshell
+version: 0.1.0.0
+github: "certainty/graphqshell"
+license: BSD3
+author: "certainty"
+maintainer: "david.krentzlin@gmail.com"
 
 extra-source-files:
-- README.md
-- ChangeLog.md
+  - README.md
+  - ChangeLog.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -59,12 +59,12 @@ dependencies:
 
 library:
   source-dirs: src
-  ld-options: 
+  ld-options:
     - -pthread
   dependencies:
-    - brick 
-    - vty 
-    - async 
+    - brick
+    - vty
+    - async
     - raw-strings-qq
     - aeson
     - exceptions
@@ -88,25 +88,25 @@ flags:
     default: false
 
 executables:
-  graphqshell-exe:
-    main:                Main.hs
-    source-dirs:         app
+  graphqshell:
+    main: Main.hs
+    source-dirs: app
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    ld-options: 
-    - -pthread
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    ld-options:
+      - -pthread
     dependencies:
-    - graphqshell
-    - optparse-applicative
-    - directory
-    - filepath
+      - graphqshell
+      - optparse-applicative
+      - directory
+      - filepath
 
   demo_server:
     when:
       - condition: flag(demo-server)
-        then: 
+        then:
           buildable: true
         else:
           buildable: false
@@ -119,39 +119,38 @@ executables:
     dependencies:
       - morpheus-graphql
       - scotty
- 
 
 benchmarks:
   graphshell-benchmark:
     main: Main.hs
     source-dirs: benchmark
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - graphqshell
-    - gauge
+      - graphqshell
+      - gauge
 
 tests:
   graphqshell-test:
-    main:                Spec.hs
-    source-dirs:         test
+    main: Spec.hs
+    source-dirs: test
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - hedgehog
-    - tasty 
-    - tasty-hedgehog
-    - tasty-discover 
-    - tasty-hspec 
-    - graphqshell
-    - raw-strings-qq
-    - aeson
-    - vector
-    - microlens-th
-    - brick
-    - modern-uri
-    - microlens-platform
+      - hedgehog
+      - tasty
+      - tasty-hedgehog
+      - tasty-discover
+      - tasty-hspec
+      - graphqshell
+      - raw-strings-qq
+      - aeson
+      - vector
+      - microlens-th
+      - brick
+      - modern-uri
+      - microlens-platform

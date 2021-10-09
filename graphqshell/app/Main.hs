@@ -25,13 +25,13 @@ main = do
   void $ Application.run config
  where
   opts homePath = info
-    ((options homePath) <**> helper)
+    (options homePath <**> helper)
     (fullDesc <> header "GraphQL TUI that is fast, fun and functional")
 
 loadConfiguration :: FilePath -> IO ApplicationConfig
 loadConfiguration path = do
   absolutePath <- Directory.makeAbsolute path
-  ByteString.readFile absolutePath >>= (parseConfiguration absolutePath)
+  ByteString.readFile absolutePath >>= parseConfiguration absolutePath
 
 defaultConfigurationFilePath :: IO FilePath
 defaultConfigurationFilePath = do
