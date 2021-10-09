@@ -32,23 +32,9 @@ packages:
       sha256: 07ae500db1acb1b3fe458012ab11e2928f7d0308868d40603bb3a82bf10f84cf
   original:
     hackage: conferer-source-yaml-0.4.0.1
-- completed:
-    hackage: vty-5.32@sha256:c421490b5ce80185c7fcd871ef5d8e94f82665c6b91006f6ab81546583ed3971,20857
-    pantry-tree:
-      size: 5330
-      sha256: ad4357a2238b9bd11fa7d0672863b79aa10624fcc9298834e28d3c0750f59438
-  original:
-    hackage: vty-5.32
-- completed:
-    hackage: brick-0.60.2@sha256:61df81396faec9fd695d1959a5b54d3c524b02e71db179395700a2f1b68ef614,16152
-    pantry-tree:
-      size: 6189
-      sha256: 5731efcd3df37bbae3d79f100f7615492ad787666b7d0ce249cb56e3718e2eca
-  original:
-    hackage: brick-0.60.2
 snapshots:
 - completed:
-    size: 532177
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/20.yaml
-    sha256: 0e14ba5603f01e8496e8984fd84b545a012ca723f51a098c6c9d3694e404dc6d
-  original: lts-16.20
+    size: 586268
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/13.yaml
+    sha256: d9e658a22cfe8d87a64fdf219885f942fef5fe2bcb156a9800174911c5da2443
+  original: lts-18.13
