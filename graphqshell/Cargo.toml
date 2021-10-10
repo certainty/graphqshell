@@ -3,6 +3,46 @@ name = "graphqshell"
 version = "0.1.0"
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name="graphqshell"
+path="src/lib.rs"
+
+[features]
+debug = []
 
 [dependencies]
+log="0.4"
+env_logger = "0.8"
+pretty_env_logger = "0.4"
+thiserror = "1.0"
+anyhow = "1.0"
+
+directories = "3.0"
+rand = "0.8.4"
+clap = "3.0.0-beta.2"
+serde = "1.0"
+
+# config
+config = "0.11"
+url = "2.2"
+duration-str = "0.3"
+chrono = "0.4"
+url_serde = "0.2"
+toml = "0.5"
+
+# tui
+tuirealm = "0.6.0"
+tui-realm-stdlib = "0.6.3"
+
+# graphql
+cynic = "0.15.0"
+
+# schema analysis
+fuzzy-matcher = "0.3.7"
+
+[dev-dependencies]
+matches = "0.1"
+criterion = "0.3.4"
+cargo-criterion = "1.1.0"
+quickcheck = "1"
+quickcheck_macros = "1.0"
