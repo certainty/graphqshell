@@ -205,7 +205,7 @@ pub fn load(from: std::path::PathBuf) -> Result<Config> {
 }
 
 pub fn load_default() -> Result<Config> {
-    load(default_directory()?)
+    load(default_directory()?.join("config.toml"))
 }
 
 pub fn init_directories() -> Result<()> {
