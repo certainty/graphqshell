@@ -42,8 +42,8 @@ impl Manager {
         let tick_rate = std::time::Duration::from_millis(
             self.config.application.tick_rate.num_milliseconds() as u64,
         );
-        self.context.borrow_mut().enter_alternate_screen();
 
+        self.context.borrow_mut().enter_alternate_screen();
         loop {
             match current_activity {
                 NextActivity::NoActivity => break,
@@ -53,19 +53,31 @@ impl Manager {
                 }
             }
         }
-
         self.prepare_exit();
         Ok(())
     }
 
     fn run_activity<T: Activity>(
         &mut self,
-        activity: &T,
+        activity: &mut T,
         tick_rate: std::time::Duration,
     ) -> Result<NextActivity> {
         log::debug!("running activity: {}", activity.name());
-        sleep(tick_rate);
-        Ok(NextActivity::Introspector)
+        let mut next_activity = NextActivity::Introspector;
+
+        activity.on_create();
+        loop {
+            activity.on_draw();
+            if activity.will_umount().is_some() {
+                next_activity = NextActivity::NoActivity;
+                break;
+            } else {
+                sleep(tick_rate);
+            }
+        }
+        activity.on_destroy();
+
+        Ok(next_activity)
     }
 
     pub fn prepare_exit(&mut self) {

@@ -7,6 +7,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use tuirealm::View;
 
+const COMPONENT_LOG_BOX: &str = "LOG_BOX";
+
 pub struct IntrospectorActivity {
     name: String,
     view: View,
