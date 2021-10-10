@@ -1,8 +1,6 @@
 [application]
-tick-rate = 10000
+tick_rate_ms = 10
 
 [[endpoint]]
 name = "dev"
-default = true
 url = "https://api.react-finland.fi/graphql"
-link = "https://api.react-finland.fi/graphql"

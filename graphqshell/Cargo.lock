@@ -572,6 +572,7 @@ dependencies = [
  "clap 3.0.0-beta.4",
  "config",
  "criterion",
+ "crossterm",
  "cynic",
  "directories",
  "duration-str",
@@ -586,6 +587,7 @@ dependencies = [
  "serde 1.0.130",
  "thiserror",
  "toml",
+ "tui",
  "tui-realm-stdlib",
  "tuirealm",
  "url 2.2.2",
@@ -892,6 +894,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "numtoa"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8f8bdf33df195859076e54ab11ee78a1b208382d3a26ec40d142ffc1ecc49ef"
+
+[[package]]
 name = "once_cell"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1141,6 +1149,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "redox_termios"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8440d8acb4fd3d277125b4bd01a6f38aee8d814b3b5fc09b3f2b825d37d3fe8f"
+dependencies = [
+ "redox_syscall",
+]
+
+[[package]]
 name = "redox_users"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1382,6 +1399,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "termion"
+version = "1.5.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "077185e2eac69c3f8379a4298e1e07cd36beb962290d4a51199acf0fdc10607e"
+dependencies = [
+ "libc",
+ "numtoa",
+ "redox_syscall",
+ "redox_termios",
+]
+
+[[package]]
 name = "textwrap"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1484,6 +1513,7 @@ dependencies = [
  "bitflags",
  "cassowary",
  "crossterm",
+ "termion",
  "unicode-segmentation",
  "unicode-width",
 ]

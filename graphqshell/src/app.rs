@@ -1,21 +1,20 @@
 pub mod configuration;
-use configuration::Config;
 
+use crate::frontend::tui::UI;
 use clap::{AppSettings, Clap};
 
 #[derive(Clap)]
 #[clap(setting = AppSettings::ColoredHelp)]
 pub struct Opts {
     #[clap(long, short, about = "path to the configuration file")]
-    config: Option<String>
+    config: Option<String>,
 }
 
-pub struct Application {
-}
+pub struct Application {}
 
 impl Application {
     pub fn new() -> Self {
-        Self  { }
+        Self {}
     }
 
     pub fn run(&self, opts: &Opts) -> anyhow::Result<()> {
@@ -25,6 +24,9 @@ impl Application {
             configuration::init_directories()?;
             configuration::load_default()?
         };
+
+        let mut ui = UI::new(config);
+        ui.run()?;
 
         Ok(())
     }

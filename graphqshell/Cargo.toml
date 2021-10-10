@@ -31,6 +31,8 @@ url_serde = "0.2"
 toml = "0.5"
 
 # tui
+tui = "0.16"
+crossterm = "0.20"
 tuirealm = "0.6.0"
 tui-realm-stdlib = "0.6.3"
 
