@@ -69,11 +69,17 @@ impl UI {
         _view: &mut View,
         message: Option<(String, Msg)>,
     ) -> Option<(String, Msg)> {
+        println!("updating {:?}", message);
         match message.as_ref() {
             None => None,
             Some(msg) => match msg {
                 (_, key) if key == &MSG_KEY_ESC => {
+                    println!("setting state to quit");
                     state.quit();
+                    None
+                }
+                (_, key) => {
+                    println!("Non matched key: {:?}", key);
                     None
                 }
                 _ => None,
