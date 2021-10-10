@@ -1,6 +1,6 @@
 pub mod configuration;
 
-use crate::frontend::tui::UI;
+use crate::frontend::tui::TUI;
 use clap::{AppSettings, Clap};
 
 #[derive(Clap)]
@@ -25,7 +25,8 @@ impl Application {
             configuration::load_default()?
         };
 
-        let mut ui = UI::new(config);
+        // TODO: pass in the backend in addition to the config
+        let mut ui = TUI::new(config);
         ui.run()?;
 
         Ok(())

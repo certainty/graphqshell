@@ -40,6 +40,11 @@ impl Context {
         );
     }
 
+    pub fn finalize(&mut self) {
+        self.leave_alternate_screen();
+        let _ = disable_raw_mode();
+    }
+
     pub fn clear_screen(&mut self) {
         let _ = self.terminal.clear();
     }
