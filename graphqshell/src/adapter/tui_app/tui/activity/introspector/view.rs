@@ -1,5 +1,7 @@
-use crate::frontend::tui::activity::introspector::{IntrospectorActivity, COMPONENT_LOG_BOX};
-use crate::frontend::tui::components::log::{Log, LogPropsBuilder};
+use crate::adapter::tui_app::tui::activity::introspector::{
+    IntrospectorActivity, COMPONENT_LOG_BOX,
+};
+use crate::adapter::tui_app::tui::components::log::{Log, LogPropsBuilder};
 use tuirealm::borders::{BorderType, Borders};
 use tuirealm::tui::layout::{Alignment, Constraint, Direction, Layout};
 use tuirealm::tui::style::Color;

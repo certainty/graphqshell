@@ -5,8 +5,7 @@ extern crate tui;
 #[cfg(test)]
 #[macro_use]
 extern crate matches;
-
-pub mod app;
-pub mod backend;
-pub mod frontend;
+pub mod adapter;
+pub mod domain;
+pub mod use_case;
 pub mod utils;

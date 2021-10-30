@@ -1,7 +1,7 @@
-use crate::app::configuration::Config;
-use crate::frontend::tui::activity::introspector::IntrospectorActivity;
-use crate::frontend::tui::activity::Activity;
-use crate::frontend::tui::context::Context;
+use crate::adapter::configuration::Config;
+use crate::adapter::tui_app::tui::activity::introspector::IntrospectorActivity;
+use crate::adapter::tui_app::tui::activity::Activity;
+use crate::adapter::tui_app::tui::context::Context;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::thread::sleep;

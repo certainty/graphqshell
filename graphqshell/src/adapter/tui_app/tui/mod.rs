@@ -4,9 +4,9 @@ pub(crate) mod context;
 pub(crate) mod input;
 pub(crate) mod keymap;
 
-use crate::app::configuration::Config;
-use crate::frontend::tui::activity::manager;
-use crate::frontend::tui::activity::manager::{Manager, NextActivity};
+use crate::adapter::configuration::Config;
+use crate::adapter::tui_app::tui::activity::manager;
+use crate::adapter::tui_app::tui::activity::manager::{Manager, NextActivity};
 use std::rc::Rc;
 use thiserror::Error;
 

@@ -1,8 +1,8 @@
 pub mod update;
 pub mod view;
 
-use crate::frontend::tui::activity::{Activity, ExitReason};
-use crate::frontend::tui::context::Context;
+use crate::adapter::tui_app::tui::activity::{Activity, ExitReason};
+use crate::adapter::tui_app::tui::context::Context;
 use std::cell::RefCell;
 use std::rc::Rc;
 use tuirealm::View;

@@ -1,10 +1,9 @@
-pub mod configuration;
+pub mod tui;
+use crate::adapter::configuration;
+use crate::adapter::tui_app::tui::TUI;
+use clap::Parser;
 
-use crate::frontend::tui::TUI;
-use clap::{AppSettings, Clap};
-
-#[derive(Clap)]
-#[clap(setting = AppSettings::ColoredHelp)]
+#[derive(Parser)]
 pub struct Opts {
     #[clap(long, short, about = "path to the configuration file")]
     config: Option<String>,
