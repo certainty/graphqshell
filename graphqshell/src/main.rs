@@ -1,5 +1,5 @@
 use clap::Parser;
-use graphqshell::adapter::tui_app::{Application, Opts};
+use graphqshell::application::tui_app::{Application, Opts};
 
 fn main() {
     pretty_env_logger::init();

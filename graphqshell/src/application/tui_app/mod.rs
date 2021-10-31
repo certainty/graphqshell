@@ -1,6 +1,6 @@
 pub mod tui;
-use crate::adapter::configuration;
-use crate::adapter::tui_app::tui::TUI;
+use crate::application::configuration;
+use crate::application::tui_app::tui::TUI;
 use clap::Parser;
 
 #[derive(Parser)]
@@ -10,6 +10,12 @@ pub struct Opts {
 }
 
 pub struct Application {}
+
+impl Default for Application {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Application {
     pub fn new() -> Self {
@@ -24,16 +30,9 @@ impl Application {
             configuration::load_default()?
         };
 
-        // TODO: pass in the backend in addition to the config
         let mut ui = TUI::new(config);
         ui.run()?;
 
         Ok(())
-    }
-}
-
-impl Default for Application {
-    fn default() -> Self {
-        Self::new()
     }
 }

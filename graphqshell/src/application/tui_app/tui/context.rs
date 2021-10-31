@@ -17,7 +17,9 @@ impl Context {
     pub fn new() -> Self {
         let _ = enable_raw_mode();
         let mut stdout = stdout();
-        assert!(execute!(stdout, EnterAlternateScreen).is_ok());
+
+        //assert!(execute!(stdout, EnterAlternateScreen).is_ok());
+
         Self {
             input_handler: input::InputHandler::new(),
             terminal: Terminal::new(CrosstermBackend::new(stdout)).unwrap(),

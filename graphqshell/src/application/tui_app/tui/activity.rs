@@ -12,7 +12,7 @@ pub trait Activity {
 
     fn on_draw(&mut self);
 
-    fn will_umount(&self) -> Option<&ExitReason>;
+    fn will_umount(&self) -> Option<ExitReason>;
 
     fn on_destroy(&mut self);
 }

@@ -4,9 +4,9 @@ pub(crate) mod context;
 pub(crate) mod input;
 pub(crate) mod keymap;
 
-use crate::adapter::configuration::Config;
-use crate::adapter::tui_app::tui::activity::manager;
-use crate::adapter::tui_app::tui::activity::manager::{Manager, NextActivity};
+use crate::application::configuration::Config;
+use crate::application::tui_app::tui::activity::manager;
+use crate::application::tui_app::tui::activity::manager::{Manager, NextActivity};
 use std::rc::Rc;
 use thiserror::Error;
 
@@ -33,7 +33,6 @@ impl TUI {
         }
     }
 
-    // TODO: connect to backend
     pub fn run(&mut self) -> Result<()> {
         self.activity_manager.run(NextActivity::Introspector)?;
         Ok(())

@@ -1,7 +1,7 @@
-use crate::adapter::configuration::Config;
-use crate::adapter::tui_app::tui::activity::introspector::IntrospectorActivity;
-use crate::adapter::tui_app::tui::activity::Activity;
-use crate::adapter::tui_app::tui::context::Context;
+use crate::application::configuration::Config;
+use crate::application::tui_app::tui::activity::introspector::IntrospectorActivity;
+use crate::application::tui_app::tui::activity::Activity;
+use crate::application::tui_app::tui::context::Context;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::thread::sleep;
@@ -42,6 +42,8 @@ impl Manager {
         let tick_rate = std::time::Duration::from_millis(
             self.config.application.tick_rate.num_milliseconds() as u64,
         );
+
+        println!("Starting activity");
 
         self.context.borrow_mut().enter_alternate_screen();
         loop {

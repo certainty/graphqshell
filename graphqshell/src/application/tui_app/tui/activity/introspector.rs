@@ -1,8 +1,8 @@
 pub mod update;
 pub mod view;
 
-use crate::adapter::tui_app::tui::activity::{Activity, ExitReason};
-use crate::adapter::tui_app::tui::context::Context;
+use crate::application::tui_app::tui::activity::{Activity, ExitReason};
+use crate::application::tui_app::tui::context::Context;
 use std::cell::RefCell;
 use std::rc::Rc;
 use tuirealm::View;
@@ -41,7 +41,7 @@ impl Activity for IntrospectorActivity {
         ()
     }
 
-    fn will_umount(&self) -> Option<&ExitReason> {
+    fn will_umount(&self) -> Option<ExitReason> {
         None
     }
 
