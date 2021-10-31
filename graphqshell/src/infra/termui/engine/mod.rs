@@ -1,6 +1,5 @@
-pub mod keys;
-
 use crate::infra::termui::engine::keys::Key;
+use application::Application;
 use async_trait::async_trait;
 use std::io::{stdout, Stdout};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -10,6 +9,9 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tui::backend::CrosstermBackend;
 use tui::{Frame, Terminal};
+
+pub(crate) mod application;
+pub mod keys;
 
 pub enum Command<AppCommand> {
     App(AppCommand),
@@ -23,23 +25,6 @@ pub enum Event<AppEvent> {
 pub enum UpdateResult<AppEvent, AppCommand> {
     Exit,
     Continue(Option<Event<AppEvent>>, Option<Command<AppCommand>>),
-}
-
-#[async_trait]
-pub trait Application: Sized {
-    type Event: Send;
-    type Command: Send + Sync;
-
-    fn init() -> anyhow::Result<(Self, Option<UpdateResult<Self::Event, Self::Command>>)>;
-    fn draw(&mut self, frame: &mut Frame<CrosstermBackend<Stdout>>);
-    fn update(
-        &mut self,
-        msg: &Event<Self::Event>,
-    ) -> anyhow::Result<UpdateResult<Self::Event, Self::Command>>;
-    async fn io(
-        &self,
-        cmd: &Command<Self::Command>,
-    ) -> anyhow::Result<UpdateResult<Self::Event, Self::Command>>;
 }
 
 pub struct Engine<App: Application> {

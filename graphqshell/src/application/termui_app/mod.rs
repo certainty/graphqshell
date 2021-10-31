@@ -1,4 +1,5 @@
-use crate::infra::termui::engine::{Application, Command, Event, UpdateResult};
+use crate::infra::termui::engine::application::Application;
+use crate::infra::termui::engine::{Command, Event, UpdateResult};
 use async_trait::async_trait;
 use clap::Parser;
 use std::io::Stdout;
@@ -44,7 +45,7 @@ impl Application for GraphQLShellApp {
             .split(size);
 
         let title = Paragraph::new("Plop with TUI")
-            .style(Style::default().fg(Color::LightCyan))
+            .style(Style::default().fg(Color::LightBlue))
             .alignment(Alignment::Center)
             .block(
                 Block::default()
