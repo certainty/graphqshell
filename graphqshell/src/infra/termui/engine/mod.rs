@@ -1,20 +1,19 @@
 use crate::infra::termui::engine::keys::Key;
 use application::Application;
-use async_trait::async_trait;
-use std::io::{stdout, Stdout};
+use std::io::stdout;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tui::backend::CrosstermBackend;
-use tui::{Frame, Terminal};
+use tui::Terminal;
 
 pub(crate) mod application;
 pub mod keys;
 
-pub enum Command<AppCommand> {
-    App(AppCommand),
+pub enum Action<AppAction> {
+    App(AppAction),
 }
 pub enum Event<AppEvent> {
     App(AppEvent),
@@ -24,22 +23,22 @@ pub enum Event<AppEvent> {
 
 pub enum UpdateResult<AppEvent, AppCommand> {
     Exit,
-    Continue(Option<Event<AppEvent>>, Option<Command<AppCommand>>),
+    Continue(Option<Event<AppEvent>>, Option<Action<AppCommand>>),
 }
 
 pub struct Engine<App: Application> {
     rx: Receiver<Event<App::Event>>,
     tx: Sender<Event<App::Event>>,
-    io_tx: Sender<Command<App::Command>>,
+    io_tx: Sender<Action<App::Action>>,
     stop_handlers: Arc<AtomicBool>,
-    initial_result: Option<UpdateResult<App::Event, App::Command>>,
+    initial_result: Option<UpdateResult<App::Event, App::Action>>,
     tick_rate: Duration,
     app: Arc<Mutex<App>>,
 }
 
 impl<App: Application + Send + Sync + 'static> Engine<App> {
     pub async fn run() -> anyhow::Result<()> {
-        let (sync_io_tx, sync_io_rx) = tokio::sync::mpsc::channel::<Command<App::Command>>(100);
+        let (sync_io_tx, sync_io_rx) = tokio::sync::mpsc::channel::<Action<App::Action>>(100);
         let mut engine = Self::build(sync_io_tx)?;
 
         // make sure we collect user input
@@ -54,7 +53,7 @@ impl<App: Application + Send + Sync + 'static> Engine<App> {
         Ok(())
     }
 
-    fn build(sync_io_tx: Sender<Command<App::Command>>) -> anyhow::Result<Self> {
+    fn build(sync_io_tx: Sender<Action<App::Action>>) -> anyhow::Result<Self> {
         let (sync_tx, sync_rx) = tokio::sync::mpsc::channel::<Event<App::Event>>(100);
         let (app, initial_result) = App::init()?;
 
@@ -75,7 +74,7 @@ impl<App: Application + Send + Sync + 'static> Engine<App> {
         }
     }
 
-    async fn send_command(&mut self, cmd: Command<App::Command>) {
+    async fn send_command(&mut self, cmd: Action<App::Action>) {
         if let Err(e) = self.io_tx.send(cmd).await {
             log::error!("Oops: {}", e)
         }
@@ -117,7 +116,7 @@ impl<App: Application + Send + Sync + 'static> Engine<App> {
 
     pub async fn start_io_handler(
         &mut self,
-        mut io_rx: Receiver<Command<App::Command>>,
+        mut io_rx: Receiver<Action<App::Action>>,
     ) -> anyhow::Result<()> {
         let event_stop_capture = self.stop_handlers.clone();
         let app = self.app.clone();

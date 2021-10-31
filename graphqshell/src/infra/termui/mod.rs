@@ -1,6 +1,6 @@
 pub(crate) mod engine;
 
-use crate::application::termui_app::GraphQLShellApp;
+use crate::application::termui_app::app::GraphQLShellApp;
 use crate::infra::termui::engine::Engine;
 use log::LevelFilter;
 
