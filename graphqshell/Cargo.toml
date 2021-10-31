@@ -31,10 +31,11 @@ url_serde = "0.2"
 toml = "0.5"
 
 # tui
-tui = "0.16"
+tui = { version = "0.16", features = ["crossterm"], default-features = false }
+tokio = { version = "1", features = ["full"] }
+async-trait = "0.1.51"
 crossterm = "0.20"
-tuirealm = "0.6.0"
-tui-realm-stdlib = "0.6.3"
+tui-logger = "0.6.4"
 
 # graphql
 cynic = "0.15.0"
