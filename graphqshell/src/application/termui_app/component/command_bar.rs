@@ -6,6 +6,10 @@ use crate::infra::termui::engine;
 use crate::infra::termui::engine::keys::Key;
 use std::io::Stdout;
 use tui::backend::CrosstermBackend;
+use tui::layout::Alignment;
+use tui::style::{Color, Style};
+use tui::text::{Span, Spans};
+use tui::widgets::{Block, BorderType, Borders, Paragraph};
 use tui::Frame;
 
 struct CommandBar {
@@ -24,7 +28,20 @@ impl CommandBar {
 
 impl Component for CommandBar {
     fn draw(&mut self, frame: &mut Frame<CrosstermBackend<Stdout>>) {
-        todo!()
+        let bindings = self
+            .active
+            .bindings()
+            .iter()
+            .map(|(c, label)| {
+                Block::default().title(vec![
+                    Span::styled(format!("{}", c), Style::default().fg(Color::White)),
+                    Span::styled("→", Style::default().fg(Color::Green)),
+                    Span::styled(label, Style::default().fg(Color::White)),
+                ])
+            })
+            .collect();
+
+        // Now what?
     }
 
     fn update(
