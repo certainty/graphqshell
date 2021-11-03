@@ -12,6 +12,7 @@ use tui::text::{Span, Spans};
 use tui::widgets::{Block, BorderType, Borders, Paragraph};
 use tui::Frame;
 
+/*
 struct CommandBar {
     active: KeyMap<Event>,
     root: KeyMap<Event>,
@@ -69,3 +70,4 @@ impl Component for CommandBar {
         }
     }
 }
+*/

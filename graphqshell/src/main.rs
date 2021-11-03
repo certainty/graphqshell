@@ -1,7 +1,7 @@
-use graphqshell::infra::termui;
+use graphqshell::application::termui_app2::app;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    termui::main().await?;
+    app::main().await?;
     Ok(())
 }
