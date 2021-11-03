@@ -5,4 +5,3 @@
 /// logic. It might contain services and logic likewise.
 pub(crate) mod configuration;
 pub mod termui_app;
-pub mod termui_app2;

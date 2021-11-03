@@ -1,4 +1,4 @@
-use graphqshell::application::termui_app2::app;
+use graphqshell::application::termui_app::app;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

@@ -1,8 +1,9 @@
 pub use super::{Event, Result};
 use async_trait::async_trait;
-use std::fmt::Debug;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::task::JoinHandle;
 
@@ -57,8 +58,10 @@ impl System {
         })
     }
 
-    pub fn shutdown(&mut self) -> anyhow::Result<()> {
+    pub async fn shutdown(self) -> anyhow::Result<()> {
         self.event_stop_capture.store(true, Ordering::Relaxed);
+        thread::sleep(Duration::from_millis(50));
+        self.io_thread.abort();
         Ok(())
     }
 }

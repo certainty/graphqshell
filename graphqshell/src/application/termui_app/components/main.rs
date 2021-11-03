@@ -1,5 +1,5 @@
-use crate::application::termui_app2::app;
-use crate::infra::termui::engine::ui::{Frame, Term};
+use crate::application::termui_app::app;
+use crate::infra::termui::engine::ui::Frame;
 use crate::infra::termui::engine::Event;
 use crate::infra::termui::engine::{Component, Continuation};
 use std::io::Write;
@@ -9,11 +9,22 @@ use tui::widgets::{Block, BorderType, Borders, Paragraph};
 use tui_logger::TuiLoggerWidget;
 
 pub struct Main;
-pub struct Model {}
+pub struct Model {
+    command_bar: super::command_bar::Model,
+}
 
-impl<W: Write> Component<W, Model, app::Action, app::Event> for Main {
+impl Component<Model, app::Action, app::Event> for Main {
     fn initial() -> anyhow::Result<(Model, Vec<app::Action>, Vec<app::Event>)> {
-        Ok((Model {}, vec![], vec![]))
+        let (cmd_bar_model, cmd_bar_actions, cmd_bar_events) =
+            super::command_bar::CommandBar::initial()?;
+
+        Ok((
+            Model {
+                command_bar: cmd_bar_model,
+            },
+            cmd_bar_actions,
+            cmd_bar_events,
+        ))
     }
 
     fn update(
@@ -26,7 +37,7 @@ impl<W: Write> Component<W, Model, app::Action, app::Event> for Main {
         }
     }
 
-    fn view(rect: &mut Frame<W>, _model: &Model) -> anyhow::Result<()> {
+    fn view<W: Write>(rect: &mut Frame<W>, _model: &Model) -> anyhow::Result<()> {
         let size = rect.size();
 
         // Vertical layout

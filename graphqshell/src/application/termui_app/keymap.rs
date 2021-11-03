@@ -1,4 +1,3 @@
-use crate::infra::termui::engine::keys::Key;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use thiserror::Error;

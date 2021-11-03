@@ -1,3 +1,4 @@
+use crate::infra::termui::engine::Continuation::PerformAndNotify;
 /// # Small TUI Engine
 ///
 /// The engine module encapsulates the application architecture which solves some core problems
@@ -246,17 +247,70 @@ pub enum Event<AppEvent: Send + 'static> {
 pub enum Continuation<AppAction, AppEvent> {
     Exit,
     Continue,
-    Notify(AppEvent),
-    Perform(AppAction),
+    Notify(Vec<AppEvent>),
+    Perform(Vec<AppAction>),
+    PerformAndNotify(Vec<AppAction>, Vec<AppEvent>),
 }
 
-pub trait Component<W: Write, Model, AppAction: Send, AppEvent: Send> {
+impl<AppAction, AppEvent> Continuation<AppAction, AppEvent> {
+    pub fn and_then<F: Fn() -> Self>(&self, f: F) -> Self {
+        match self {
+            Continuation::Exit => Continuation::Exit,
+            Continuation::Continue => f(),
+            Continuation::Notify(events) => match f() {
+                Continuation::Notify(more_events) => Continuation::Notify(
+                    events.into_iter().chain(more_events.into_iter()).collect(),
+                ),
+                Continuation::Perform(actions) => {
+                    Continuation::PerformAndNotify(actions, events.into())
+                }
+                _ => Continuation::Exit,
+            },
+
+            Continuation::Perform(actions) => match f() {
+                Continuation::Perform(more_actions) => Continuation::Perform(
+                    actions
+                        .into_iter()
+                        .chain(more_actions.into_iter())
+                        .collect(),
+                ),
+                Continuation::Notify(events) => {
+                    Continuation::PerformAndNotify(actions.into(), events.into())
+                }
+                _ => Continuation::Exit,
+            },
+            Continuation::PerformAndNotify(actions, events) => match f() {
+                Continuation::Perform(more_actions) => Continuation::PerformAndNotify(
+                    actions
+                        .into_iter()
+                        .chain(more_actions.into_iter())
+                        .collect(),
+                    events.into(),
+                ),
+                Continuation::Notify(more_events) => Continuation::PerformAndNotify(
+                    actions.into(),
+                    events.into_iter().chain(more_events.into_iter()).collect(),
+                ),
+                Continuation::PerformAndNotify(more_actions, more_events) => PerformAndNotify(
+                    actions
+                        .into_iter()
+                        .chain(more_actions.into_iter())
+                        .collect(),
+                    events.into_iter().chain(more_events.into_iter()).collect(),
+                ),
+                _ => Continuation::Exit,
+            },
+        }
+    }
+}
+
+pub trait Component<Model, AppAction: Send, AppEvent: Send> {
     fn initial() -> anyhow::Result<(Model, Vec<AppAction>, Vec<AppEvent>)>;
     fn update(
         model: &mut Model,
         event: Event<AppEvent>,
     ) -> anyhow::Result<Continuation<AppAction, AppEvent>>;
-    fn view(t: &mut ui::Frame<W>, model: &Model) -> anyhow::Result<()>;
+    fn view<W: Write>(t: &mut ui::Frame<W>, model: &Model) -> anyhow::Result<()>;
 }
 
 pub struct Engine<W: Write, AppAction: Send, AppEvent: Send + 'static> {
@@ -287,8 +341,8 @@ impl<W: Write, AppEvent: Send + 'static, AppAction: Send + 'static> Engine<W, Ap
         Ok(engine)
     }
 
-    pub async fn run<Model, RootComponent: Component<W, Model, AppAction, AppEvent>>(
-        &mut self,
+    pub async fn run<Model, RootComponent: Component<Model, AppAction, AppEvent>>(
+        mut self,
     ) -> Result<Model> {
         Self::set_panic_handlers()?;
         let (mut model, actions, events) = RootComponent::initial()?;
@@ -317,8 +371,8 @@ impl<W: Write, AppEvent: Send + 'static, AppAction: Send + 'static> Engine<W, Ap
             }
         }
 
-        self.io_system.shutdown()?;
-        self.ui_system.shutdown()?;
+        self.io_system.shutdown().await?;
+        self.ui_system.shutdown().await?;
         Ok(model)
     }
 

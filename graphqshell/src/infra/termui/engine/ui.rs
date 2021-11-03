@@ -1,10 +1,10 @@
 use super::keys::Key;
 use super::Event;
 use super::Result;
-use std::fmt::Debug;
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::thread;
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 use tokio::task::JoinHandle;
@@ -61,11 +61,14 @@ impl<W: Write> System<W> {
         })
     }
 
-    pub fn shutdown(&mut self) -> anyhow::Result<()> {
+    pub async fn shutdown(mut self) -> anyhow::Result<()> {
         self.event_stop_capture.store(true, Ordering::Relaxed);
         self.terminal.clear()?;
         self.terminal.show_cursor()?;
         crossterm::terminal::disable_raw_mode()?;
+
+        thread::sleep(Duration::from_millis(50));
+        self.ui_event_thread.abort();
         Ok(())
     }
 }
