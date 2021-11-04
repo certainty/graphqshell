@@ -20,16 +20,6 @@ use crate::infra::termui::engine::Continuation::PerformAndNotify;
 /// use graphqshell::infra::termui::engine::{self, io, Component, Continuation, Configuration};
 /// use async_trait::async_trait;
 ///
-/// // define a very basic model that represents the application state
-/// #[derive(Clone, Debug)]
-/// struct Model { counter: i32 }
-///
-/// impl Default for Model {
-///   fn default() -> Self {
-///      Self { counter: 0 }
-///    }
-///  }
-///
 /// // We have a single event for our example
 ///
 /// pub enum Event {
@@ -54,48 +44,55 @@ use crate::infra::termui::engine::Continuation::PerformAndNotify;
 ///     }
 /// }
 ///
-/// // The main component
-/// pub struct Main;
+/// // The main component als represents the main model
+/// pub struct Main {
+///   counter: usize
+/// }
+///
+/// impl Default for Main {
+///     fn default() -> Self {
+///        Self { counter: 0 }
+///     }
+/// }
 ///
 /// // Implement the `Component` trait for our main component
-/// impl<W: Write> Component<W, Model, Action, Event> for Main {
-///     fn initial() -> anyhow::Result<(Model, Vec<Action>, Vec<Event>)> {
-///         Ok((Model {counter: 0}, vec![], vec![]))
+/// impl Component<Action, Event> for Main {
+///     fn initial(&self) -> Continuation<Action, Event> {
+///         Continuation::Continue
 ///     }
 ///
 ///     fn update(
-///         model: &mut Model,
+///         &mut self,
 ///         event: engine::Event<Event>,
-///     ) -> anyhow::Result<Continuation<Action, Event>> {
+///     ) -> Continuation<Action, Event> {
 ///         match event {
+///             engine::Event::KeyInput(k) if k.is_exit() => Continuation::Exit,
 ///             engine::Event::App(Event::Increment) => {
-///                 model.counter += 1;
-///                 Ok(Continuation::Continue)
+///                 self.counter += 1;
+///                 Continuation::Continue
 ///             }
-///             engine::Event::KeyInput(k) if k.is_exit() => Ok(Continuation::Exit),
-///             _ => Ok(Continuation::Continue),
+///             _ => Continuation::Continue,
 ///         }
 ///     }
 ///
-///     fn view(rect: &mut Frame<W>, model: &Model) -> anyhow::Result<()> {
+///     fn view<W: Write>(&self, rect: &mut Frame<W>) {
 ///        let size = rect.size();
-///        let block = Block::default().title(format!("Some cool APP <{ }>", model.counter)).borders(Borders::ALL);
-///         rect.render_widget(block, size);
-///         Ok(())
+///        let block = Block::default().title(format!("Some cool APP <{ }>", self.counter)).borders(Borders::ALL);
+///        rect.render_widget(block, size);
 ///     }
 /// }
 ///
 /// // define tye app type
-/// pub type AppEngine = engine::Engine<Stdout, Action, Event>;
+/// pub type AppEngine = engine::Engine<Stdout, Action, Event, IoHandler, Main>;
 ///
 ///
 /// // Now we have everything to run the application
-///
-/// pub async fn main() -> anyhow::Result<()> {
-///     let mut engine = AppEngine::create(std::io::stdout(), Configuration::default(), IoHandler::new()).await?;
-///     engine.run::<Model, Main>().await?;
-///     Ok(())
-/// }
+/// // #[tokio::main]
+/// // pub async fn main() -> anyhow::Result<()> {
+/// //    let mut engine = AppEngine::create(std::io::stdout(), Configuration::default(), IoHandler::new(), Main::default()).await?;
+/// //    engine.run().await?;
+/// //    Ok(())
+/// //  }
 ///
 /// ```
 ///
@@ -110,7 +107,7 @@ use crate::infra::termui::engine::Continuation::PerformAndNotify;
 ///
 /// #### IO Handler
 ///
-/// There are concpetually two parts of the every application that uses the engine.
+/// There are conceptually two parts of the every application that uses the engine.
 /// 1. components - responsible to draw the UI and manage the state of the model
 /// 2. io - the IO handler that executes IO operations
 ///
@@ -127,18 +124,9 @@ use crate::infra::termui::engine::Continuation::PerformAndNotify;
 ///
 /// #### Component
 ///
-/// The application is the entry point for the engine and defines the implementations to render the ui and update
-/// the model. See the [Application](application/trait.Application.html) trait's documentation for more details.
-///
-/// For technical reasons the `Application`is a trait but that doesn't not mean that your entire application
-/// needs to use objects in the same way. In fact I encourage to use modules as the unit of structure and expose
-/// the correct types and functions from there. You can wire everything together in the main `Application` implementation.
-///
-/// #### Model
-///
-/// The model is a user defined type that represets the entire state of the application. The underlying architecture
-/// implements a unidirectional flow of state updates and rendering steps. There is single function that is responsible
-/// for updating the model for any given `Event`. This function returns a new model and optionally a vector commands.
+/// A component represents a self contained unit in the application, that manages its internal
+/// state and draws itself to the screen. The engine will take care of calling into the component
+/// at appropriate times so that the TUI application can react to updates.
 ///
 /// #### Events
 ///
@@ -147,32 +135,6 @@ use crate::infra::termui::engine::Continuation::PerformAndNotify;
 /// The type parameter `T` is used to transport user defined types that are specific to the domain
 /// of the application that is run on the engine. See the [Event](enum.Event.html) type for details.
 ///
-/// The following example shows how you can use the `Event` type in the update function.
-///
-/// ```
-/// use graphqshell::infra::termui::engine::{self, Component, Continuation, Configuration};
-///
-/// #[derive(Debug, Clone)]
-/// struct AppModel {  }
-///
-/// enum Action { }
-///
-/// // user defined event for the app that's run
-/// enum StarshipEvent {
-///   Loaded,
-///   Unloaded
-/// }
-///
-///
-/// fn update(model: &mut Model, event: engine::Event<StarshipEvent>) -> anyhow::Result<Continuation<Action, StarshipEvent>> {
-///     match evt {
-///       engine::Event::KeyInput(key) => Ok(Continuation::Continue), // A key was pressed
-///       engine::Event::Tick => Ok(Continuation::Continue), // a constant signal to redraw the UI if required
-///       engine::Event::App(StarshipEvent::Loaded) => Ok(Continuation::Continue), // handle custom event
-///       _ => Ok(Continuation:Continue)
-///     }
-/// }
-/// ```
 ///
 /// #### Actions
 ///
