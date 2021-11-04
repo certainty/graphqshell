@@ -1,4 +1,5 @@
 use crate::application::termui_app::app;
+use crate::application::termui_app::components::command_bar::CommandBar;
 use crate::infra::termui::engine::ui::Frame;
 use crate::infra::termui::engine::Event;
 use crate::infra::termui::engine::{Component, Continuation};
@@ -8,36 +9,49 @@ use tui::style::{Color, Style};
 use tui::widgets::{Block, BorderType, Borders, Paragraph};
 use tui_logger::TuiLoggerWidget;
 
-pub struct Main;
-pub struct Model {
-    command_bar: super::command_bar::Model,
+pub struct Main {
+    command_bar: CommandBar,
+    show_logs: bool,
 }
 
-impl Component<Model, app::Action, app::Event> for Main {
-    fn initial() -> anyhow::Result<(Model, Vec<app::Action>, Vec<app::Event>)> {
-        let (cmd_bar_model, cmd_bar_actions, cmd_bar_events) =
-            super::command_bar::CommandBar::initial()?;
-
-        Ok((
-            Model {
-                command_bar: cmd_bar_model,
-            },
-            cmd_bar_actions,
-            cmd_bar_events,
-        ))
-    }
-
-    fn update(
-        _model: &mut Model,
-        event: Event<app::Event>,
-    ) -> anyhow::Result<Continuation<app::Action, app::Event>> {
-        match event {
-            Event::KeyInput(k) if k.is_exit() => Ok(Continuation::Exit),
-            _ => Ok(Continuation::Continue),
+impl Main {
+    pub fn new() -> Self {
+        Self {
+            command_bar: CommandBar::new(),
+            show_logs: true,
         }
     }
 
-    fn view<W: Write>(rect: &mut Frame<W>, _model: &Model) -> anyhow::Result<()> {
+    fn build_logger_widget<'a>() -> TuiLoggerWidget<'a> {
+        TuiLoggerWidget::default()
+            .style_error(Style::default().fg(Color::Red))
+            .style_debug(Style::default().fg(Color::Green))
+            .style_warn(Style::default().fg(Color::Yellow))
+            .style_trace(Style::default().fg(Color::Gray))
+            .style_info(Style::default().fg(Color::Blue))
+            .block(
+                Block::default()
+                    .title("Logs")
+                    .border_style(Style::default().fg(Color::White).bg(Color::Black))
+                    .borders(Borders::ALL),
+            )
+            .style(Style::default().fg(Color::White).bg(Color::Black))
+    }
+}
+
+impl Component<app::Action, app::Event> for Main {
+    fn initial(&self) -> Continuation<app::Action, app::Event> {
+        Continuation::Continue
+    }
+
+    fn update(&mut self, event: Event<app::Event>) -> Continuation<app::Action, app::Event> {
+        match event {
+            Event::KeyInput(k) if k.is_exit() => Continuation::Exit,
+            _ => Continuation::Continue,
+        }
+    }
+
+    fn view<W: Write>(&self, rect: &mut Frame<W>) {
         let size = rect.size();
 
         // Vertical layout
@@ -66,21 +80,9 @@ impl Component<Model, app::Action, app::Event> for Main {
         rect.render_widget(title, chunks[0]);
 
         // Logs
-        let logs = TuiLoggerWidget::default()
-            .style_error(Style::default().fg(Color::Red))
-            .style_debug(Style::default().fg(Color::Green))
-            .style_warn(Style::default().fg(Color::Yellow))
-            .style_trace(Style::default().fg(Color::Gray))
-            .style_info(Style::default().fg(Color::Blue))
-            .block(
-                Block::default()
-                    .title("Logs")
-                    .border_style(Style::default().fg(Color::White).bg(Color::Black))
-                    .borders(Borders::ALL),
-            )
-            .style(Style::default().fg(Color::White).bg(Color::Black));
-        rect.render_widget(logs, chunks[3]);
-
-        Ok(())
+        if self.show_logs {
+            let logger_widget = Self::build_logger_widget();
+            rect.render_widget(logger_widget, chunks[3]);
+        }
     }
 }

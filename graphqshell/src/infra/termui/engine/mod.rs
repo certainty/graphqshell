@@ -68,10 +68,10 @@ use crate::infra::termui::engine::Continuation::PerformAndNotify;
 ///         event: engine::Event<Event>,
 ///     ) -> anyhow::Result<Continuation<Action, Event>> {
 ///         match event {
-///             engine::Event::App(Event::Increment) => {   
+///             engine::Event::App(Event::Increment) => {
 ///                 model.counter += 1;
 ///                 Ok(Continuation::Continue)
-///             }    
+///             }
 ///             engine::Event::KeyInput(k) if k.is_exit() => Ok(Continuation::Exit),
 ///             _ => Ok(Continuation::Continue),
 ///         }
@@ -84,7 +84,7 @@ use crate::infra::termui::engine::Continuation::PerformAndNotify;
 ///         Ok(())
 ///     }
 /// }
-///  
+///
 /// // define tye app type
 /// pub type AppEngine = engine::Engine<Stdout, Action, Event>;
 ///
@@ -190,6 +190,7 @@ use crate::infra::termui::engine::Continuation::PerformAndNotify;
 use backtrace::Backtrace;
 use keys::Key;
 use std::io::Write;
+use std::marker::PhantomData;
 use std::panic;
 use std::time::Duration;
 use thiserror::Error;
@@ -247,85 +248,47 @@ pub enum Event<AppEvent: Send + 'static> {
 pub enum Continuation<AppAction, AppEvent> {
     Exit,
     Continue,
+    Abort(String),
     Notify(Vec<AppEvent>),
     Perform(Vec<AppAction>),
     PerformAndNotify(Vec<AppAction>, Vec<AppEvent>),
 }
 
-impl<AppAction, AppEvent> Continuation<AppAction, AppEvent> {
-    pub fn and_then<F: Fn() -> Self>(&self, f: F) -> Self {
-        match self {
-            Continuation::Exit => Continuation::Exit,
-            Continuation::Continue => f(),
-            Continuation::Notify(events) => match f() {
-                Continuation::Notify(more_events) => Continuation::Notify(
-                    events.into_iter().chain(more_events.into_iter()).collect(),
-                ),
-                Continuation::Perform(actions) => {
-                    Continuation::PerformAndNotify(actions, events.into())
-                }
-                _ => Continuation::Exit,
-            },
-
-            Continuation::Perform(actions) => match f() {
-                Continuation::Perform(more_actions) => Continuation::Perform(
-                    actions
-                        .into_iter()
-                        .chain(more_actions.into_iter())
-                        .collect(),
-                ),
-                Continuation::Notify(events) => {
-                    Continuation::PerformAndNotify(actions.into(), events.into())
-                }
-                _ => Continuation::Exit,
-            },
-            Continuation::PerformAndNotify(actions, events) => match f() {
-                Continuation::Perform(more_actions) => Continuation::PerformAndNotify(
-                    actions
-                        .into_iter()
-                        .chain(more_actions.into_iter())
-                        .collect(),
-                    events.into(),
-                ),
-                Continuation::Notify(more_events) => Continuation::PerformAndNotify(
-                    actions.into(),
-                    events.into_iter().chain(more_events.into_iter()).collect(),
-                ),
-                Continuation::PerformAndNotify(more_actions, more_events) => PerformAndNotify(
-                    actions
-                        .into_iter()
-                        .chain(more_actions.into_iter())
-                        .collect(),
-                    events.into_iter().chain(more_events.into_iter()).collect(),
-                ),
-                _ => Continuation::Exit,
-            },
-        }
-    }
+pub trait Component<AppAction: Send, AppEvent: Send> {
+    fn initial(&self) -> Continuation<AppAction, AppEvent>;
+    fn update(&mut self, event: Event<AppEvent>) -> Continuation<AppAction, AppEvent>;
+    fn view<W: Write>(&self, t: &mut ui::Frame<W>);
 }
 
-pub trait Component<Model, AppAction: Send, AppEvent: Send> {
-    fn initial() -> anyhow::Result<(Model, Vec<AppAction>, Vec<AppEvent>)>;
-    fn update(
-        model: &mut Model,
-        event: Event<AppEvent>,
-    ) -> anyhow::Result<Continuation<AppAction, AppEvent>>;
-    fn view<W: Write>(t: &mut ui::Frame<W>, model: &Model) -> anyhow::Result<()>;
-}
-
-pub struct Engine<W: Write, AppAction: Send, AppEvent: Send + 'static> {
+pub struct Engine<
+    W: Write,
+    AppAction: Send,
+    AppEvent: Send + 'static,
+    IO: io::Handler<AppAction, AppEvent>,
+    RootComponent: Component<AppAction, AppEvent>,
+> {
     io_system: io::System,
     ui_system: ui::System<W>,
     tx: Sender<Event<AppEvent>>,
     rx: Receiver<Event<AppEvent>>,
     io_tx: Sender<AppAction>,
+    root: RootComponent,
+    _phantom_io: PhantomData<IO>,
 }
 
-impl<W: Write, AppEvent: Send + 'static, AppAction: Send + 'static> Engine<W, AppAction, AppEvent> {
-    pub async fn create<IO: io::Handler<AppAction, AppEvent> + Send + 'static>(
+impl<
+        W: Write,
+        AppEvent: Send + 'static,
+        AppAction: Send + 'static,
+        IO: io::Handler<AppAction, AppEvent> + Send + 'static,
+        RootComponent: Component<AppAction, AppEvent>,
+    > Engine<W, AppAction, AppEvent, IO, RootComponent>
+{
+    pub async fn create(
         buf: W,
         config: Configuration,
         io: IO,
+        root: RootComponent,
     ) -> Result<Self> {
         let (tx, rx) = tokio::sync::mpsc::channel::<Event<AppEvent>>(config.event_channel_size);
         let (io_tx, io_rx) = tokio::sync::mpsc::channel::<AppAction>(config.io_channel_size);
@@ -336,44 +299,80 @@ impl<W: Write, AppEvent: Send + 'static, AppAction: Send + 'static> Engine<W, Ap
             tx,
             rx,
             io_tx,
+            root,
+            _phantom_io: PhantomData,
         };
 
         Ok(engine)
     }
 
-    pub async fn run<Model, RootComponent: Component<Model, AppAction, AppEvent>>(
-        mut self,
-    ) -> Result<Model> {
+    pub async fn run(mut self) -> Result<()> {
         Self::set_panic_handlers()?;
-        let (mut model, actions, events) = RootComponent::initial()?;
+        let continuation = self.root.initial();
 
-        for event in events.into_iter() {
-            self.tx.send(Event::App(event)).await?
-        }
-
-        for action in actions.into_iter() {
-            self.io_tx.send(action).await?
+        match continuation {
+            Continuation::Exit => {
+                self.shutdown().await?;
+                return Ok(());
+            }
+            Continuation::Abort(msg) => {
+                self.shutdown().await?;
+                return Err(Error::Anyhow(anyhow::anyhow!(msg)));
+            }
+            other => self.handle_non_exit(other).await?,
         }
 
         loop {
-            self.ui_system.terminal.draw(|rect| {
-                if let Err(e) = RootComponent::view(rect, &model) {
-                    log::error!("Error during rendering: {}", e);
-                }
-            })?;
+            self.ui_system.draw(&self.root)?;
 
             let next_event = self.rx.recv().await.unwrap_or(Event::Tick);
-            match RootComponent::update(&mut model, next_event)? {
+            let continuation = self.root.update(next_event);
+
+            match continuation {
                 Continuation::Exit => break,
-                Continuation::Continue => (),
-                Continuation::Perform(action) => self.io_tx.send(action).await?,
-                Continuation::Notify(event) => self.tx.send(Event::App(event)).await?,
+                Continuation::Abort(msg) => return Err(Error::Anyhow(anyhow::anyhow!(msg))),
+                other => self.handle_non_exit(other).await?,
             }
         }
 
+        self.shutdown().await?;
+        Ok(())
+    }
+
+    async fn shutdown(self) -> anyhow::Result<()> {
         self.io_system.shutdown().await?;
         self.ui_system.shutdown().await?;
-        Ok(model)
+        Ok(())
+    }
+
+    async fn handle_non_exit(
+        &mut self,
+        continuation: Continuation<AppAction, AppEvent>,
+    ) -> Result<()> {
+        match continuation {
+            Continuation::Continue => (),
+            Continuation::Notify(events) => {
+                for event in events.into_iter() {
+                    self.tx.send(Event::App(event)).await?
+                }
+            }
+            Continuation::Perform(actions) => {
+                for action in actions.into_iter() {
+                    self.io_tx.send(action).await?
+                }
+            }
+            PerformAndNotify(actions, events) => {
+                for event in events.into_iter() {
+                    self.tx.send(Event::App(event)).await?
+                }
+
+                for action in actions.into_iter() {
+                    self.io_tx.send(action).await?
+                }
+            }
+            _ => panic!("bug"),
+        }
+        Ok(())
     }
 
     fn set_panic_handlers() -> Result<()> {

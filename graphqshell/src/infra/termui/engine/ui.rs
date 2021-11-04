@@ -1,6 +1,7 @@
 use super::keys::Key;
 use super::Event;
 use super::Result;
+use crate::infra::termui::engine::Component;
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -59,6 +60,17 @@ impl<W: Write> System<W> {
             event_stop_capture,
             ui_event_thread,
         })
+    }
+
+    pub fn draw<AppAction: Send, AppEvent: Send, C: Component<AppAction, AppEvent>>(
+        &mut self,
+        component: &C,
+    ) -> anyhow::Result<()> {
+        self.terminal.draw(|f| {
+            component.view(f);
+        })?;
+
+        Ok(())
     }
 
     pub async fn shutdown(mut self) -> anyhow::Result<()> {
