@@ -1,4 +1,3 @@
-use crate::infra::termui::engine::Continuation::PerformAndNotify;
 /// # Small TUI Engine
 ///
 /// The engine module encapsulates the application architecture which solves some core problems
@@ -159,9 +158,15 @@ use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender};
 
+pub mod component;
+pub mod continuation;
 pub mod io;
 pub mod keys;
 pub mod ui;
+
+use crate::infra::termui::engine::Continuation::PerformAndNotify;
+pub use component::Component;
+pub use continuation::Continuation;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -204,22 +209,6 @@ pub enum Event<AppEvent: Send + 'static> {
     App(AppEvent),
     KeyInput(Key),
     Tick,
-}
-
-#[derive(Debug, Clone)]
-pub enum Continuation<AppAction, AppEvent> {
-    Exit,
-    Continue,
-    Abort(String),
-    Notify(Vec<AppEvent>),
-    Perform(Vec<AppAction>),
-    PerformAndNotify(Vec<AppAction>, Vec<AppEvent>),
-}
-
-pub trait Component<AppAction: Send, AppEvent: Send> {
-    fn initial(&self) -> Continuation<AppAction, AppEvent>;
-    fn update(&mut self, event: Event<AppEvent>) -> Continuation<AppAction, AppEvent>;
-    fn view<W: Write>(&self, t: &mut ui::Frame<W>);
 }
 
 pub struct Engine<

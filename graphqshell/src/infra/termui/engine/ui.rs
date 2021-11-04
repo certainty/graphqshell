@@ -67,7 +67,8 @@ impl<W: Write> System<W> {
         component: &C,
     ) -> anyhow::Result<()> {
         self.terminal.draw(|f| {
-            component.view(f);
+            let rect = f.size();
+            component.view(f, rect);
         })?;
 
         Ok(())
