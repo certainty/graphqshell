@@ -63,9 +63,15 @@ impl Main {
         Ok(main)
     }
 
+    fn toggle_logs(&mut self) {
+        self.hide(ComponentName::CommandBar);
+        self.show_logs = !self.show_logs;
+    }
+
     fn add_main_keymap(&self, builder: &mut Builder<app::Event>) {
         builder.group('g', "Global", |g| {
             g.cmd('q', "Quit", app::Event::Quit);
+            g.cmd('l', "Logs", app::Event::ToggleLogs);
         });
     }
 
@@ -99,15 +105,25 @@ impl Main {
     }
 
     fn activate(&mut self, name: ComponentName) {
+        let previously_active = self.active_component.clone();
+        self.active_component = name.clone();
         match name {
             ComponentName::Main => {
+                self.hide(previously_active);
                 self.restore_main_keymap();
+                self.show(ComponentName::Main)
             }
 
             ComponentName::Introspector => {
+                self.hide(previously_active);
                 self.set_component_specific_keymap(ComponentName::Introspector, self.introspector.keymap().clone());
+                self.show(ComponentName::Introspector);
             }
-            _ => (),
+            ComponentName::CommandBar => {
+                // command bar leaves other components visible
+                self.show(ComponentName::CommandBar);
+                self.active_component = previously_active;
+            }
         }
     }
 
@@ -157,6 +173,9 @@ impl Component<app::Action, app::Event> for Main {
         match event {
             Event::App(app::Event::Quit) => return Continuation::Exit,
             Event::KeyInput(Key::Ctrl('c')) => return Continuation::Exit,
+            Event::KeyInput(Key::Ctrl('l')) => {
+                self.toggle_logs();
+            }
             Event::KeyInput(k) if self.is_visible(ComponentName::CommandBar) => {
                 if k == Key::Esc {
                     self.hide(ComponentName::CommandBar);
@@ -166,14 +185,22 @@ impl Component<app::Action, app::Event> for Main {
                 }
             }
             Event::KeyInput(Key::Char(' ')) if !self.is_visible(ComponentName::CommandBar) => {
-                self.show(ComponentName::CommandBar);
+                self.activate(ComponentName::CommandBar);
             }
-
-            Event::App(app::Event::Activate(name)) => {
-                self.hide(ComponentName::CommandBar);
-                self.activate(name);
+            Event::App(appEvent) => match appEvent {
+                app::Event::Quit => return Continuation::Exit,
+                app::Event::ToggleLogs => {
+                    self.toggle_logs();
+                }
+                app::Event::Activate(name) => {
+                    self.hide(ComponentName::CommandBar);
+                    self.activate(name);
+                }
+            },
+            _other => {
+                // relay update
+                ()
             }
-            _ => (),
         }
 
         Continuation::Continue
@@ -211,6 +238,13 @@ impl Component<app::Action, app::Event> for Main {
 
         frame.render_widget(top_bar, chunks[top_idx]);
         top_idx += 1;
+
+        match self.active_component {
+            ComponentName::Introspector => {
+                self.introspector.view(frame, chunks[top_idx].inner(&Margin { vertical: 0, horizontal: 0 }));
+            }
+            _ => (),
+        }
         top_idx += 1;
 
         if self.is_visible(ComponentName::CommandBar) {

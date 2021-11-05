@@ -19,6 +19,7 @@ pub enum Action {}
 #[derive(Clone)]
 pub enum Event {
     Activate(ComponentName),
+    ToggleLogs,
     Quit,
 }
 
@@ -31,13 +32,7 @@ pub async fn main() -> anyhow::Result<()> {
 
     let theme = theme::load()?;
     let config = Configuration::default();
-    let engine = AppEngine::create(
-        stdout(),
-        config,
-        io::IoHandler::new(),
-        main::Main::new(theme)?,
-    )
-    .await?;
+    let engine = AppEngine::create(stdout(), config, io::IoHandler::new(), main::Main::new(theme)?).await?;
 
     engine.run().await?;
     Ok(())
