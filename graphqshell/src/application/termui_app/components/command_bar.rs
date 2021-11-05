@@ -2,6 +2,7 @@ use crate::application::termui_app::app;
 use crate::application::termui_app::keymap::{KeyMap, KeymapEntry};
 use crate::application::termui_app::theme::Theme;
 use crate::infra::termui::engine;
+use crate::infra::termui::engine::component::DrawableComponent;
 use crate::infra::termui::engine::keys::Key;
 use crate::infra::termui::engine::ui::Frame;
 use crate::infra::termui::engine::{Component, Continuation};
@@ -16,6 +17,7 @@ pub struct CommandBar {
     theme: Rc<Theme>,
     active: KeyMap<app::Event>,
     root: KeyMap<app::Event>,
+    visible: bool,
 }
 
 impl<'a> CommandBar {
@@ -24,6 +26,7 @@ impl<'a> CommandBar {
             active: keymap.clone(),
             root: keymap,
             theme,
+            visible: false,
         }
     }
 
@@ -60,6 +63,20 @@ impl Component<app::Action, app::Event> for CommandBar {
         }
     }
 
+    fn is_visible(&self) -> bool {
+        self.visible
+    }
+
+    fn show(&mut self) {
+        self.visible = true;
+    }
+
+    fn hide(&mut self) {
+        self.visible = false;
+    }
+}
+
+impl DrawableComponent for CommandBar {
     fn view<W: Write>(&self, frame: &mut Frame<W>, target: Rect) {
         let bindings = self.active.bindings();
         let mut menu_spans = Vec::with_capacity(bindings.len() * 3);

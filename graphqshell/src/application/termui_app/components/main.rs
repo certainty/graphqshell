@@ -3,6 +3,7 @@ use crate::application::termui_app::components::command_bar::CommandBar;
 use crate::application::termui_app::components::introspector::Introspector;
 use crate::application::termui_app::keymap::{Builder, KeyMap};
 use crate::application::termui_app::theme::Theme;
+use crate::infra::termui::engine::component::DrawableComponent;
 use crate::infra::termui::engine::keys::Key;
 use crate::infra::termui::engine::ui::Frame;
 use crate::infra::termui::engine::Event;
@@ -45,6 +46,7 @@ pub struct Main {
     introspector: Introspector,
     active_component: ComponentName,
     visibility: FxHashMap<ComponentName, Visibility>,
+    visible: bool,
 }
 
 impl Main {
@@ -57,6 +59,7 @@ impl Main {
             theme,
             active_component: ComponentName::Main,
             visibility: FxHashMap::default(),
+            visible: true,
         };
 
         main.restore_main_keymap();
@@ -187,7 +190,7 @@ impl Component<app::Action, app::Event> for Main {
             Event::KeyInput(Key::Char(' ')) if !self.is_visible(ComponentName::CommandBar) => {
                 self.activate(ComponentName::CommandBar);
             }
-            Event::App(appEvent) => match appEvent {
+            Event::App(app_event) => match app_event {
                 app::Event::Quit => return Continuation::Exit,
                 app::Event::ToggleLogs => {
                     self.toggle_logs();
@@ -206,6 +209,20 @@ impl Component<app::Action, app::Event> for Main {
         Continuation::Continue
     }
 
+    fn is_visible(&self) -> bool {
+        self.visible
+    }
+
+    fn show(&mut self) {
+        self.visible = true;
+    }
+
+    fn hide(&mut self) {
+        self.visible = false;
+    }
+}
+
+impl DrawableComponent for Main {
     fn view<W: Write>(&self, frame: &mut Frame<W>, target: Rect) {
         let mut top_idx = 0;
         let mut constraints = vec![Constraint::Length(3), Constraint::Min(10)];

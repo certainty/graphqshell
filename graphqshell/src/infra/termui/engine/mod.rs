@@ -16,8 +16,9 @@
 /// use anyhow;
 /// use engine::ui::Frame;
 /// use tui::widgets::{Block, Borders};
-/// use graphqshell::infra::termui::engine::{self, io, Component, Continuation, Configuration};
+/// use graphqshell::infra::termui::engine::{self, io, Component, Continuation, Configuration, DrawableComponent};
 /// use async_trait::async_trait;
+/// use tui::layout::Rect;
 ///
 /// // We have a single event for our example
 ///
@@ -74,10 +75,15 @@
 ///         }
 ///     }
 ///
-///     fn view<W: Write>(&self, rect: &mut Frame<W>) {
-///        let size = rect.size();
+///     fn is_visible(&self) -> bool { true }
+///     fn show(&mut self) { () }
+///     fn hide(&mut self) { () }
+///  }
+///
+/// impl DrawableComponent for Main {
+///     fn view<W: Write>(&self, frame: &mut Frame<W>, rect: Rect) {
 ///        let block = Block::default().title(format!("Some cool APP <{ }>", self.counter)).borders(Borders::ALL);
-///        rect.render_widget(block, size);
+///        frame.render_widget(block, rect);
 ///     }
 /// }
 ///
@@ -164,9 +170,10 @@ pub mod io;
 pub mod keys;
 pub mod ui;
 
-use crate::infra::termui::engine::Continuation::PerformAndNotify;
 pub use component::Component;
+pub use component::DrawableComponent;
 pub use continuation::Continuation;
+use continuation::Continuation::PerformAndNotify;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -216,7 +223,7 @@ pub struct Engine<
     AppAction: Send,
     AppEvent: Send + 'static,
     IO: io::Handler<AppAction, AppEvent>,
-    RootComponent: Component<AppAction, AppEvent>,
+    RootComponent: Component<AppAction, AppEvent> + DrawableComponent,
 > {
     io_system: io::System,
     ui_system: ui::System<W>,
@@ -232,15 +239,10 @@ impl<
         AppEvent: Send + 'static,
         AppAction: Send + 'static,
         IO: io::Handler<AppAction, AppEvent> + Send + 'static,
-        RootComponent: Component<AppAction, AppEvent>,
+        RootComponent: Component<AppAction, AppEvent> + DrawableComponent,
     > Engine<W, AppAction, AppEvent, IO, RootComponent>
 {
-    pub async fn create(
-        buf: W,
-        config: Configuration,
-        io: IO,
-        root: RootComponent,
-    ) -> Result<Self> {
+    pub async fn create(buf: W, config: Configuration, io: IO, root: RootComponent) -> Result<Self> {
         let (tx, rx) = tokio::sync::mpsc::channel::<Event<AppEvent>>(config.event_channel_size);
         let (io_tx, io_rx) = tokio::sync::mpsc::channel::<AppAction>(config.io_channel_size);
 
@@ -296,10 +298,7 @@ impl<
         Ok(())
     }
 
-    async fn handle_non_exit(
-        &mut self,
-        continuation: Continuation<AppAction, AppEvent>,
-    ) -> Result<()> {
+    async fn handle_non_exit(&mut self, continuation: Continuation<AppAction, AppEvent>) -> Result<()> {
         match continuation {
             Continuation::Continue => (),
             Continuation::Notify(events) => {

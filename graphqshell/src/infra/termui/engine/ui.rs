@@ -1,7 +1,7 @@
 use super::keys::Key;
+use super::DrawableComponent;
 use super::Event;
 use super::Result;
-use crate::infra::termui::engine::Component;
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -22,11 +22,7 @@ pub struct System<W: Write> {
 }
 
 impl<W: Write> System<W> {
-    pub async fn start<AppEvent: Send>(
-        buf: W,
-        event_tx: Sender<Event<AppEvent>>,
-        tick_rate: Duration,
-    ) -> Result<Self> {
+    pub async fn start<AppEvent: Send>(buf: W, event_tx: Sender<Event<AppEvent>>, tick_rate: Duration) -> Result<Self> {
         crossterm::terminal::enable_raw_mode()?;
         let backend = CrosstermBackend::new(buf);
         let mut terminal = Terminal::new(backend)?;
@@ -62,10 +58,7 @@ impl<W: Write> System<W> {
         })
     }
 
-    pub fn draw<AppAction: Send, AppEvent: Send, C: Component<AppAction, AppEvent>>(
-        &mut self,
-        component: &C,
-    ) -> anyhow::Result<()> {
+    pub fn draw<C: DrawableComponent>(&mut self, component: &C) -> anyhow::Result<()> {
         self.terminal.draw(|f| {
             let rect = f.size();
             component.view(f, rect);
