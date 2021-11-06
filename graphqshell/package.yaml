@@ -81,6 +81,9 @@ library:
     - yaml
     - validation-selective
     - filepath
+    - data-default
+    - optparse-applicative
+    - directory
 
 executables:
   graphqshell-exe:

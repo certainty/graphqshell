@@ -1,12 +1,17 @@
 {-# LANGUAGE RankNTypes #-}
 
 -- | Validions for the application configuration
-module Shell.Configuration.Validation
+module Application.TuiApp.Configuration.Validation
   ( fromMarshalled,
     ValidationError (..),
   )
 where
 
+import Application.TuiApp.Configuration.Marshalling
+import Application.TuiApp.Configuration.Types hiding
+  ( endpointName,
+    themeName,
+  )
 import Data.List
   ( nub,
     (\\),
@@ -14,11 +19,6 @@ import Data.List
 import qualified Data.List as List
 import qualified Data.Text as Text
 import Relude
-import Shell.Configuration.Marshalling
-import Shell.Configuration.Types hiding
-  ( endpointName,
-    themeName,
-  )
 import System.FilePath
   ( isRelative,
     normalise,

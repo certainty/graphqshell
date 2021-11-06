@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 809d82ff4da638e5f75aeab316ec7a5fb42628f02e43b17fcb1e6fc7a1419e8d
+-- hash: b1af778b7772e0567c9c44ea619612268b74619c4a1a9f9d6031ed6fab32245f
 
 name:           graphqshell
 version:        0.1.0.0
@@ -26,6 +26,14 @@ source-repository head
 
 library
   exposed-modules:
+      Application.TuiApp
+      Application.TuiApp.Components.Main
+      Application.TuiApp.Configuration
+      Application.TuiApp.Configuration.Marshalling
+      Application.TuiApp.Configuration.Types
+      Application.TuiApp.Configuration.Validation
+      Application.TuiApp.IO
+      Application.TuiApp.Shared
       GraphQL.API
       GraphQL.Api.Types
       GraphQL.Client
@@ -35,6 +43,8 @@ library
       GraphQL.Introspection.Schema
       GraphQL.Introspection.Schema.Types
       GraphQL.Marshalling.Utils
+      Infrastructure.TuiEngine
+      Infrastructure.TuiEngine.Keys
       Shell.Application
       Shell.Components.CommandBar
       Shell.Components.Introspector
@@ -86,6 +96,8 @@ library
     , base >=4.7 && <5
     , brick
     , bytestring
+    , data-default
+    , directory
     , either
     , exceptions
     , filepath
@@ -93,6 +105,7 @@ library
     , fuzzyset
     , microlens-platform
     , modern-uri
+    , optparse-applicative
     , raw-strings-qq
     , relude
     , req
