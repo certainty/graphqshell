@@ -198,7 +198,6 @@ pub struct Configuration {
     tick_rate: Duration,
     event_channel_size: usize,
     io_channel_size: usize,
-    enable_tui_log: bool,
 }
 
 impl Default for Configuration {
@@ -207,7 +206,6 @@ impl Default for Configuration {
             tick_rate: Duration::from_millis(200),
             event_channel_size: 100,
             io_channel_size: 100,
-            enable_tui_log: true,
         }
     }
 }
