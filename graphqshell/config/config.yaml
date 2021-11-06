@@ -2,20 +2,12 @@ application:
   tickrate: 1000000 # microseconds
 
 endpoints:
-  - name: example 
+  - name: reactfinnland
     default: true
     url: "https://api.react-finland.fi/graphql"
     link: "https://api.react-finland.fi/graphql"
-  - name: weather
-    default: false
-    url: "https://graphql-weather-api.herokuapp.com/"
-    link: "https://graphql-weather-api.herokuapp.com" 
-    http:
-      custom-headers:
-        - name: "TEST_HEADER"
-          value: "TEST_HEADER_VALUE"
 
 themes:
   - name: default
     default: true
-    path: theme.ini 
+    path: theme.ini

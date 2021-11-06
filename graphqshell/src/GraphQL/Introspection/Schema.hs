@@ -84,7 +84,7 @@ data Schema = Schema
     mutation :: MutationType,
     subscription :: SubscriptionType,
     -- | The type universe of the schema
-    universe :: TypeUniverse,
+    typeUniverse :: TypeUniverse,
     -- | Fuzzy index of type names
     typeNames :: [Text]
   }
@@ -101,7 +101,7 @@ mkSchema queryType mutationType subscriptionType additionalTypes = Schema queryT
 
 --- Get information about the schema
 lookupType :: TypeReference -> Schema -> Maybe GraphQLType
-lookupType (Named (NamedType ref)) schema = Dict.lookup ref (universe schema)
+lookupType (Named (NamedType ref)) schema = Dict.lookup ref (typeUniverse schema)
 lookupType (ListOf ref) schema = lookupType ref schema
 lookupType (NonNullOf ref) schema = lookupType ref schema
 
@@ -223,4 +223,3 @@ guardNonWrapperType _ _ = throw (InvalidType "Named type reference without name"
 maybeToVec :: Maybe (Vector.Vector a) -> Vector.Vector a
 maybeToVec (Just v) = v
 maybeToVec Nothing = Vector.empty
-

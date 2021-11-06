@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9608ec24a0c68e4d6d929c0980a6d44a35bc50c3f9285c781ecdf945a74ba6df
+-- hash: 809d82ff4da638e5f75aeab316ec7a5fb42628f02e43b17fcb1e6fc7a1419e8d
 
 name:           graphqshell
 version:        0.1.0.0
@@ -23,10 +23,6 @@ extra-source-files:
 source-repository head
   type: git
   location: https://github.com/certainty/graphqshell
-
-flag demo-server
-  manual: True
-  default: False
 
 library
   exposed-modules:
@@ -108,51 +104,6 @@ library
     , vector
     , vty
     , yaml
-  default-language: Haskell2010
-
-executable demo_server
-  main-is: Main.hs
-  other-modules:
-      Paths_graphqshell
-  hs-source-dirs:
-      demo_server
-  default-extensions:
-      NoImplicitPrelude
-      ConstraintKinds
-      DeriveGeneric
-      DerivingStrategies
-      GeneralizedNewtypeDeriving
-      InstanceSigs
-      KindSignatures
-      LambdaCase
-      OverloadedStrings
-      RecordWildCards
-      NamedFieldPuns
-      ScopedTypeVariables
-      StandaloneDeriving
-      TupleSections
-      TypeApplications
-      ViewPatterns
-      ApplicativeDo
-      DeriveFoldable
-      DeriveFunctor
-      DeriveGeneric
-      DeriveLift
-      DeriveTraversable
-      DerivingStrategies
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      base >=4.7 && <5
-    , bytestring
-    , morpheus-graphql
-    , relude
-    , safe-exceptions
-    , scotty
-    , text
-  if flag(demo-server)
-    buildable: True
-  else
-    buildable: False
   default-language: Haskell2010
 
 executable graphqshell-exe

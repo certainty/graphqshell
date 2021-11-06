@@ -1,5 +1,5 @@
 
-.PHONY: all bench build check clean doc install publish run test update
+.PHONY: all bench build check clean doc install publish run run_local test update
 
 all: build
 
@@ -13,7 +13,11 @@ install: build
 	stack install
 
 run: build
-	stack run 
+	stack run -- --config config/config.yaml
+
+# run using locally installed configuration
+run_local: build
+	stack run
 
 test: 
 	stack test
