@@ -8,4 +8,4 @@ data Action
 
 data Event
 
-data State
+data State = State

@@ -1,12 +1,16 @@
 module Application.TuiApp where
 
-import Application.TuiApp.Components.Main
+import qualified Application.TuiApp.Components.Main as Main
 import Application.TuiApp.Configuration
 import Application.TuiApp.IO (ioHandler)
+import Application.TuiApp.Shared
 import qualified Data.ByteString as ByteString
+import Data.Default (Default (def))
+import Infrastructure.TuiEngine (EngineConfiguration (_confTickRate))
 import qualified Infrastructure.TuiEngine as Tui
 import Options.Applicative
-import Relude
+import Relude hiding (State)
+import Shell.Configuration ()
 import qualified System.Directory as Directory
 import qualified System.FilePath as FilePath
 
@@ -21,15 +25,21 @@ main = do
   defaultConfigPath <- defaultConfigurationFilePath
   parsedOpts <- execParser (opts defaultConfigPath)
   config <- loadConfiguration (configPath parsedOpts)
-  void $ Tui.run engine (engineConfig config)
+  void $ Tui.run (engineConfig config)
   where
     opts homePath =
       info
         ((options homePath) <**> helper)
         (fullDesc <> header "GraphQL TUI that is fast, fun and functional")
 
-engine :: Tui.Engine
-engine = Tui.Engine ioHandler Main.component
+engineConfig :: ApplicationConfig -> Tui.EngineConfiguration State Action Event ComponentName
+engineConfig _ =
+  Tui.Configuration
+    { _confIOHandler = Just ioHandler,
+      _confMainComponent = Main.component,
+      _confTheme = Main.theme,
+      _confTickRate = def
+    }
 
 loadConfiguration :: FilePath -> IO ApplicationConfig
 loadConfiguration path = do

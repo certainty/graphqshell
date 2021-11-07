@@ -4,5 +4,5 @@ import Application.TuiApp.Shared (Action, Event)
 import Infrastructure.TuiEngine (IOHandler)
 import Relude
 
-ioHandler :: IOHandler Event Action
+ioHandler :: IOHandler Action Event
 ioHandler _ = pure Nothing
