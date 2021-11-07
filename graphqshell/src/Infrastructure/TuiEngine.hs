@@ -1,10 +1,12 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Infrastructure.TuiEngine
-  ( Configuration (..),
-    Continuation (..),
+  ( Continuation (..),
     Event (..),
     Component (..),
     IOHandler,
-    Engine (..),
+    EngineConfiguration (..),
+    TickRate (..),
     run,
   )
 where
@@ -12,86 +14,50 @@ where
 import Brick
 import qualified Brick.BChan as BCh
 import Brick.Themes
-import Control.Concurrent
-  ( ThreadId,
-    forkIO,
-    threadDelay,
-  )
-import Data.Default
+import Control.Concurrent.Async (waitBoth, withAsync)
 import qualified Graphics.Vty as V
+import Infrastructure.TuiEngine.Components
+import Infrastructure.TuiEngine.Events
+import Infrastructure.TuiEngine.IO
 import Infrastructure.TuiEngine.Keys
-import Relude
-  ( Applicative (pure),
-    Eq,
-    IO,
-    Int,
-    Maybe (..),
-    Num ((*)),
-    Ord,
-    Show,
-    const,
-    forever,
-    liftIO,
-    ($),
-    (>>),
-    (>>=),
-  )
+import Lens.Micro.Platform (makeLenses, (^.))
+import Relude (Applicative (pure), Bool (False, True), IO, Maybe (..), Ord, TVar, atomically, const, fromMaybe, liftIO, writeTVar, ($), (>>), (>>=))
+import Relude.Lifted (newTVarIO)
 
-data Configuration = Configuration
-  { _tickRateMicroseconds :: Int,
-    _theme :: Theme
+data EngineConfiguration state action event name = Configuration
+  { _confTickRate :: TickRate,
+    _confTheme :: Theme,
+    _confIOHandler :: Maybe (IOHandler action event),
+    _confMainComponent :: Component state action event name
   }
 
-instance Default Configuration where
-  def =
-    Configuration
-      { _tickRateMicroseconds = 200 * 1000,
-        _theme = newTheme V.defAttr []
-      }
+makeLenses ''EngineConfiguration
 
-data Event event
-  = EventTick
-  | EventApp event
-  | EventInputKey Key
-  deriving (Eq, Show)
-
-type EventChan evt = (BCh.BChan (Event evt))
-
-type ActionChan act = (BCh.BChan act)
-
-data Continuation state action event
-  = Notify state event
-  | Perform state action
-  | PerformAndNotify state action event
-  | Continue state
-  | Quit state
-
-data Component state action event name = Component
-  { attributes :: state -> AttrMap,
-    initial :: Continuation state action event,
-    update :: state -> Event event -> Continuation state action event,
-    -- | components might be renderable
-    view :: Maybe (state -> [Widget name])
-  }
-
-type IOHandler action event = action -> IO (Maybe event)
-
-data Engine state action event name = Engine
-  { ioHandler :: IOHandler action event,
-    rootComponent :: Component state action event name
-  }
-
-run :: (Ord name) => Engine state action event name -> Configuration -> IO state
-run engine config = do
-  -- TODO: make sure the threads are killed when this function exits
-  (_eventThread, eventChan) <- startTickThread (_tickRateMicroseconds config)
-  (_ioThread, ioChan) <- startIOThread (ioHandler engine) eventChan
+run :: (Ord name) => EngineConfiguration state action event name -> IO state
+run engineConfig = do
   vty <- engineVTY
-  initialState <- applyContinuation ioChan eventChan (initial root)
-  customMain vty engineVTY (Just eventChan) (engineApplication root ioChan eventChan (_theme config)) initialState
+  eventChan <- BCh.newBChan 5
+  actionChan <- BCh.newBChan 5
+  stopEvents <- newTVarIO False
+  withAsync (engineGenerateTicks engineConfig eventChan stopEvents) $ \eventThread -> do
+    withAsync (engineHandleIOActions engineConfig actionChan eventChan stopEvents) $ \ioThread -> do
+      -- run initial continuation
+      initialState <- liftIO $ applyContinuation actionChan eventChan (_componentInitial root)
+      -- run engine
+      finalState <- customMain vty engineVTY (Just eventChan) (engineApplication root actionChan eventChan (engineConfig ^. confTheme)) initialState
+      -- signal shutdown of event handlers
+      atomically $ writeTVar stopEvents True
+      waitBoth eventThread ioThread
+      pure finalState
   where
-    root = rootComponent engine
+    root = engineConfig ^. confMainComponent
     engineVTY = V.mkVty V.defaultConfig
+
+engineGenerateTicks :: EngineConfiguration state action event name -> EventChan event -> TVar Bool -> IO ()
+engineGenerateTicks config = generateTickEvents (config ^. confTickRate)
+
+engineHandleIOActions :: EngineConfiguration state action event name -> ActionChan action -> EventChan event -> TVar Bool -> IO ()
+engineHandleIOActions config actionChan eventChan stopEvents = processIOActions actionChan eventChan stopEvents (fromMaybe noopIOHandler (config ^. confIOHandler))
 
 -- | Create brick application from the engine
 engineApplication :: Component state action event name -> ActionChan action -> EventChan event -> Theme -> App state (Event event) name
@@ -118,9 +84,9 @@ engineUpdate ::
   EventM name (Next state)
 engineUpdate rootComponent actionChan eventChan state (VtyEvent (V.EvKey key mod)) = do
   case fromVTYKey key mod of
-    Just translatedKey -> continuationToEventM actionChan eventChan (update rootComponent state (EventInputKey translatedKey))
+    Just translatedKey -> continuationToEventM actionChan eventChan (_componentUpdate rootComponent state (EventInputKey translatedKey))
     Nothing -> continue state
-engineUpdate rootComponent actionChan eventChan state (AppEvent evt) = continuationToEventM actionChan eventChan (update rootComponent state evt)
+engineUpdate rootComponent actionChan eventChan state (AppEvent evt) = continuationToEventM actionChan eventChan (_componentUpdate rootComponent state evt)
 engineUpdate _rootComponent _actionChan _eventChan state _ = continue state
 
 -- | translate engine level event handling to the brick application, also taking care of dispatching actions and events
@@ -145,37 +111,6 @@ applyContinuation _actionChan _eventChan (Quit state) = pure state
 
 -- | Delegate the rendering to the root component if it has defined a view handler
 engineView :: Component state action event name -> state -> [Widget name]
-engineView rootComponent state = case view rootComponent of
+engineView rootComponent state = case _componentView rootComponent of
   Just component -> component state
   Nothing -> []
-
--- Background thread to run tick events fed into the system
--- This is required to have the UI updated even though no user interaction occurred
--- for example to update progress indicators.
-startTickThread ::
-  -- | The tick rate in microseconds
-  Int ->
-  -- | 'ThreadId' of the tick thread and the channel that is used to write to
-  IO (ThreadId, EventChan event)
-startTickThread tickRate = do
-  chan <- BCh.newBChan 5
-  thread <- forkIO $
-    forever $ do
-      BCh.writeBChan chan EventTick
-      threadDelay tickRate
-  pure (thread, chan)
-
--- Action handling
-
--- The IO thread takes care of executing io actions in a separate thread
-startIOThread :: IOHandler action event -> EventChan event -> IO (ThreadId, ActionChan action)
-startIOThread ioHandler eventChan = do
-  chan <- BCh.newBChan 5
-  thread <- forkIO $
-    forever $ do
-      action <- BCh.readBChan chan
-      event <- ioHandler action
-      case event of
-        Nothing -> pure ()
-        Just ioEvent -> BCh.writeBChan eventChan (EventApp ioEvent)
-  pure (thread, chan)

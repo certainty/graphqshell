@@ -84,6 +84,7 @@ library:
     - data-default
     - optparse-applicative
     - directory
+    - control-monad-loop
 
 executables:
   graphqshell-exe:

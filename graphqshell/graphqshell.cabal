@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b1af778b7772e0567c9c44ea619612268b74619c4a1a9f9d6031ed6fab32245f
+-- hash: 431e6d50502d37fbbdfccc840c7eb9944da7234c66357c77ccaabc4f6d4b1481
 
 name:           graphqshell
 version:        0.1.0.0
@@ -44,6 +44,10 @@ library
       GraphQL.Introspection.Schema.Types
       GraphQL.Marshalling.Utils
       Infrastructure.TuiEngine
+      Infrastructure.TuiEngine.Components
+      Infrastructure.TuiEngine.Events
+      Infrastructure.TuiEngine.IO
+      Infrastructure.TuiEngine.Keymap
       Infrastructure.TuiEngine.Keys
       Shell.Application
       Shell.Components.CommandBar
@@ -96,6 +100,7 @@ library
     , base >=4.7 && <5
     , brick
     , bytestring
+    , control-monad-loop
     , data-default
     , directory
     , either
@@ -169,6 +174,7 @@ test-suite graphqshell-test
   other-modules:
       GraphQL.Schema.Fixtures
       GraphQL.Schema.IntrospectionTest
+      Infrastructure.TuiEngine.KeyMapTest
       Shell.ConfigurationTest
       Shell.KeyMapTest
       Paths_graphqshell
