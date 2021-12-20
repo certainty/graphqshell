@@ -6,6 +6,4 @@ data ComponentName = Main deriving (Show, Eq, Ord)
 
 data Action
 
-data Event
-
-data State = State
+data Event = CmdQuit deriving (Show, Eq, Ord)

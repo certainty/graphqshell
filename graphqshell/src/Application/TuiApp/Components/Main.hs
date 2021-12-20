@@ -1,4 +1,6 @@
-module Application.TuiApp.Components.Main (component, theme) where
+{-# LANGUAGE TemplateHaskell #-}
+
+module Application.TuiApp.Components.Main (component, theme, State) where
 
 import Application.TuiApp.Shared
 import Brick (AttrMap, AttrName, Padding (Max), hBox, joinBorders, padRight, txt, withAttr, withBorderStyle)
@@ -7,13 +9,33 @@ import Brick.Types (Widget)
 import Brick.Widgets.Border (border, hBorder)
 import Brick.Widgets.Border.Style
 import Brick.Widgets.Core ((<=>))
+import Control.Exception.Safe (MonadThrow)
 import Data.Yaml.Aeson (defaultStringStyle)
 import qualified Graphics.Vty as V
 import qualified Infrastructure.TuiEngine as Tui
 import Infrastructure.TuiEngine.Components
+import Infrastructure.TuiEngine.Keymap
+import Lens.Micro.Platform (makeLenses)
 import Relude hiding (State)
 
-component :: (Component State Action Event ComponentName)
+data ComponentRecord s = ComponentRecord
+  { _crName :: ComponentName,
+    _crState :: s,
+    _crKeyMap :: Maybe (KeyMap Event)
+  }
+
+makeLenses ''ComponentRecord
+
+-- | The application state holds global data and component specific data.
+-- The application will delegate updates to the currently active component automatically.
+data State = State
+  { _stKeyMap :: KeyMap Event,
+    _stComponentStack :: ![ComponentName]
+  }
+
+makeLenses ''State
+
+component :: (MonadThrow m) => (Component State Action Event ComponentName m)
 component =
   Component
     { _componentName = Main,
@@ -36,14 +58,18 @@ attrStatusLine = "main" <> "statusLine"
 attrTopBar :: AttrName
 attrTopBar = "main" <> "topBar"
 
-initial :: Continuation State Action Event
-initial = Continue s
-  where
-    s :: State
-    s = State
+rootKeyMapConfig :: KeyMapConfiguration Event
+rootKeyMapConfig = cmd 'q' "quit" CmdQuit
 
-update :: State -> Tui.Event Event -> Continuation State Action Event
-update s _ = Continue s
+-- Component hooks
+
+initial :: (MonadThrow m) => m (Continuation State Action Event)
+initial = do
+  rootKeyMap <- fromConfiguration rootKeyMapConfig
+  pure $ Continue $ State rootKeyMap []
+
+update :: (MonadThrow m) => State -> Tui.Event Event -> m (Continuation State Action Event)
+update s _ = pure $ Continue s
 
 view :: State -> [Widget ComponentName]
 view state = [mainWidget state]

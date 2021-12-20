@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Infrastructure.TuiEngine.Components
@@ -11,6 +12,7 @@ module Infrastructure.TuiEngine.Components
 where
 
 import Brick (Widget)
+import Control.Monad.Catch.Pure (MonadThrow)
 import Infrastructure.TuiEngine.Events (Event)
 import Lens.Micro.Platform (makeLenses)
 import Relude
@@ -22,11 +24,11 @@ data Continuation state action event
   | Continue state
   | Quit state
 
-data Component state action event name = Component
+data Component state action event name m = Component
   { _componentName :: name,
-    _componentInitial :: Continuation state action event,
-    _componentUpdate :: state -> Event event -> Continuation state action event,
-    -- | components might be renderable
+    _componentInitial :: (MonadThrow m) => m (Continuation state action event),
+    _componentUpdate :: (MonadThrow m) => state -> Event event -> m (Continuation state action event),
+    -- | components might be renderable but are not required to be
     _componentView :: Maybe (state -> [Widget name])
   }
 

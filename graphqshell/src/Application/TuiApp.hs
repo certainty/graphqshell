@@ -4,6 +4,7 @@ import qualified Application.TuiApp.Components.Main as Main
 import Application.TuiApp.Configuration
 import Application.TuiApp.IO (ioHandler)
 import Application.TuiApp.Shared
+import Control.Exception.Safe (MonadThrow)
 import qualified Data.ByteString as ByteString
 import Data.Default (Default (def))
 import Infrastructure.TuiEngine (EngineConfiguration (_confTickRate))
@@ -32,7 +33,7 @@ main = do
         ((options homePath) <**> helper)
         (fullDesc <> header "GraphQL TUI that is fast, fun and functional")
 
-engineConfig :: ApplicationConfig -> Tui.EngineConfiguration State Action Event ComponentName
+engineConfig :: (MonadThrow m) => ApplicationConfig -> Tui.EngineConfiguration Main.State Action Event ComponentName m
 engineConfig _ =
   Tui.Configuration
     { _confIOHandler = Just ioHandler,
