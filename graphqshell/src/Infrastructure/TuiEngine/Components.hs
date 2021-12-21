@@ -1,3 +1,4 @@
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -8,6 +9,7 @@ module Infrastructure.TuiEngine.Components
     componentUpdate,
     componentView,
     componentName,
+    TheComponent (..),
   )
 where
 
@@ -33,3 +35,9 @@ data Component state action event name m = Component
   }
 
 makeLenses ''Component
+
+class TheComponent state action event name | state -> action event name where
+  initialx :: state
+  namex :: state -> name
+  updatex :: (MonadThrow m) => state -> Event event -> m (Continuation state action event)
+  viewx :: Maybe (state -> Widget name)
