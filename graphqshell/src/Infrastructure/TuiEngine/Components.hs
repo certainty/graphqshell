@@ -36,8 +36,5 @@ data Component state action event name m = Component
 
 makeLenses ''Component
 
-class TheComponent state action event name | state -> action event name where
-  initialx :: state
-  namex :: state -> name
-  updatex :: (MonadThrow m) => state -> Event event -> m (Continuation state action event)
-  viewx :: Maybe (state -> Widget name)
+class TheComponent comp appState | appState -> comp where
+  initialState :: comp -> appState

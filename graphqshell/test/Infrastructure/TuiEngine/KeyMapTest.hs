@@ -1,4 +1,4 @@
-module Infrastructure.TuiEngine.KeymapTest where
+module Infrastructure.TuiEngine.KeyMapTest where
 
 import Infrastructure.TuiEngine.Keymap
 import Relude
