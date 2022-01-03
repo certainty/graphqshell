@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6474baf8c283e3344e443593fb62e93f4a77af282c8b0bf3f37b400eac9403d9
+-- hash: 27a6cc8b2eb4529bdc7d65da8d765420db020ebf66a6745c396b4094768ca7e0
 
 name:           graphqshell
 version:        0.1.0.0
@@ -27,14 +27,19 @@ source-repository head
 library
   exposed-modules:
       Application.TuiApp
-      Application.TuiApp.Components.CommandBar
-      Application.TuiApp.Components.Main
+      Application.TuiApp.Components.CommandBar.Behavior
+      Application.TuiApp.Components.CommandBar.Component
+      Application.TuiApp.Components.CommandBar.State
+      Application.TuiApp.Components.Main.Behavior
+      Application.TuiApp.Components.Main.Component
+      Application.TuiApp.Components.Main.State
       Application.TuiApp.Configuration
       Application.TuiApp.Configuration.Marshalling
       Application.TuiApp.Configuration.Types
       Application.TuiApp.Configuration.Validation
       Application.TuiApp.IO
       Application.TuiApp.Shared
+      Application.TuiApp.State
       GraphQL.API
       GraphQL.Api.Types
       GraphQL.Client

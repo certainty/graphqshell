@@ -5,6 +5,7 @@ where
 
 import qualified Application.TuiApp as TuiApp
 import qualified Data.ByteString as ByteString
+import Infrastructure.TuiEngine.DataGraph (exampleQuery)
 import Options.Applicative
 import Relude
 import qualified Shell.Application as Application
@@ -19,7 +20,7 @@ data Options = Options
   deriving (Eq, Show)
 
 main :: IO ()
-main = TuiApp.main
+main = exampleQuery -- TuiApp.main
 
 oldmain :: IO ()
 oldmain = do

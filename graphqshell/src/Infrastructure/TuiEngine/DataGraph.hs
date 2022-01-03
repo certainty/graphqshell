@@ -21,6 +21,9 @@ data Transaction kv = Ls [Transaction kv] | Prop (Keyword kv) | Join (Transactio
 empty :: Transaction Text
 empty = Ls []
 
+property :: Transaction Text
+property = Prop (KV "person")
+
 -- properties
 properties :: Transaction Text
 properties = Ls [Prop (KV "album/name"), Prop (KV "album/year")]
@@ -68,10 +71,12 @@ data Table kv value = Table
   { _tableName :: Keyword kv,
     _rows :: Map.HashMap TableId (Entity kv value)
   }
+  deriving (Eq, Show)
 
 data Database kv value = Database
   { _tables :: Map.HashMap (Keyword kv) (Table kv value)
   }
+  deriving (Eq, Show)
 
 --
 -- ;; TABLE     ID   ENTITY                                           POINTER TO ADDRESS TABLE
@@ -122,6 +127,25 @@ database =
           )
         ]
     )
+
+data QueryTarget kv value = QueryTargetProp (Property kv value) | QueryTargetEntity (Entity kv value) | QueryTargetTable (Table kv value) | QueryTargetDatabase (Database kv value) deriving (Eq, Show)
+
+runQuery :: (Eq kv, Hashable kv) => Transaction kv -> QueryTarget kv value -> Maybe (QueryTarget kv value)
+runQuery (Prop (KV k)) (QueryTargetDatabase db) = do
+  table <- Map.lookup (KV k) (_tables db)
+  pure (QueryTargetTable table)
+runQuery (Prop (KV k)) (QueryTargetEntity e) = do
+  prop <- Map.lookup (KV k) (_entityProperties e)
+  pure (QueryTargetProp prop)
+runQuery _ _ = undefined
+
+-- example query
+
+exampleQuery :: IO () -- Maybe (Either (QueryTarget Text Text) Text)
+exampleQuery = do
+  let result = runQuery property (QueryTargetDatabase database)
+  print result
+  pure ()
 
 --- query
 

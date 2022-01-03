@@ -1,6 +1,8 @@
 module Application.TuiApp where
 
-import qualified Application.TuiApp.Components.Main as Main
+import qualified Application.TuiApp.Components.Main.Behavior as Main
+import qualified Application.TuiApp.Components.Main.Component as Main
+import qualified Application.TuiApp.Components.Main.State as Main
 import Application.TuiApp.Configuration
 import Application.TuiApp.IO (ioHandler)
 import Application.TuiApp.Shared
@@ -37,7 +39,7 @@ engineConfig :: (MonadThrow m) => ApplicationConfig -> Tui.EngineConfiguration M
 engineConfig _ =
   Tui.Configuration
     { _confIOHandler = Just ioHandler,
-      _confMainComponent = Main.component,
+      _confMainComponent = Main.makeComponent,
       _confTheme = Main.theme,
       _confTickRate = def
     }

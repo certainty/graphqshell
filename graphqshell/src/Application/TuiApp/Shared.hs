@@ -1,6 +1,6 @@
 module Application.TuiApp.Shared where
 
-import Relude
+import Relude hiding (State)
 
 data ComponentName = Main | CommandBar deriving (Show, Eq, Ord)
 

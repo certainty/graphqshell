@@ -1,10 +1,9 @@
-{-# LANGUAGE TemplateHaskell #-}
+module Application.TuiApp.Components.Main.Behavior where
 
-module Application.TuiApp.Components.Main (component, theme, State) where
-
-import qualified Application.TuiApp.Components.CommandBar as CommandBar
-import Application.TuiApp.Shared
-import Brick (AttrMap, AttrName, Padding (Max), hBox, hLimitPercent, joinBorders, padRight, txt, withAttr, withBorderStyle)
+import qualified Application.TuiApp.Components.CommandBar.Component as CommandBar
+import Application.TuiApp.Components.Main.State (State (State))
+import Application.TuiApp.Shared (Action, ComponentName, Event (CmdQuit))
+import Brick (AttrName, Padding (Max), hBox, hLimitPercent, joinBorders, padRight, txt, withAttr, withBorderStyle)
 import Brick.Themes (Theme, newTheme)
 import Brick.Types (Widget)
 import Brick.Widgets.Border (border, hBorder)
@@ -13,38 +12,10 @@ import Brick.Widgets.Center (hCenter)
 import Brick.Widgets.Core ((<=>))
 import Control.Exception.Safe (MonadThrow)
 import qualified Graphics.Vty as V
-import qualified Infrastructure.TuiEngine as Tui
-import Infrastructure.TuiEngine.Components
-import Infrastructure.TuiEngine.Keymap
-import Lens.Micro.Platform (makeLenses, (^.))
+import Infrastructure.TuiEngine (Continuation (Continue))
+import qualified Infrastructure.TuiEngine.Events as TuiEvents
+import Infrastructure.TuiEngine.Keymap (KeyMapConfiguration, cmd, fromConfiguration)
 import Relude hiding (State, state)
-
-data ComponentRecord s = ComponentRecord
-  { _crName :: ComponentName,
-    _crState :: s,
-    _crKeyMap :: Maybe (KeyMap Event)
-  }
-
-makeLenses ''ComponentRecord
-
--- | The application state holds global data and component specific data.
--- The application will delegate updates to the currently active component automatically.
-data State = State
-  { _stKeyMap :: KeyMap Event,
-    _commandBar :: CommandBar.ComponentType IO,
-    _stComponentStack :: ![ComponentName]
-  }
-
-makeLenses ''State
-
-component :: (MonadThrow m) => (Component State Action Event ComponentName m)
-component =
-  Component
-    { _componentName = Main,
-      _componentInitial = initial,
-      _componentUpdate = update,
-      _componentView = Just view
-    }
 
 theme :: Theme
 theme = newTheme V.defAttr allAttributes
@@ -68,9 +39,9 @@ rootKeyMapConfig = cmd 'q' "quit" CmdQuit
 initial :: (MonadThrow m) => m (Continuation State Action Event)
 initial = do
   rootKeyMap <- fromConfiguration rootKeyMapConfig
-  pure $ Continue $ State rootKeyMap (CommandBar.component rootKeyMap) []
+  pure $ Continue $ State rootKeyMap (CommandBar.makeComponent rootKeyMap) []
 
-update :: (MonadThrow m) => State -> Tui.Event Event -> m (Continuation State Action Event)
+update :: (MonadThrow m) => State -> TuiEvents.Event Event -> m (Continuation State Action Event)
 update s _ = pure $ Continue s
 
 view :: State -> [Widget ComponentName]

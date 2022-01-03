@@ -1,10 +1,7 @@
-{-# LANGUAGE TemplateHaskell #-}
+module Application.TuiApp.Components.CommandBar.Behavior where
 
--- | Provides the command bar compnent
--- which implements which-key like guided / contextual commands
-module Application.TuiApp.Components.CommandBar where
-
-import Application.TuiApp.Shared
+import Application.TuiApp.Components.CommandBar.State
+import Application.TuiApp.Shared (Action, Event)
 import Brick
 import Control.Exception.Safe (MonadThrow)
 import qualified Data.Text as Text
@@ -12,38 +9,13 @@ import qualified Graphics.Vty as V
 import Graphics.Vty.Attributes
   ( Attr,
   )
-import Infrastructure.TuiEngine (Component (Component, _componentInitial, _componentName, _componentUpdate, _componentView), Continuation)
-import qualified Infrastructure.TuiEngine as Tui
-import Infrastructure.TuiEngine.Components (Continuation (Continue, Notify))
-import Infrastructure.TuiEngine.Keymap hiding (cmd)
+import Infrastructure.TuiEngine as Tui hiding (Event)
+import qualified Infrastructure.TuiEngine.Events as TuiEvents
+import Infrastructure.TuiEngine.Keymap (KeyMap)
 import qualified Infrastructure.TuiEngine.Keymap as KeyMap
-import Infrastructure.TuiEngine.Keys
-import Lens.Micro.Platform
-  ( makeLenses,
-    (^.),
-  )
-import Relude hiding
-  ( State,
-    state,
-  )
-
-data State = State
-  { _stRootKeyMap :: KeyMap Event,
-    _stActiveKeyMap :: KeyMap Event
-  }
-
-makeLenses ''State
-
-type ComponentType m = Component State Action Event ComponentName m
-
-component :: (MonadThrow m) => KeyMap Event -> Component State Action Event ComponentName m
-component keyMap =
-  Component
-    { _componentName = CommandBar,
-      _componentInitial = initial keyMap,
-      _componentUpdate = update,
-      _componentView = Just view
-    }
+import Infrastructure.TuiEngine.Keys (Key (Key))
+import Lens.Micro.Platform ((^.))
+import Relude hiding (State, state)
 
 attrDescription :: AttrName
 attrDescription = "commandBar" <> "description"
@@ -74,7 +46,7 @@ resetState (State rootKeyMap _) = State rootKeyMap rootKeyMap
 withKeyMap :: State -> KeyMap Event -> State
 withKeyMap (State rootKeyMap _) = State rootKeyMap
 
-update :: (MonadThrow m) => State -> Tui.Event Event -> m (Continuation State Action Event)
+update :: (MonadThrow m) => State -> TuiEvents.Event Event -> m (Continuation State Action Event)
 update state (Tui.EventInputKey (Key c)) =
   case KeyMap.matchKey (state ^. stActiveKeyMap) c of
     (Just (KeyMap.Command _ cmd)) -> pure $ Notify state cmd -- just emit the corresponding event
