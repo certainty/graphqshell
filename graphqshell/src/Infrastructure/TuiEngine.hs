@@ -1,4 +1,14 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Infrastructure.TuiEngine
   ( Continuation (..),
@@ -20,22 +30,22 @@ import Infrastructure.TuiEngine.Components
 import Infrastructure.TuiEngine.Events
 import Infrastructure.TuiEngine.IO
 import Infrastructure.TuiEngine.Keys
-import Lens.Micro.Platform (makeLenses, (^.))
+import Optics
 import Relude (Applicative (pure), Bool (False, True), IO, Maybe (..), Ord, TVar, atomically, const, fromMaybe, liftIO, writeTVar, ($), (>>), (>>=))
 import Relude.Lifted (newTVarIO)
 
 data EngineConfiguration state action event name m = Configuration
-  { _confTickRate :: TickRate,
-    _confTheme :: Theme,
-    _confIOHandler :: Maybe (IOHandler action event),
-    _confMainComponent :: Component state action event name m
+  { confTickRate :: TickRate,
+    confTheme :: Theme,
+    confIOHandler :: Maybe (IOHandler action event),
+    confMainComponent :: Component state action event name m
   }
 
-makeLenses ''EngineConfiguration
+makeFieldLabelsWith noPrefixFieldLabels ''EngineConfiguration
 
 run :: (Ord name) => EngineConfiguration state action event name IO -> IO state
 run engineConfig = do
-  initialContinuation <- _componentInitial (engineConfig ^. confMainComponent)
+  initialContinuation <- componentInitial (engineConfig ^. #confMainComponent)
   vty <- engineVTY
   eventChan <- BCh.newBChan 5
   actionChan <- BCh.newBChan 5
@@ -47,20 +57,20 @@ run engineConfig = do
         -- run initial continuation
         initialState <- liftIO $ applyContinuation actionChan eventChan initialContinuation
         -- run engine
-        finalState <- customMain vty engineVTY (Just eventChan) (engineApplication root actionChan eventChan (engineConfig ^. confTheme)) initialState
+        finalState <- customMain vty engineVTY (Just eventChan) (engineApplication root actionChan eventChan (engineConfig ^. #confTheme)) initialState
         -- signal shutdown of event handlers
         atomically $ writeTVar stopEvents True
         waitBoth eventThread ioThread
         pure finalState
   where
-    root = engineConfig ^. confMainComponent
+    root = engineConfig ^. #confMainComponent
     engineVTY = V.mkVty V.defaultConfig
 
 engineGenerateTicks :: EngineConfiguration state action event name m -> EventChan event -> TVar Bool -> IO ()
-engineGenerateTicks config = generateTickEvents (config ^. confTickRate)
+engineGenerateTicks config = generateTickEvents (config ^. #confTickRate)
 
 engineHandleIOActions :: EngineConfiguration state action event name m -> ActionChan action -> EventChan event -> TVar Bool -> IO ()
-engineHandleIOActions config actionChan eventChan stopEvents = processIOActions actionChan eventChan stopEvents (fromMaybe noopIOHandler (config ^. confIOHandler))
+engineHandleIOActions config actionChan eventChan stopEvents = processIOActions actionChan eventChan stopEvents (fromMaybe noopIOHandler (config ^. #confIOHandler))
 
 -- | Create brick application from the engine
 engineApplication :: Component state action event name IO -> ActionChan action -> EventChan event -> Theme -> App state (Event event) name
@@ -88,11 +98,11 @@ engineUpdate ::
 engineUpdate rootComponent actionChan eventChan state (VtyEvent (V.EvKey key mod)) = do
   case fromVTYKey key mod of
     Just translatedKey -> do
-      continuation <- liftIO $ _componentUpdate rootComponent state (EventInputKey translatedKey)
+      continuation <- liftIO $ componentUpdate rootComponent state (EventInputKey translatedKey)
       continuationToEventM actionChan eventChan continuation
     Nothing -> continue state
 engineUpdate rootComponent actionChan eventChan state (AppEvent evt) = do
-  continuation <- liftIO $ _componentUpdate rootComponent state evt
+  continuation <- liftIO $ componentUpdate rootComponent state evt
   continuationToEventM actionChan eventChan continuation
 engineUpdate _rootComponent _actionChan _eventChan state _ = continue state
 
@@ -118,6 +128,6 @@ applyContinuation _actionChan _eventChan (Quit state) = pure state
 
 -- | Delegate the rendering to the root component if it has defined a view handler
 engineView :: Component state action event name m -> state -> [Widget name]
-engineView rootComponent state = case _componentView rootComponent of
+engineView rootComponent state = case componentView rootComponent of
   Just component -> component state
   Nothing -> []

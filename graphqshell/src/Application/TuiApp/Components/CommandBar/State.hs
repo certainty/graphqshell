@@ -1,15 +1,21 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Application.TuiApp.Components.CommandBar.State where
 
 import Application.TuiApp.Shared (Event)
 import Infrastructure.TuiEngine.Keymap (KeyMap)
-import Lens.Micro.Platform (makeLenses)
+import Optics.TH
 
 data State = State
-  { _stRootKeyMap :: KeyMap Event,
-    _stActiveKeyMap :: KeyMap Event
+  { rootKeyMap :: KeyMap Event,
+    activeKeyMap :: KeyMap Event
   }
 
-makeLenses ''State
+makeFieldLabelsWith noPrefixFieldLabels ''State

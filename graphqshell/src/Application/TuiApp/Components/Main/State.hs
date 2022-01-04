@@ -1,18 +1,24 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Application.TuiApp.Components.Main.State where
 
 import qualified Application.TuiApp.Components.CommandBar.Component as CommandBar
 import Application.TuiApp.Shared (ComponentName, Event)
 import Infrastructure.TuiEngine.Keymap (KeyMap)
-import Lens.Micro.Platform (makeLenses)
+import Optics.TH
 import Relude (IO)
 
 data State = State
-  { _stKeyMap :: KeyMap Event,
-    _componentCommandBar :: CommandBar.ComponentType IO,
-    _stComponentStack :: ![ComponentName]
+  { keyMap :: KeyMap Event,
+    componentCommandBar :: CommandBar.ComponentType IO,
+    componentStack :: ![ComponentName]
   }
 
-makeLenses ''State
+makeFieldLabelsWith noPrefixFieldLabels ''State

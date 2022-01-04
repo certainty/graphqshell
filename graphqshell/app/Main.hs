@@ -5,11 +5,8 @@ where
 
 import qualified Application.TuiApp as TuiApp
 import qualified Data.ByteString as ByteString
-import Infrastructure.TuiEngine.DataGraph (exampleQuery)
 import Options.Applicative
 import Relude
-import qualified Shell.Application as Application
-import Shell.Configuration
 import qualified System.Directory as Directory
 import qualified System.FilePath as FilePath
 
@@ -20,24 +17,12 @@ data Options = Options
   deriving (Eq, Show)
 
 main :: IO ()
-main = exampleQuery -- TuiApp.main
+main = TuiApp.main
 
-oldmain :: IO ()
-oldmain = do
-  defaultConfigPath <- defaultConfigurationFilePath
-  parsedOpts <- execParser (opts defaultConfigPath)
-  config <- loadConfiguration (configPath parsedOpts)
-  void $ Application.run config
-  where
-    opts homePath =
-      info
-        ((options homePath) <**> helper)
-        (fullDesc <> header "GraphQL TUI that is fast, fun and functional")
-
-loadConfiguration :: FilePath -> IO ApplicationConfig
-loadConfiguration path = do
-  absolutePath <- Directory.makeAbsolute path
-  ByteString.readFile absolutePath >>= (parseConfiguration absolutePath)
+-- loadConfiguration :: FilePath -> IO ApplicationConfig
+-- loadConfiguration path = do
+--   absolutePath <- Directory.makeAbsolute path
+--   ByteString.readFile absolutePath >>= (parseConfiguration absolutePath)
 
 defaultConfigurationFilePath :: IO FilePath
 defaultConfigurationFilePath = do

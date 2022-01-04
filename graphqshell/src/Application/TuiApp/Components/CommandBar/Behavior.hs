@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedLabels #-}
+
 module Application.TuiApp.Components.CommandBar.Behavior where
 
 import Application.TuiApp.Components.CommandBar.State
@@ -14,7 +16,7 @@ import qualified Infrastructure.TuiEngine.Events as TuiEvents
 import Infrastructure.TuiEngine.Keymap (KeyMap)
 import qualified Infrastructure.TuiEngine.Keymap as KeyMap
 import Infrastructure.TuiEngine.Keys (Key (Key))
-import Lens.Micro.Platform ((^.))
+import Optics
 import Relude hiding (State, state)
 
 attrDescription :: AttrName
@@ -48,7 +50,7 @@ withKeyMap (State rootKeyMap _) = State rootKeyMap
 
 update :: (MonadThrow m) => State -> TuiEvents.Event Event -> m (Continuation State Action Event)
 update state (Tui.EventInputKey (Key c)) =
-  case KeyMap.matchKey (state ^. stActiveKeyMap) c of
+  case KeyMap.matchKey (state ^. #activeKeyMap) c of
     (Just (KeyMap.Command _ cmd)) -> pure $ Notify state cmd -- just emit the corresponding event
     (Just (KeyMap.Group _ keyMap)) -> pure $ Continue (withKeyMap state keyMap) -- set the new keymap and continue
     Nothing -> pure $ Continue state

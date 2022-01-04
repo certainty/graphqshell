@@ -2,7 +2,6 @@
 
 module Application.TuiApp.Configuration.Types where
 
-import Lens.Micro.Platform (makeLenses)
 import Relude
 import Text.URI (URI)
 
@@ -35,11 +34,6 @@ data ThemeConfig = ThemeConfig
     _themePath :: FilePath
   }
   deriving (Generic, Show, Eq)
-
-makeLenses ''ApplicationConfig
-makeLenses ''EndpointConfig
-makeLenses ''EndpointHttpConfig
-makeLenses ''ThemeConfig
 
 class IsDefaultConfig a where
   isDefault :: a -> Bool

@@ -15,18 +15,11 @@ import Control.Exception.Safe
   )
 import qualified Data.Aeson as J
 import GraphQL.Client.Types
-import Lens.Micro.Platform
-  ( (^.),
-  )
 import Network.HTTP.Req
 import Relude hiding
   ( Option,
   )
 import qualified Text.URI as URI
-import Text.URI.Lens
-  ( authPort,
-    uriAuthority,
-  )
 
 data ClientError
   = InvalidURI URI.URI
@@ -64,9 +57,9 @@ instance GraphQLClient IOGraphQLClient where
       (Right r) -> pure r
     where
       requestBody = GraphQLBody query variables
-      endpointPort uri = case uri ^. uriAuthority of
+      endpointPort uri = case URI.uriAuthority uri of
         (Left _) -> Nothing
-        (Right auth) -> fromIntegral <$> (auth ^. authPort)
+        (Right auth) -> fromIntegral <$> (URI.authPort auth)
 
 runRequest' ::
   (J.ToJSON variables, MonadIO m) =>

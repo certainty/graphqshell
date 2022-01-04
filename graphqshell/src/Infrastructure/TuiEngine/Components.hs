@@ -1,22 +1,19 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
-module Infrastructure.TuiEngine.Components
-  ( Continuation (..),
-    Component (..),
-    componentInitial,
-    componentUpdate,
-    componentView,
-    componentName,
-    TheComponent (..),
-  )
-where
+module Infrastructure.TuiEngine.Components where
 
 import Brick (Widget)
 import Control.Monad.Catch.Pure (MonadThrow)
 import Infrastructure.TuiEngine.Events (Event)
-import Lens.Micro.Platform (makeLenses)
 import Relude
 
 data Continuation state action event
@@ -27,14 +24,9 @@ data Continuation state action event
   | Quit state
 
 data Component state action event name m = Component
-  { _componentName :: name,
-    _componentInitial :: (MonadThrow m) => m (Continuation state action event),
-    _componentUpdate :: (MonadThrow m) => state -> Event event -> m (Continuation state action event),
+  { componentName :: name,
+    componentInitial :: (MonadThrow m) => m (Continuation state action event),
+    componentUpdate :: (MonadThrow m) => state -> Event event -> m (Continuation state action event),
     -- | components might be renderable but are not required to be
-    _componentView :: Maybe (state -> [Widget name])
+    componentView :: Maybe (state -> [Widget name])
   }
-
-makeLenses ''Component
-
-class TheComponent comp appState | appState -> comp where
-  initialState :: comp -> appState

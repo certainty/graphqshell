@@ -76,7 +76,7 @@ library:
     - req
     - modern-uri
     - vector
-    - microlens-platform
+    - optics
     - time
     - yaml
     - validation-selective
@@ -135,4 +135,4 @@ tests:
       - microlens-th
       - brick
       - modern-uri
-      - microlens-platform
+      - optics

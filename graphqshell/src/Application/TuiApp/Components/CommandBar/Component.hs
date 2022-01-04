@@ -13,8 +13,8 @@ type ComponentType m = Component State Action Event ComponentName m
 makeComponent :: (MonadThrow m) => KeyMap Event -> Component State Action Event ComponentName m
 makeComponent keyMap =
   Component
-    { _componentName = CommandBar,
-      _componentInitial = initial keyMap,
-      _componentUpdate = update,
-      _componentView = Just view
+    { componentName = CommandBar,
+      componentInitial = initial keyMap,
+      componentUpdate = update,
+      componentView = Just view
     }

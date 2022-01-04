@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 27a6cc8b2eb4529bdc7d65da8d765420db020ebf66a6745c396b4094768ca7e0
+-- hash: 0cb86fbe40026499b82e9295636ca734109e0d0d9343659c430dbf21aefa3f6d
 
 name:           graphqshell
 version:        0.1.0.0
@@ -56,20 +56,6 @@ library
       Infrastructure.TuiEngine.IO
       Infrastructure.TuiEngine.Keymap
       Infrastructure.TuiEngine.Keys
-      Shell.Application
-      Shell.Components.CommandBar
-      Shell.Components.Introspector
-      Shell.Components.Introspector.Event
-      Shell.Components.Introspector.ObjectType
-      Shell.Components.Main
-      Shell.Components.Shared
-      Shell.Configuration
-      Shell.Configuration.Marshalling
-      Shell.Configuration.Types
-      Shell.Configuration.Validation
-      Shell.KeyMap
-      Shell.SDL
-      Shell.Theme
       Utils
   other-modules:
       Paths_graphqshell
@@ -115,8 +101,8 @@ library
     , filepath
     , fuzzy
     , fuzzyset
-    , microlens-platform
     , modern-uri
+    , optics
     , optparse-applicative
     , raw-strings-qq
     , relude
@@ -220,9 +206,9 @@ test-suite graphqshell-test
     , bytestring
     , graphqshell
     , hedgehog
-    , microlens-platform
     , microlens-th
     , modern-uri
+    , optics
     , raw-strings-qq
     , relude
     , safe-exceptions

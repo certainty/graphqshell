@@ -12,8 +12,8 @@ type ComponentType m = Component State Action Event ComponentName m
 makeComponent :: (MonadThrow m) => (Component State Action Event ComponentName m)
 makeComponent =
   Component
-    { _componentName = Main,
-      _componentInitial = initial,
-      _componentUpdate = update,
-      _componentView = Just view
+    { componentName = Main,
+      componentInitial = initial,
+      componentUpdate = update,
+      componentView = Just view
     }

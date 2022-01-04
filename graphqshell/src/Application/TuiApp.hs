@@ -9,11 +9,9 @@ import Application.TuiApp.Shared
 import Control.Exception.Safe (MonadThrow)
 import qualified Data.ByteString as ByteString
 import Data.Default (Default (def))
-import Infrastructure.TuiEngine (EngineConfiguration (_confTickRate))
 import qualified Infrastructure.TuiEngine as Tui
 import Options.Applicative
 import Relude hiding (State)
-import Shell.Configuration ()
 import qualified System.Directory as Directory
 import qualified System.FilePath as FilePath
 
@@ -38,10 +36,10 @@ main = do
 engineConfig :: (MonadThrow m) => ApplicationConfig -> Tui.EngineConfiguration Main.State Action Event ComponentName m
 engineConfig _ =
   Tui.Configuration
-    { _confIOHandler = Just ioHandler,
-      _confMainComponent = Main.makeComponent,
-      _confTheme = Main.theme,
-      _confTickRate = def
+    { confIOHandler = Just ioHandler,
+      confMainComponent = Main.makeComponent,
+      confTheme = Main.theme,
+      confTickRate = def
     }
 
 loadConfiguration :: FilePath -> IO ApplicationConfig
