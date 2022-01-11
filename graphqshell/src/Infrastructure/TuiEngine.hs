@@ -1,133 +1,104 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
 
-module Infrastructure.TuiEngine
-  ( Continuation (..),
-    Event (..),
-    Component (..),
-    IOHandler,
-    EngineConfiguration (..),
-    TickRate (..),
-    run,
-  )
-where
+module Infrastructure.TuiEngine where
 
 import Brick
-import qualified Brick.BChan as BCh
-import Brick.Themes
-import Control.Concurrent.Async (waitBoth, withAsync)
-import qualified Graphics.Vty as V
-import Infrastructure.TuiEngine.Components
-import Infrastructure.TuiEngine.Events
-import Infrastructure.TuiEngine.IO
-import Infrastructure.TuiEngine.Keys
+import qualified Brick.BChan as Bch
+import Brick.Focus (FocusRing, focusGetCurrent, focusSetCurrent)
+import Brick.Themes (Theme, themeToAttrMap)
+import Control.Monad.Logger (MonadLogger, WriterLoggingT, runWriterLoggingT)
+import qualified Data.Vector as V
 import Optics
-import Relude (Applicative (pure), Bool (False, True), IO, Maybe (..), Ord, TVar, atomically, const, fromMaybe, liftIO, writeTVar, ($), (>>), (>>=))
-import Relude.Lifted (newTVarIO)
+import Optics.TH
+import Relude hiding (state)
 
-data EngineConfiguration state action event name m = Configuration
-  { confTickRate :: TickRate,
-    confTheme :: Theme,
-    confIOHandler :: Maybe (IOHandler action event),
-    confMainComponent :: Component state action event name m
+data ViewName = ViewName deriving (Eq, Show)
+
+data Name = Name deriving (Eq, Show)
+
+data ViewState = Hidden | Visible deriving (Eq, Show)
+
+data Tile = Tile ViewState Name deriving (Eq, Show)
+
+newtype Layer = Layer (V.Vector Tile) deriving (Eq, Show)
+
+type Layers = V.Vector Layer
+
+data View = View
+  { _vFocus :: Name,
+    _vLayers :: Layers
   }
 
-makeFieldLabelsWith noPrefixFieldLabels ''EngineConfiguration
+makeLenses ''View
 
-run :: (Ord name) => EngineConfiguration state action event name IO -> IO state
-run engineConfig = do
-  initialContinuation <- componentInitial (engineConfig ^. #confMainComponent)
-  vty <- engineVTY
-  eventChan <- BCh.newBChan 5
-  actionChan <- BCh.newBChan 5
-  stopEvents <- newTVarIO False
-  withAsync
-    (engineGenerateTicks engineConfig eventChan stopEvents)
-    $ \eventThread -> do
-      withAsync (engineHandleIOActions engineConfig actionChan eventChan stopEvents) $ \ioThread -> do
-        -- run initial continuation
-        initialState <- liftIO $ applyContinuation actionChan eventChan initialContinuation
-        -- run engine
-        finalState <- customMain vty engineVTY (Just eventChan) (engineApplication root actionChan eventChan (engineConfig ^. #confTheme)) initialState
-        -- signal shutdown of event handlers
-        atomically $ writeTVar stopEvents True
-        waitBoth eventThread ioThread
-        pure finalState
-  where
-    root = engineConfig ^. #confMainComponent
-    engineVTY = V.mkVty V.defaultConfig
+data ViewSettings = ViewSettings
+  { _vsViews :: Map ViewName View,
+    _vsFocusedView :: FocusRing ViewName
+  }
 
-engineGenerateTicks :: EngineConfiguration state action event name m -> EventChan event -> TVar Bool -> IO ()
-engineGenerateTicks config = generateTickEvents (config ^. #confTickRate)
+makeLenses ''ViewSettings
 
-engineHandleIOActions :: EngineConfiguration state action event name m -> ActionChan action -> EventChan event -> TVar Bool -> IO ()
-engineHandleIOActions config actionChan eventChan stopEvents = processIOActions actionChan eventChan stopEvents (fromMaybe noopIOHandler (config ^. #confIOHandler))
+data AppState = AppState
+  { _asDefaultView :: ViewName,
+    _asViews :: ViewSettings,
+    _asFocusedViewName :: ViewName
+  }
 
--- | Create brick application from the engine
-engineApplication :: Component state action event name IO -> ActionChan action -> EventChan event -> Theme -> App state (Event event) name
-engineApplication root actions events theme =
-  Brick.App
-    { appDraw = engineView root,
+makeLenses ''AppState
+
+focusedViewName :: AppState -> ViewName
+focusedViewName s = fromMaybe (view s asDefaultView) $ focusGetCurrent $ view (asViews % vsFocusedView) s
+
+data AppEvent = AppEvent
+
+data AppAction = Action
+  { _eaDescription :: Text,
+    _eaHandler :: AppState -> IO (Maybe AppEvent)
+  }
+
+makeLenses ''AppAction
+
+data AppEventHandlerState = EventHandlerState
+  { _ehsAppState :: AppState,
+    _ehsActions :: [AppAction]
+  }
+
+makeLenses ''AppEventHandlerState
+
+newtype AppEventHandler a = EventHandler {runEventHandler :: StateT AppEventHandlerState (WriterLoggingT Identity) a}
+  deriving (Functor, Applicative, Monad, MonadState AppEventHandlerState, MonadLogger)
+
+type ActionChannel = Bch.BChan AppAction
+
+type EventChannel = Bch.BChan AppEvent
+
+brickApplication :: ActionChannel -> Theme -> App AppState AppEvent Name
+brickApplication actionChan theme =
+  App
+    { appDraw = renderVisible,
       appChooseCursor = neverShowCursor,
-      appHandleEvent = engineUpdate root actions events,
-      appAttrMap = const (themeToAttrMap theme),
-      appStartEvent = pure
+      appHandleEvent = handleEvents actionChan,
+      appStartEvent = pure,
+      appAttrMap = const (themeToAttrMap theme)
     }
 
---
--- UPDATE
---
+renderVisible :: AppState -> [Widget Name]
+renderVisible renderView state = vBox . fmap (renderView state (vsFocusedView state)) <$> visibleViews state
 
--- | translate engine level event handling to the brick application
-engineUpdate ::
-  Component state action event name IO ->
-  ActionChan action ->
-  EventChan event ->
-  state ->
-  BrickEvent name (Event event) ->
-  EventM name (Next state)
-engineUpdate rootComponent actionChan eventChan state (VtyEvent (V.EvKey key mod)) = do
-  case fromVTYKey key mod of
-    Just translatedKey -> do
-      continuation <- liftIO $ componentUpdate rootComponent state (EventInputKey translatedKey)
-      continuationToEventM actionChan eventChan continuation
-    Nothing -> continue state
-engineUpdate rootComponent actionChan eventChan state (AppEvent evt) = do
-  continuation <- liftIO $ componentUpdate rootComponent state evt
-  continuationToEventM actionChan eventChan continuation
-engineUpdate _rootComponent _actionChan _eventChan state _ = continue state
+renderView :: AppState -> ViewName -> Name -> Widget Name
+renderView _ _ = str "Hello World"
 
--- | translate engine level event handling to the brick application, also taking care of dispatching actions and events
-continuationToEventM :: ActionChan action -> EventChan event -> Continuation state action event -> EventM name (Next state)
-continuationToEventM _actionChan _eventChan (Quit state) = halt state
-continuationToEventM actionChan eventChan event = liftIO (applyContinuation actionChan eventChan event) >>= continue
+handleEvents :: ActionChannel -> AppEvent -> AppState -> EventM Name (Next AppState)
+handleEvents actionChan event appState = do
+  let eventHandlerState = EventHandlerState appState []
+  (nextState, _eventHandlers) <- runWriterLoggingT (runStateT (runEventHandler (handleEvent event)) eventHandlerState)
+  let actions = ehsActions nextState
+  for_ actions $ Bch.writeBChan actionChan
+  pure $ Next nextState
 
--- | Dispatch the events / actions from the continuation and return the state
-applyContinuation :: ActionChan action -> EventChan event -> Continuation state action event -> IO state
-applyContinuation _actionChan eventChan (Notify state event) = BCh.writeBChan eventChan (EventApp event) >> pure state
-applyContinuation actionChan _eventChan (Perform state action) = BCh.writeBChan actionChan action >> pure state
-applyContinuation actionChan eventChan (PerformAndNotify state action event) =
-  BCh.writeBChan actionChan action
-    >> BCh.writeBChan eventChan (EventApp event)
-    >> pure state
-applyContinuation _actionChan _eventChan (Continue state) = pure state
-applyContinuation _actionChan _eventChan (Quit state) = pure state
-
---
--- View
---
-
--- | Delegate the rendering to the root component if it has defined a view handler
-engineView :: Component state action event name m -> state -> [Widget name]
-engineView rootComponent state = case componentView rootComponent of
-  Just component -> component state
-  Nothing -> []
+handleEvent :: AppEvent -> AppEventHandler a0
+handleEvent = error "not implemented"

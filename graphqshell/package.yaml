@@ -85,6 +85,7 @@ library:
     - optparse-applicative
     - directory
     - control-monad-loop
+    - monad-logger
 
 executables:
   graphqshell-exe:

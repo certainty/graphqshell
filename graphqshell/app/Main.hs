@@ -3,41 +3,45 @@ module Main
   )
 where
 
-import qualified Application.TuiApp as TuiApp
+--import qualified Application.TuiApp as TuiApp
 import qualified Data.ByteString as ByteString
 import Options.Applicative
 import Relude
-import qualified System.Directory as Directory
-import qualified System.FilePath as FilePath
-
-data Options = Options
-  { verbose :: Bool,
-    configPath :: FilePath
-  }
-  deriving (Eq, Show)
 
 main :: IO ()
-main = TuiApp.main
+main = pure ()
 
--- loadConfiguration :: FilePath -> IO ApplicationConfig
--- loadConfiguration path = do
---   absolutePath <- Directory.makeAbsolute path
---   ByteString.readFile absolutePath >>= (parseConfiguration absolutePath)
+-- import qualified System.Directory as Directory
+-- import qualified System.FilePath as FilePath
 
-defaultConfigurationFilePath :: IO FilePath
-defaultConfigurationFilePath = do
-  configDirectory <- Directory.getXdgDirectory Directory.XdgConfig "graphqshell"
-  pure $ configDirectory FilePath.</> "config.yaml"
+-- data Options = Options
+--   { verbose :: Bool,
+--     configPath :: FilePath
+--   }
+--   deriving (Eq, Show)
 
-options :: FilePath -> Parser Options
-options defaultConfigPath =
-  Options
-    <$> switch (long "verbose" <> short 'v' <> help "Print information during startup")
-    <*> strOption
-      ( long "config"
-          <> short 'c'
-          <> help "The path to the configuration file"
-          <> metavar "CONFIG_FILE"
-          <> showDefault
-          <> value defaultConfigPath
-      )
+-- main :: IO ()
+-- main = TuiApp.main
+
+-- -- loadConfiguration :: FilePath -> IO ApplicationConfig
+-- -- loadConfiguration path = do
+-- --   absolutePath <- Directory.makeAbsolute path
+-- --   ByteString.readFile absolutePath >>= (parseConfiguration absolutePath)
+
+-- defaultConfigurationFilePath :: IO FilePath
+-- defaultConfigurationFilePath = do
+--   configDirectory <- Directory.getXdgDirectory Directory.XdgConfig "graphqshell"
+--   pure $ configDirectory FilePath.</> "config.yaml"
+
+-- options :: FilePath -> Parser Options
+-- options defaultConfigPath =
+--   Options
+--     <$> switch (long "verbose" <> short 'v' <> help "Print information during startup")
+--     <*> strOption
+--       ( long "config"
+--           <> short 'c'
+--           <> help "The path to the configuration file"
+--           <> metavar "CONFIG_FILE"
+--           <> showDefault
+--           <> value defaultConfigPath
+--       )

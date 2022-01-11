@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0cb86fbe40026499b82e9295636ca734109e0d0d9343659c430dbf21aefa3f6d
+-- hash: dc3ddc86bb7fb909bbb4bdb00f0beeac267a8aed515fc79d2d37f800d269b412
 
 name:           graphqshell
 version:        0.1.0.0
@@ -26,37 +26,12 @@ source-repository head
 
 library
   exposed-modules:
-      Application.TuiApp
-      Application.TuiApp.Components.CommandBar.Behavior
-      Application.TuiApp.Components.CommandBar.Component
-      Application.TuiApp.Components.CommandBar.State
-      Application.TuiApp.Components.Main.Behavior
-      Application.TuiApp.Components.Main.Component
-      Application.TuiApp.Components.Main.State
-      Application.TuiApp.Configuration
-      Application.TuiApp.Configuration.Marshalling
-      Application.TuiApp.Configuration.Types
-      Application.TuiApp.Configuration.Validation
-      Application.TuiApp.IO
-      Application.TuiApp.Shared
-      Application.TuiApp.State
-      GraphQL.API
-      GraphQL.Api.Types
-      GraphQL.Client
-      GraphQL.Client.Types
-      GraphQL.Introspection
-      GraphQL.Introspection.Marshalling.Types
-      GraphQL.Introspection.Schema
-      GraphQL.Introspection.Schema.Types
-      GraphQL.Marshalling.Utils
+      Application.Tui.Action
+      Application.Tui.App
+      Application.Tui.Keymap
+      Application.Tui.Screen
+      Application.Tui.Types
       Infrastructure.TuiEngine
-      Infrastructure.TuiEngine.Components
-      Infrastructure.TuiEngine.DataGraph
-      Infrastructure.TuiEngine.Events
-      Infrastructure.TuiEngine.IO
-      Infrastructure.TuiEngine.Keymap
-      Infrastructure.TuiEngine.Keys
-      Utils
   other-modules:
       Paths_graphqshell
   hs-source-dirs:
@@ -102,6 +77,7 @@ library
     , fuzzy
     , fuzzyset
     , modern-uri
+    , monad-logger
     , optics
     , optparse-applicative
     , raw-strings-qq
@@ -169,8 +145,6 @@ test-suite graphqshell-test
       GraphQL.Schema.IntrospectionTest
       Infrastructure.TuiEngine.DataGraphTest
       Infrastructure.TuiEngine.KeyMapTest
-      Shell.ConfigurationTest
-      Shell.KeyMapTest
       Paths_graphqshell
   hs-source-dirs:
       test
