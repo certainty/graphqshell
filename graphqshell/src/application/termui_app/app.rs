@@ -1,8 +1,9 @@
-use super::components::main;
 use super::io;
-use crate::application::termui_app::components::main::ComponentName;
+use super::theme::Theme;
+use super::views::{ViewName, ViewState};
 use crate::application::termui_app::theme;
-use crate::infra::termui::engine::{Configuration, Engine};
+use crate::infra::termui::engine::{App, Configuration, Continuation, Engine};
+use backtrace::Frame;
 use clap::Parser;
 use log::LevelFilter;
 use std::io::stdout;
@@ -14,26 +15,61 @@ pub struct Opts {
     config: Option<String>,
 }
 
-pub enum Action {}
+pub struct AppState {
+    pub config: Configuration,
+    pub views: ViewState,
+    pub theme: Theme,
+}
 
-#[derive(Clone)]
-pub enum Event {
-    Activate(ComponentName),
+#[derive(Debug, Clone)]
+pub enum AppEvent {
+    Activate(ViewName),
     ToggleLogs,
     Quit,
 }
 
-// The main application engine
-pub type AppEngine = Engine<Stdout, Action, Event, io::IoHandler, main::Main>;
+#[derive(Debug, Clone)]
+pub enum AppAction {}
 
-pub async fn main() -> anyhow::Result<()> {
-    tui_logger::init_logger(LevelFilter::Debug).unwrap();
-    tui_logger::set_default_level(log::LevelFilter::Debug);
+pub struct TermuiApp(AppState);
 
-    let theme = theme::load()?;
-    let config = Configuration::default();
-    let engine = AppEngine::create(stdout(), config, io::IoHandler::new(), main::Main::new(theme)?).await?;
+impl App<AppAction, AppEvent> for TermuiApp {
+    fn initial() -> (Self, Continuation<AppAction, AppEvent>) {
+        todo!()
+    }
 
-    engine.run().await?;
-    Ok(())
+    fn update(&mut self, event: crate::infra::termui::engine::Event<AppEvent>) -> Continuation<AppAction, AppEvent> {
+        todo!()
+    }
+
+    fn draw<W: std::io::Write>(&self, frame: &mut Frame<W>, target: tui::layout::Rect) {
+        let visible = ViewState::visible_widgets
+    }
+}
+
+pub type AppEngine = Engine<Stdout, AppAction, AppEvent, io::IoHandler, TermuiApp>;
+
+impl TermuiApp {
+    pub fn new() -> Self {
+        Self {
+            AppState {
+                config: Configuration::default(),
+                views: ViewState::default(),
+                theme: theme::default(),
+            },
+
+        }
+    }
+
+    pub async fn main() -> anyhow::Result<()> {
+        tui_logger::init_logger(LevelFilter::Debug).unwrap();
+        tui_logger::set_default_level(log::LevelFilter::Debug);
+
+        let theme = theme::load()?;
+        let config = Configuration::default();
+        let engine = AppEngine::create(stdout(), config, io::IoHandler::new(), TermuiApp::new()?).await?;
+
+        engine.run().await?;
+        Ok(())
+    }
 }

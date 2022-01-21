@@ -55,7 +55,7 @@
 ///     }
 /// }
 ///
-/// // Implement the `App` trait for our application 
+/// // Implement the `App` trait for our application
 /// impl App<Action, Event> for Main {
 ///     fn initial(&self) -> Continuation<Action, Event> {
 ///         Continuation::Continue
@@ -74,7 +74,7 @@
 ///             _ => Continuation::Continue,
 ///         }
 ///     }
-/// 
+///
 ///    fn view<W: Write>(&self, frame: &mut Frame<W>, rect: Rect) {
 ///        let block = Block::default().title(format!("Some cool APP <{ }>", self.counter)).borders(Borders::ALL);
 ///        frame.render_widget(block, rect);
@@ -124,7 +124,7 @@
 /// #### App
 ///
 /// A app represents a concrete application running on the engine.
-/// The engine will take care of calling into the application 
+/// The engine will take care of calling into the application
 /// at appropriate times so that the TUI application can react to updates.
 ///
 /// #### Events
@@ -150,7 +150,6 @@
 ///
 use backtrace::Backtrace;
 use keys::Key;
-use tui::layout::Rect;
 use std::io::Write;
 use std::marker::PhantomData;
 use std::panic;
@@ -158,6 +157,7 @@ use std::time::Duration;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender};
+use tui::layout::Rect;
 
 pub mod continuation;
 pub mod io;
@@ -209,24 +209,18 @@ pub enum Event<AppEvent: Send + 'static> {
 }
 
 pub trait App<AppAction: Send, AppEvent: Send + 'static> {
-    fn initial(&self) -> Continuation<AppAction, AppEvent>;
+    fn initial() -> (Self, Continuation<AppAction, AppEvent>);
     fn update(&mut self, event: Event<AppEvent>) -> Continuation<AppAction, AppEvent>;
     fn draw<W: Write>(&self, frame: &mut ui::Frame<W>, target: Rect);
 }
 
-pub struct Engine<
-    W: Write,
-    AppAction: Send,
-    AppEvent: Send + 'static,
-    IOHandler: io::Handler<AppAction, AppEvent>,
-    Application: App<AppAction, AppEvent>,
-> {
+pub struct Engine<W: Write, AppAction: Send, AppEvent: Send + 'static, IOHandler: io::Handler<AppAction, AppEvent>, Application: App<AppAction, AppEvent>> {
     io_system: io::System,
     ui_system: ui::System<W>,
     tx: Sender<Event<AppEvent>>,
     rx: Receiver<Event<AppEvent>>,
     io_tx: Sender<AppAction>,
-    app: Application,
+    _app: PhantomData<Application>,
     _phantom_io: PhantomData<IOHandler>,
 }
 
@@ -238,7 +232,7 @@ impl<
         Application: App<AppAction, AppEvent> + Send + 'static,
     > Engine<W, AppAction, AppEvent, IOHandler, Application>
 {
-    pub async fn create(buf: W, config: Configuration, ioHandler: IOHandler, app: Application) -> Result<Self> {
+    pub async fn create(buf: W, config: Configuration, ioHandler: IOHandler) -> Result<Self> {
         let (tx, rx) = tokio::sync::mpsc::channel::<Event<AppEvent>>(config.event_channel_size);
         let (io_tx, io_rx) = tokio::sync::mpsc::channel::<AppAction>(config.io_channel_size);
 
@@ -248,7 +242,7 @@ impl<
             tx,
             rx,
             io_tx,
-            app,
+            _app: PhantomData,
             _phantom_io: PhantomData,
         };
 
@@ -257,7 +251,7 @@ impl<
 
     pub async fn run(mut self) -> Result<()> {
         Self::set_panic_handlers()?;
-        let continuation = self.app.initial();
+        let (app, continuation) = Application::initial();
 
         match continuation {
             Continuation::Exit => {
@@ -272,10 +266,10 @@ impl<
         }
 
         loop {
-            self.ui_system.draw(&self.app)?;
+            self.ui_system.draw(&app)?;
 
             let next_event = self.rx.recv().await.unwrap_or(Event::Tick);
-            let continuation = self.app.update(next_event);
+            let continuation = app.update(next_event);
 
             match continuation {
                 Continuation::Exit => break,

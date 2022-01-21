@@ -1,6 +1,7 @@
-use super::app::{Action, Event};
 use crate::infra::termui::engine::io;
 use async_trait::async_trait;
+
+use super::app::{AppAction, AppEvent};
 
 pub struct IoHandler {}
 
@@ -11,8 +12,8 @@ impl IoHandler {
 }
 
 #[async_trait]
-impl io::Handler<Action, Event> for IoHandler {
-    async fn handle(&mut self, _action: Action) -> anyhow::Result<Option<Event>> {
+impl io::Handler<AppAction, AppEvent> for IoHandler {
+    async fn handle(&mut self, _action: AppAction) -> anyhow::Result<Option<AppEvent>> {
         Ok(None)
     }
 }

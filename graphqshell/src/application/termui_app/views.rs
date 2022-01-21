@@ -1,5 +1,6 @@
-use super::AppState;
 use std::collections::HashMap;
+
+use super::app::AppState;
 
 // Widget names as used in the applicatioj
 #[derive(Debug, Clone, PartialEq)]
