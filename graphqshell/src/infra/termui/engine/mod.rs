@@ -44,7 +44,7 @@
 ///     }
 /// }
 ///
-/// // The main component als represents the main model
+/// // The main component also represents the main model
 /// pub struct Main {
 ///   counter: usize
 /// }
@@ -55,8 +55,8 @@
 ///     }
 /// }
 ///
-/// // Implement the `Component` trait for our main component
-/// impl Component<Action, Event> for Main {
+/// // Implement the `App` trait for our application 
+/// impl App<Action, Event> for Main {
 ///     fn initial(&self) -> Continuation<Action, Event> {
 ///         Continuation::Continue
 ///     }
@@ -74,18 +74,12 @@
 ///             _ => Continuation::Continue,
 ///         }
 ///     }
-///
-///     fn is_visible(&self) -> bool { true }
-///     fn show(&mut self) { () }
-///     fn hide(&mut self) { () }
-///  }
-///
-/// impl DrawableComponent for Main {
-///     fn view<W: Write>(&self, frame: &mut Frame<W>, rect: Rect) {
+/// 
+///    fn view<W: Write>(&self, frame: &mut Frame<W>, rect: Rect) {
 ///        let block = Block::default().title(format!("Some cool APP <{ }>", self.counter)).borders(Borders::ALL);
 ///        frame.render_widget(block, rect);
 ///     }
-/// }
+///  }
 ///
 /// // define tye app type
 /// pub type AppEngine = engine::Engine<Stdout, Action, Event, IoHandler, Main>;
@@ -113,8 +107,8 @@
 /// #### IO Handler
 ///
 /// There are conceptually two parts of the every application that uses the engine.
-/// 1. components - responsible to draw the UI and manage the state of the model
-/// 2. io - the IO handler that executes IO operations
+/// 1. App - responsible to draw the UI, manage the state of the model and react to events
+/// 2. IO - the IO handler that executes IO operations outside of the UI thread
 ///
 /// The main motivation for this separation is technical. If you have longer running
 /// IO operations, you do not want to execute those in the UI thread, thus blocking the UI updates
@@ -127,10 +121,10 @@
 /// You can provide a mock IO system if you like and decouple yourself from heavy dependencies.
 ///
 ///
-/// #### Component
+/// #### App
 ///
-/// A component represents a self contained unit in the application, that manages its internal
-/// state and draws itself to the screen. The engine will take care of calling into the component
+/// A app represents a concrete application running on the engine.
+/// The engine will take care of calling into the application 
 /// at appropriate times so that the TUI application can react to updates.
 ///
 /// #### Events
@@ -156,6 +150,7 @@
 ///
 use backtrace::Backtrace;
 use keys::Key;
+use tui::layout::Rect;
 use std::io::Write;
 use std::marker::PhantomData;
 use std::panic;
@@ -164,14 +159,11 @@ use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender};
 
-pub mod component;
 pub mod continuation;
 pub mod io;
 pub mod keys;
 pub mod ui;
 
-pub use component::Component;
-pub use component::DrawableComponent;
 pub use continuation::Continuation;
 use continuation::Continuation::PerformAndNotify;
 
@@ -216,41 +208,47 @@ pub enum Event<AppEvent: Send + 'static> {
     Tick,
 }
 
+pub trait App<AppAction: Send, AppEvent: Send + 'static> {
+    fn initial(&self) -> Continuation<AppAction, AppEvent>;
+    fn update(&mut self, event: Event<AppEvent>) -> Continuation<AppAction, AppEvent>;
+    fn draw<W: Write>(&self, frame: &mut ui::Frame<W>, target: Rect);
+}
+
 pub struct Engine<
     W: Write,
     AppAction: Send,
     AppEvent: Send + 'static,
-    IO: io::Handler<AppAction, AppEvent>,
-    RootComponent: Component<AppAction, AppEvent> + DrawableComponent,
+    IOHandler: io::Handler<AppAction, AppEvent>,
+    Application: App<AppAction, AppEvent>,
 > {
     io_system: io::System,
     ui_system: ui::System<W>,
     tx: Sender<Event<AppEvent>>,
     rx: Receiver<Event<AppEvent>>,
     io_tx: Sender<AppAction>,
-    root: RootComponent,
-    _phantom_io: PhantomData<IO>,
+    app: Application,
+    _phantom_io: PhantomData<IOHandler>,
 }
 
 impl<
         W: Write,
         AppEvent: Send + 'static,
         AppAction: Send + 'static,
-        IO: io::Handler<AppAction, AppEvent> + Send + 'static,
-        RootComponent: Component<AppAction, AppEvent> + DrawableComponent,
-    > Engine<W, AppAction, AppEvent, IO, RootComponent>
+        IOHandler: io::Handler<AppAction, AppEvent> + Send + 'static,
+        Application: App<AppAction, AppEvent> + Send + 'static,
+    > Engine<W, AppAction, AppEvent, IOHandler, Application>
 {
-    pub async fn create(buf: W, config: Configuration, io: IO, root: RootComponent) -> Result<Self> {
+    pub async fn create(buf: W, config: Configuration, ioHandler: IOHandler, app: Application) -> Result<Self> {
         let (tx, rx) = tokio::sync::mpsc::channel::<Event<AppEvent>>(config.event_channel_size);
         let (io_tx, io_rx) = tokio::sync::mpsc::channel::<AppAction>(config.io_channel_size);
 
         let engine = Self {
-            io_system: io::System::start(io, io_rx, tx.clone()).await?,
+            io_system: io::System::start(ioHandler, io_rx, tx.clone()).await?,
             ui_system: ui::System::start(buf, tx.clone(), config.tick_rate.clone()).await?,
             tx,
             rx,
             io_tx,
-            root,
+            app,
             _phantom_io: PhantomData,
         };
 
@@ -259,7 +257,7 @@ impl<
 
     pub async fn run(mut self) -> Result<()> {
         Self::set_panic_handlers()?;
-        let continuation = self.root.initial();
+        let continuation = self.app.initial();
 
         match continuation {
             Continuation::Exit => {
@@ -274,10 +272,10 @@ impl<
         }
 
         loop {
-            self.ui_system.draw(&self.root)?;
+            self.ui_system.draw(&self.app)?;
 
             let next_event = self.rx.recv().await.unwrap_or(Event::Tick);
-            let continuation = self.root.update(next_event);
+            let continuation = self.app.update(next_event);
 
             match continuation {
                 Continuation::Exit => break,

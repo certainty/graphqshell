@@ -1,5 +1,5 @@
+use super::App;
 use super::keys::Key;
-use super::DrawableComponent;
 use super::Event;
 use super::Result;
 use std::io::Write;
@@ -58,10 +58,10 @@ impl<W: Write> System<W> {
         })
     }
 
-    pub fn draw<C: DrawableComponent>(&mut self, component: &C) -> anyhow::Result<()> {
+    pub fn draw<AppAction: Send, AppEvent: Send + 'static, Application: App<AppAction, AppEvent>>(&mut self, app: &Application) -> anyhow::Result<()> {
         self.terminal.draw(|f| {
             let rect = f.size();
-            component.view(f, rect);
+            app.draw(f, rect);
         })?;
 
         Ok(())
