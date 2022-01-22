@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use tui::style::{Color, Modifier, Style};
 
 pub struct Theme {
@@ -53,6 +55,6 @@ impl Default for Theme {
     }
 }
 
-pub fn load() -> anyhow::Result<Theme> {
+pub fn load(_path: &Option<PathBuf>) -> anyhow::Result<Theme> {
     Ok(Theme::default())
 }

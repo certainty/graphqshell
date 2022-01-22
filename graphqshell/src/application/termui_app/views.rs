@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::infra::termui::engine::Configuration;
+
 use super::app::AppState;
 
 // Widget names as used in the applicatioj
@@ -60,6 +62,16 @@ pub struct ViewState {
 }
 
 impl ViewState {
+    pub fn new(config: &Configuration) -> Self {
+        let mut views = HashMap::new();
+        views.insert(ViewName::Introspector, View::introspector());
+
+        Self {
+            views,
+            focused: config.defaultView.into(),
+        }
+    }
+
     pub fn focused_view_widget(state: &AppState) -> WidgetName {
         Self::focused_view(state).focused
     }
@@ -68,15 +80,15 @@ impl ViewState {
         state.views.get(Self::focused_view_name(state)).unwrap_or(View::introspector())
     }
 
-    pub fn focused_view_name(state: &AppState) -> &'static str {
-        state.views.focused.map(|view| view.to_string()).unwrap_or(state.config.defaultView.to_string())
+    pub fn focused_view_name(state: &AppState) -> ViewName {
+        state.views.focused.unwrap_or(state.config.defaultView)
     }
 
     pub fn visible_widgets(state: &AppState) -> Vec<WidgetName> {
-        let focused = state.views.get(&state.focused).unwrap_or(state.config.defaultView);
-        let all_layers = state.views.get(&focused).map(|v| v.layers).unwrap_or(vec![]);
-
-        all_layers
+        state
+            .views
+            .focused_view()
+            .layers
             .iter()
             .flat_map(|layer| layer.tiles())
             .filter(|tile| tile.visibility == Visibility::Visible)

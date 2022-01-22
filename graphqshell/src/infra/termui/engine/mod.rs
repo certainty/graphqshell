@@ -209,7 +209,7 @@ pub enum Event<AppEvent: Send + 'static> {
 }
 
 pub trait App<AppAction: Send, AppEvent: Send + 'static> {
-    fn initial() -> (Self, Continuation<AppAction, AppEvent>);
+    fn initial() -> Continuation<AppAction, AppEvent>;
     fn update(&mut self, event: Event<AppEvent>) -> Continuation<AppAction, AppEvent>;
     fn draw<W: Write>(&self, frame: &mut ui::Frame<W>, target: Rect);
 }
@@ -220,7 +220,7 @@ pub struct Engine<W: Write, AppAction: Send, AppEvent: Send + 'static, IOHandler
     tx: Sender<Event<AppEvent>>,
     rx: Receiver<Event<AppEvent>>,
     io_tx: Sender<AppAction>,
-    _app: PhantomData<Application>,
+    app: Application,
     _phantom_io: PhantomData<IOHandler>,
 }
 
@@ -232,7 +232,7 @@ impl<
         Application: App<AppAction, AppEvent> + Send + 'static,
     > Engine<W, AppAction, AppEvent, IOHandler, Application>
 {
-    pub async fn create(buf: W, config: Configuration, ioHandler: IOHandler) -> Result<Self> {
+    pub async fn create(buf: W, config: Configuration, ioHandler: IOHandler, app: Application) -> Result<Self> {
         let (tx, rx) = tokio::sync::mpsc::channel::<Event<AppEvent>>(config.event_channel_size);
         let (io_tx, io_rx) = tokio::sync::mpsc::channel::<AppAction>(config.io_channel_size);
 
@@ -242,7 +242,7 @@ impl<
             tx,
             rx,
             io_tx,
-            _app: PhantomData,
+            app,
             _phantom_io: PhantomData,
         };
 
@@ -251,7 +251,7 @@ impl<
 
     pub async fn run(mut self) -> Result<()> {
         Self::set_panic_handlers()?;
-        let (app, continuation) = Application::initial();
+        let continuation = self.app.initial();
 
         match continuation {
             Continuation::Exit => {
@@ -266,10 +266,10 @@ impl<
         }
 
         loop {
-            self.ui_system.draw(&app)?;
+            self.ui_system.draw(&self.app)?;
 
             let next_event = self.rx.recv().await.unwrap_or(Event::Tick);
-            let continuation = app.update(next_event);
+            let continuation = self.app.update(next_event);
 
             match continuation {
                 Continuation::Exit => break,
