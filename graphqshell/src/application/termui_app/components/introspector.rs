@@ -1,10 +1,7 @@
 use crate::application::termui_app::app;
-use crate::application::termui_app::app::{Action, Event};
 use crate::application::termui_app::keymap::KeyMap;
 use crate::application::termui_app::theme::Theme;
-use crate::infra::termui::engine::component::DrawableComponent;
-use crate::infra::termui::engine::ui::Frame;
-use crate::infra::termui::engine::{self, Component, Continuation};
+use crate::infra::termui::engine::{ui::Frame, self, Continuation, Event};
 use std::io::Write;
 use std::rc::Rc;
 use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
@@ -32,7 +29,7 @@ impl Introspector {
     }
 }
 
-impl Component<app::Action, app::Event> for Introspector {
+impl Component<Action, Event> for Introspector {
     fn initial(&self) -> Continuation<Action, Event> {
         Continuation::Continue
     }
