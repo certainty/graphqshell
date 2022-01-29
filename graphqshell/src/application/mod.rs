@@ -4,4 +4,3 @@
 /// The module contain things like user interfaces, APIs, and provides orchestration for the domain
 /// logic. It might contain services and logic likewise.
 pub(crate) mod configuration;
-pub mod termui_app;

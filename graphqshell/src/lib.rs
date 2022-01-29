@@ -1,6 +1,4 @@
 extern crate anyhow;
-extern crate crossterm;
-extern crate tui;
 
 #[cfg(test)]
 #[macro_use]
