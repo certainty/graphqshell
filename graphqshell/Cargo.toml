@@ -30,12 +30,8 @@ chrono = "0.4"
 url_serde = "0.2"
 toml = "0.5"
 
-# tui
-tui = { version = "0.16", features = ["crossterm"], default-features = false }
-tokio = { version = "1", features = ["full"] }
-async-trait = "0.1.51"
-crossterm = "0.20"
-tui-logger = "0.6.4"
+# gui
+iced = { version = "0.3" }
 
 backtrace = "0.3"
 
@@ -49,7 +45,5 @@ rustc-hash = { version = "1.0" }
 
 [dev-dependencies]
 matches = "0.1"
-criterion = "0.3.4"
-cargo-criterion = "1.1.0"
 quickcheck = "1"
 quickcheck_macros = "1.0"
