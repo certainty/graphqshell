@@ -1,0 +1,12 @@
+[package]
+name = "graphqshell_gui_frontend"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+yew = "0.19.3"
+yew-components = "0.3"

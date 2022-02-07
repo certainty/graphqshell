@@ -3,6 +3,7 @@ target
 .DS_Store
 *.iml
 .idea
+.metals
 
 
 
