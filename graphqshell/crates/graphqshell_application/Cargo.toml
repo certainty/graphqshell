@@ -1,0 +1,22 @@
+[package]
+name = "graphqshell_application"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+
+[dependencies]
+log = "0.4"
+env_logger = "0.8"
+pretty_env_logger = "0.4"
+thiserror = "1.0"
+anyhow = "1.0"
+
+chrono = "0.4"
+config = "0.11"
+duration-str = "0.3"
+url = "2.2"
+url_serde = "0.2"
+toml = "0.5"
+directories = "3.0"
+serde = "1.0"
