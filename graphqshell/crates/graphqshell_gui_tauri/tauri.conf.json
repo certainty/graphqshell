@@ -7,7 +7,8 @@
     "distDir": "../graphqshell_gui_frontend/dist",
     "devPath": "http://localhost:8080",
     "beforeDevCommand": "cd graphqshell_gui_frontend && trunk serve",
-    "beforeBuildCommand": "cd graphqshell_gui_frontend && trunk build"
+    "beforeBuildCommand": "cd graphqshell_gui_frontend && trunk build",
+    "withGlobalTauri": true
   },
   "tauri": {
     "bundle": {

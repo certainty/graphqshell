@@ -5,17 +5,15 @@ CARGO = cargo --color $(COLOR)
 
 all: build
 
-run:
-	$(CARGO) run --bin graphqshell -- --config config/dev.toml
 
-debug_run:
-	$(CARGO) run --features debug --bin graphqshell -- --config config/dev.toml
+dev:
+	$(CARGO) tauri dev
 
 bench:
 	$(CARGO) bench
 
 build:
-	$(CARGO) build
+	$(CARGO) tauri build
 
 check:
 	$(CARGO) check
