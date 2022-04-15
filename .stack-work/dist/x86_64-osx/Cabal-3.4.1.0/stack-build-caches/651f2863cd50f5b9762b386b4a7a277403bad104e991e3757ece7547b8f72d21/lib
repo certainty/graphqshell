@@ -1,0 +1,78 @@
+/Users/david/Coding/graphqshell/src/GQShell/Core/GraphQL/Introspection/Schema.hs:
+  hash: f98b31fc4f103ec4e57877f82ae754ae2286090de26f510a9f06a5aa967d83d0
+/Users/david/Coding/graphqshell/src/GQShell/Core/GraphQL/Client.hs:
+  hash: 5b4e204964462471fd0f40e1c537297b0b4ebeda9670dd9cfaebeed13626534a
+/Users/david/.ghcup/ghc/9.0.2/lib/ghc-9.0.2/lib/x86_64-osx-ghc-9.0.2/rts-1.0.2/include/ghcversion.h:
+  hash: 3b6c0f16983344ce12525816947d892da98bc96f17a664531494f515b9356c81
+/Users/david/Coding/graphqshell/src/GQShell/Application/Config/Types.hs:
+  hash: 0aa353250d85f4bc3ea4c43cc9d9f26b55322b83b4c0351ed8f0ab00c84d8c01
+/Users/david/Coding/graphqshell/.stack-work/dist/x86_64-osx/Cabal-3.4.1.0/build/autogen/cabal_macros.h:
+  hash: 097db968cf4f8bf08855e28c77915c57e4ccaf9d10d7d83a52cef505a9796168
+/Users/david/Coding/graphqshell/src/GQShell/Infrastructure/GraphQL/IOApi.hs:
+  hash: 6e2a21099c6beecfddcd259dc9e16d8e5829aee3eb917960355c4692003a3d8e
+/Users/david/Coding/graphqshell/src/Hubble/Hubbles/Log.hs:
+  hash: 15706950367bd4487b707c7495fa5d71038dfc700219aaddd76392c06a92551f
+/Users/david/Coding/graphqshell/src/GQShell/Core/GraphQL/Introspection.hs:
+  hash: 8f4cbec1ec74207f789a3f1010e37bb8d83c2a976fc2ad31e9e0fe287bad0e4e
+/Users/david/Coding/graphqshell/src/GQShell/Application/TUI/Activities/Summary.hs:
+  hash: 1aaaefc57c132e809a0a50410227937d765d4df76062578f0a15306b8f5a8123
+/Users/david/Coding/graphqshell/ChangeLog.md:
+  hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+/Users/david/Coding/graphqshell/src/Hubble/KeyMap.hs:
+  hash: 745a4f3c069d0fad10401016b6d9ffce21c78eb9f33efb76ecad1ad57e8c2285
+/Users/david/Coding/graphqshell/src/GQShell/Core/GraphQL/Introspection/Schema/Types.hs:
+  hash: e40bfe19e65d3e67ed74e39f1c82d0e4b64e8a9a7a09523fb2efcf5887e01f77
+/Users/david/Coding/graphqshell/src/GQShell/Application/Config.hs:
+  hash: 85c7017e4f4568d9621ac04d07ec93ccd2ea8b024b6cce1d69d8cdd5ae2fab5f
+/Users/david/Coding/graphqshell/src/GQShell/Application/TUI/Activities/Main/StatusBar.hs:
+  hash: 89229c9e72ba7918b0ce83d40d2f1afac0d3f2af947caf6e62ca27d83d1d091d
+/Users/david/Coding/graphqshell/src/GQShell/Infrastructure.hs:
+  hash: 415dd1b379bd64b50769f25834fed5b2b7b22945b9b79e8246c0afffa1853045
+/Users/david/Coding/graphqshell/src/GQShell/Core/GraphQL/Aeson.hs:
+  hash: aff2c95911fac7687c5fce28967025d194aca253ebcb53abe1e5d58f368ab889
+/Users/david/Coding/graphqshell/src/GQShell/Application/TUI/IOHandler.hs:
+  hash: 45e6bd9202e2d730ae76d827c09a68749fcb1e796a57cd42468587d5b6d878df
+/Users/david/Coding/graphqshell/src/GQShell/Infrastructure/GraphQL/IOClient.hs:
+  hash: a494e4d25525789d1f2aaf1eba232ce6d11afca41df2298a93d8d70779669dd5
+/Users/david/Coding/graphqshell/src/GQShell/Application/TUI/Shared.hs:
+  hash: 8f41655d2393ddf3ff1e58e66e5799497fc4f5f48e7473e2c91b2dc70a893ccb
+/Users/david/Coding/graphqshell/src/GQShell/Application/Config/Validation.hs:
+  hash: 0e13c2c9ef987a0edb90fbd42fb7c46b58b88288679bc04c3a95e94d2d485d63
+/Users/david/Coding/graphqshell/src/Hubble/CommandHandler.hs:
+  hash: 0c558afa7c569cbc5451d7591ec737a3da10337f2e8c234cdd8d554fce25dc62
+/Users/david/Coding/graphqshell/src/Hubble/Program.hs:
+  hash: de75effaf059499de69aa8ebde8da73cf49fec9f9bf3f1b60c2fcb3be501e5bf
+/Users/david/Coding/graphqshell/src/GQShell/Application/TUI/Style.hs:
+  hash: 51c5ac06024a0aaf7b3c42ca7861f59e8f645a4a1b4549e354051e193641b6d4
+/Users/david/Coding/graphqshell/src/GQShell/Application/TUI/Activities/Main.hs:
+  hash: 826f76d985552547dda5cbd6aa2ccd1df15803997429418b0ec8d03a741068af
+/Users/david/Coding/graphqshell/src/GQShell/Core/GraphQL/API.hs:
+  hash: 1acb6c5e5ba04d7d1167ed49008bc432b153c5307571ed1020041a2d5afad873
+/Users/david/Coding/graphqshell/package.yaml:
+  hash: ad3c108b58fb991acda8456ae8a230ec82fa15f7c5f8531f24dfb4ed79e6f23c
+/Users/david/Coding/graphqshell/src/GQShell/Application/TUI/Activities/Main/EndpointMenu.hs:
+  hash: f810e718c430ca43defbcded8a9ad1c6d73984223664d8bb2c90ef1d8f05676e
+/Users/david/Coding/graphqshell/README.md:
+  hash: 5530af65fa2f52fa6f0bb5c80952b2054d494aa8ec7a0eacca8bb820502bc321
+/Users/david/Coding/graphqshell/src/GQShell/Core/GraphQL/Introspection/Statistics.hs:
+  hash: b92785f00879bd4f28e76658d4fd5e32cc6d21c2037496ea6ed206e5165238d8
+/Users/david/Coding/graphqshell/src/Hubble/Internal/Types.hs:
+  hash: 97a6101507a59898e12bda3bd05c5aa4c3b18823554acf599e3a3254377b4d9e
+/Users/david/Coding/graphqshell/graphqshell.cabal:
+  hash: 6ed9dab3d0dd975018f93a64fcb358e878b6a257c0025b2359c870b03f63f54f
+/Users/david/Coding/graphqshell/src/GQShell/Application/Config/Marshalling.hs:
+  hash: dce900569b1acbe2d7eacffe186cf46e61bae6752d0b44b2487efcf1431b7a1f
+/Users/david/Coding/graphqshell/src/GQShell/Application/TUI/Activities/Introspector.hs:
+  hash: af4eeaa1eddc894e13e18169d4e69774fbabd2abfc44f7890e75051aca651b8e
+/Users/david/Coding/graphqshell/src/GQShell/Application/TUI/Activities/Query.hs:
+  hash: e2b3629231faca64e7692f32b011999bd419debed55b97edd51e338d7418bf57
+/Users/david/Coding/graphqshell/src/Hubble/Hubbles/Spinner.hs:
+  hash: e10ffe7f50ef026a9051e3013c8894cd1f2c736e98dcacf7499f932df86213ad
+/Users/david/Coding/graphqshell/.stack-work/dist/x86_64-osx/Cabal-3.4.1.0/build/autogen/Paths_graphqshell.hs:
+  hash: 4ee412341b9fd80bdabee5fc5ee109816e521a59d3efc837025476a7e2a0e07c
+/Users/david/Coding/graphqshell/src/GQShell/Application/Main.hs:
+  hash: 8dd615cc20be97bd2dcde842d8b2aa3aa91ba2aa4da5d54c83384889bfb546f7
+/Users/david/Coding/graphqshell/src/GQShell/Application/TUI/Activities/Main/Tabs.hs:
+  hash: a445a08c9b429164e80cc344c466b8e41c3ea88471ada2c612e31b0a79b96515
+/Users/david/Coding/graphqshell/src/GQShell/Core/GraphQL/Introspection/Marshalling.hs:
+  hash: 0f45368e25f4040e3cb6b5bb124e71465be1472d2138e9d1fd7104d3ae44da1d

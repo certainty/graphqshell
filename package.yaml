@@ -1,0 +1,121 @@
+name:                graphqshell
+version:             0.1.0.0
+github:              "certainty/graphqshell_experiments"
+license:             BSD3
+author:              "certainty"
+maintainer:          "david.krentzlin@gmail.com"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+description: Please see the README on GitHub at <https://github.com/certainty/graphqshell_experiments#readme>
+
+ghc-options:
+  - -Wall
+  - -Wcompat
+  - -Wincomplete-record-updates
+  - -Wincomplete-uni-patterns
+  - -Wredundant-constraints
+
+dependencies:
+  - base >= 4.7 && < 5
+  - relude
+  - safe-exceptions
+  - bytestring
+  - text
+
+
+default-extensions:
+  - NoImplicitPrelude
+  - ConstraintKinds
+  - DeriveGeneric
+  - DerivingStrategies
+  - GeneralizedNewtypeDeriving
+  - InstanceSigs
+  - KindSignatures
+  - LambdaCase
+  - OverloadedStrings
+  - RecordWildCards
+  - NamedFieldPuns
+  - ScopedTypeVariables
+  - StandaloneDeriving
+  - TupleSections
+  - TypeApplications
+  - ViewPatterns
+  - ApplicativeDo
+  - DeriveFoldable
+  - DeriveFunctor
+  - DeriveGeneric
+  - DeriveLift
+  - DeriveTraversable
+  - DerivingStrategies
+
+library:
+  source-dirs: src
+  ld-options: 
+    - -pthread
+  dependencies:
+    - brick
+    - async
+    - vty
+    - data-default
+    - aeson
+    - raw-strings-qq
+    - filepath
+    - microlens-platform
+    - ordered-containers
+    - vector
+    - monad-logger
+    - mtl
+    - network-uri
+    - modern-uri
+    - req
+    - fuzzy
+    - time
+    - yaml
+    - validation-selective
+    - filepath
+    - containers
+
+executables:
+  graphqshell-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    ld-options: 
+    - -pthread
+    dependencies:
+    - graphqshell
+    - optparse-applicative
+    - directory
+    - filepath
+    - data-default
+
+benchmarks:
+  graphshell-benchmark:
+    main: Main.hs
+    source-dirs: benchmark
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - graphqshell
+    - tasty-bench
+
+tests:
+  graphqshell-test:
+    main:                Spec.hs
+    source-dirs:         test
+    dependencies:
+    - hedgehog
+    - tasty-discover  >= 4.2.2
+    - tasty-hspec >= 1.2 
+    - tasty 
+    - hspec
+    - vty
+    - graphqshell
