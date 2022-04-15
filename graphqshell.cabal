@@ -1,0 +1,251 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: fb7bc2ddc8bb3757cce4b3c7d8d7ec5eef0e8bbad74e1849f1b6bf6a11433405
+
+name:           graphqshell
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/certainty/graphqshell_experiments#readme>
+homepage:       https://github.com/certainty/graphqshell_experiments#readme
+bug-reports:    https://github.com/certainty/graphqshell_experiments/issues
+author:         certainty
+maintainer:     david.krentzlin@gmail.com
+license:        BSD3
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/certainty/graphqshell_experiments
+
+library
+  exposed-modules:
+      GQShell.Application.Config
+      GQShell.Application.Config.Marshalling
+      GQShell.Application.Config.Types
+      GQShell.Application.Config.Validation
+      GQShell.Application.Main
+      GQShell.Application.TUI.Activities.Introspector
+      GQShell.Application.TUI.Activities.Main
+      GQShell.Application.TUI.Activities.Main.EndpointMenu
+      GQShell.Application.TUI.Activities.Main.StatusBar
+      GQShell.Application.TUI.Activities.Main.Tabs
+      GQShell.Application.TUI.Activities.Query
+      GQShell.Application.TUI.Activities.Summary
+      GQShell.Application.TUI.IOHandler
+      GQShell.Application.TUI.Shared
+      GQShell.Application.TUI.Style
+      GQShell.Core.GraphQL.Aeson
+      GQShell.Core.GraphQL.API
+      GQShell.Core.GraphQL.Client
+      GQShell.Core.GraphQL.Introspection
+      GQShell.Core.GraphQL.Introspection.Marshalling
+      GQShell.Core.GraphQL.Introspection.Schema
+      GQShell.Core.GraphQL.Introspection.Schema.Types
+      GQShell.Core.GraphQL.Introspection.Statistics
+      GQShell.Infrastructure
+      GQShell.Infrastructure.GraphQL.IOApi
+      GQShell.Infrastructure.GraphQL.IOClient
+      Hubble.CommandHandler
+      Hubble.Hubbles.Log
+      Hubble.Hubbles.Spinner
+      Hubble.Internal.Types
+      Hubble.KeyMap
+      Hubble.Program
+  other-modules:
+      Paths_graphqshell
+  hs-source-dirs:
+      src
+  default-extensions:
+      NoImplicitPrelude
+      ConstraintKinds
+      DeriveGeneric
+      DerivingStrategies
+      GeneralizedNewtypeDeriving
+      InstanceSigs
+      KindSignatures
+      LambdaCase
+      OverloadedStrings
+      RecordWildCards
+      NamedFieldPuns
+      ScopedTypeVariables
+      StandaloneDeriving
+      TupleSections
+      TypeApplications
+      ViewPatterns
+      ApplicativeDo
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveLift
+      DeriveTraversable
+      DerivingStrategies
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  ld-options: -pthread
+  build-depends:
+      aeson
+    , async
+    , base >=4.7 && <5
+    , brick
+    , bytestring
+    , containers
+    , data-default
+    , filepath
+    , fuzzy
+    , microlens-platform
+    , modern-uri
+    , monad-logger
+    , mtl
+    , network-uri
+    , ordered-containers
+    , raw-strings-qq
+    , relude
+    , req
+    , safe-exceptions
+    , text
+    , time
+    , validation-selective
+    , vector
+    , vty
+    , yaml
+  default-language: Haskell2010
+
+executable graphqshell-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_graphqshell
+  hs-source-dirs:
+      app
+  default-extensions:
+      NoImplicitPrelude
+      ConstraintKinds
+      DeriveGeneric
+      DerivingStrategies
+      GeneralizedNewtypeDeriving
+      InstanceSigs
+      KindSignatures
+      LambdaCase
+      OverloadedStrings
+      RecordWildCards
+      NamedFieldPuns
+      ScopedTypeVariables
+      StandaloneDeriving
+      TupleSections
+      TypeApplications
+      ViewPatterns
+      ApplicativeDo
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveLift
+      DeriveTraversable
+      DerivingStrategies
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  ld-options: -pthread
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , data-default
+    , directory
+    , filepath
+    , graphqshell
+    , optparse-applicative
+    , relude
+    , safe-exceptions
+    , text
+  default-language: Haskell2010
+
+test-suite graphqshell-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Hubble.KeyMapSpec
+      Paths_graphqshell
+  hs-source-dirs:
+      test
+  default-extensions:
+      NoImplicitPrelude
+      ConstraintKinds
+      DeriveGeneric
+      DerivingStrategies
+      GeneralizedNewtypeDeriving
+      InstanceSigs
+      KindSignatures
+      LambdaCase
+      OverloadedStrings
+      RecordWildCards
+      NamedFieldPuns
+      ScopedTypeVariables
+      StandaloneDeriving
+      TupleSections
+      TypeApplications
+      ViewPatterns
+      ApplicativeDo
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveLift
+      DeriveTraversable
+      DerivingStrategies
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , graphqshell
+    , hedgehog
+    , hspec
+    , relude
+    , safe-exceptions
+    , tasty
+    , tasty-discover >=4.2.2
+    , tasty-hspec >=1.2
+    , text
+    , vty
+  default-language: Haskell2010
+
+benchmark graphshell-benchmark
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Paths_graphqshell
+  hs-source-dirs:
+      benchmark
+  default-extensions:
+      NoImplicitPrelude
+      ConstraintKinds
+      DeriveGeneric
+      DerivingStrategies
+      GeneralizedNewtypeDeriving
+      InstanceSigs
+      KindSignatures
+      LambdaCase
+      OverloadedStrings
+      RecordWildCards
+      NamedFieldPuns
+      ScopedTypeVariables
+      StandaloneDeriving
+      TupleSections
+      TypeApplications
+      ViewPatterns
+      ApplicativeDo
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveLift
+      DeriveTraversable
+      DerivingStrategies
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , graphqshell
+    , relude
+    , safe-exceptions
+    , tasty-bench
+    , text
+  default-language: Haskell2010

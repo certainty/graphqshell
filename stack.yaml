@@ -1,0 +1,16 @@
+resolver: nightly-2022-02-27 
+compiler: ghc-9.0.2
+
+packages:
+- .
+
+extra-deps:
+  - conferer-source-yaml-0.4.0.1
+  - validation-selective-0.1.0.1
+  - selective-0.4.2
+
+flags:
+  brick:
+    demos: false
+
+system-ghc: true
