@@ -1,8 +1,8 @@
-resolver: nightly-2022-02-27 
+resolver: nightly-2022-02-27
 compiler: ghc-9.0.2
 
 packages:
-- .
+  - .
 
 extra-deps:
   - conferer-source-yaml-0.4.0.1
@@ -14,3 +14,6 @@ flags:
     demos: false
 
 system-ghc: true
+nix:
+  enable: true
+  packages: [zlib]
