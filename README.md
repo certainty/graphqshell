@@ -13,8 +13,13 @@ You need to have stack and make installed.
 
 Keep it simple and just run `make` to build the project.
 
-`make`
+```
+nix-shell shell.nix
+make
+```
 
 ## This is what it currently looks like
 
 <img width="400" alt="Screenshot 2022-04-15 at 19 18 37" src="https://user-images.githubusercontent.com/338957/163601051-6a43db67-c265-4bea-adef-0f86defe5f73.png">
+
+
