@@ -11,7 +11,6 @@ import Brick.Widgets.Core (txt)
 import qualified Data.List
 import qualified Data.Text as T
 import Data.Vector (Vector)
-import Data.Vector.Generic ((!))
 import GQShell.Application.TUI.Activities.Introspector (IntrospectorModel)
 import qualified GQShell.Application.TUI.Activities.Introspector as Intro
 import GQShell.Application.TUI.Activities.Query (QueryModel)
@@ -20,8 +19,9 @@ import GQShell.Application.TUI.Activities.Summary (SummaryModel)
 import qualified GQShell.Application.TUI.Activities.Summary as Summary
 import GQShell.Application.TUI.Shared (AppMessage (EndpointChange), Command', EndpointState (Connected), Focus (Focus, Unfocus), Focusable (..), Message', Model', Tile, hasFocus, makeTile, updateTile, viewTile)
 import qualified GQShell.Application.TUI.Style as Style
-import Hubble.Program (Message (AppMsg), UpdateM, logInfo, mkModel)
-import Lens.Micro.Platform hiding (view, _0, _2)
+import Hubble.KeyMap (Binding)
+import Hubble.Program (Message (AppMsg), UpdateM, logInfo, mState, mkModel)
+import Lens.Micro.Platform (ix, makeLenses, (.~), (^.))
 import Relude hiding (First, Last)
 
 data TabLabelPosition = First | Last | Middle deriving (Eq, Show)
@@ -60,6 +60,15 @@ newModel = mkModel (TabState (makeTile sm) (makeTile im) (makeTile qm) labels Un
     sm = Summary.newModel Focus
     im = Intro.newModel Unfocus
     qm = Query.newModel Unfocus
+
+keyBindings :: TabModel -> [Binding]
+keyBindings tabModel
+  | hasFocus (tabState ^. tsSummary) = []
+  | hasFocus (tabState ^. tsQuery) = []
+  | hasFocus (tabState ^. tsIntrospector) = []
+  | otherwise = []
+  where
+    tabState = tabModel ^. mState
 
 update :: TabState -> Message' -> UpdateM (TabState, [Command'])
 update s msg@(AppMsg (EndpointChange (Connected _ _))) = do

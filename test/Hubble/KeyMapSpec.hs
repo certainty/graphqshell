@@ -2,7 +2,14 @@ module Hubble.KeyMapSpec where
 
 import qualified Graphics.Vty as Vty
 import Hubble.KeyMap
-import Relude
+    ( matches,
+      mkBinding,
+      withHelp,
+      withoutHelp,
+      Binding(_bindingKeys),
+      BindingState(Disabled, Enabled),
+      Key(Key) )
+import Relude ( ($), Eq, Ord, Bool(False, True), (<$>) )
 import Test.Hspec (Spec, describe, it, shouldBe, shouldReturn)
 import Test.Tasty ()
 import qualified Test.Tasty.Hspec ()

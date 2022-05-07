@@ -31,7 +31,6 @@ data AppCommand
 -- Main key bindings that exist independently of the activity
 data ProgramKeys = ProgramKeys
   { _pkQuit :: Binding,
-    _pkHelp :: Binding,
     _pkToggleLogs :: Binding,
     _pkToggleEndpointMenu :: Binding
   }
@@ -39,10 +38,9 @@ data ProgramKeys = ProgramKeys
 mkProgramKeys :: (MonadThrow m) => m ProgramKeys
 mkProgramKeys =
   ProgramKeys
-    <$> mkBinding Enabled ["C-q", "C-c"] (withHelp "q" "Quit the app")
-    <*> mkBinding Enabled ["h", "H"] (withHelp "h" "Help")
-    <*> mkBinding Enabled ["T"] (withHelp "T" "toggle logs")
-    <*> mkBinding Enabled ["C-e"] (withHelp "C-e" "Toggle Endpointmenu")
+    <$> mkBinding Enabled ["C-q", "C-c"] (withHelp "C-q" "Quit")
+    <*> mkBinding Enabled ["T"] (withHelp "T" "Toggle logs")
+    <*> mkBinding Enabled ["C-e"] (withHelp "C-e" "Toggle Endpoints")
 
 -- Model fixed for the applications message and command type
 type Model' s = Model s AppCommand AppMessage

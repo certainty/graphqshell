@@ -2,11 +2,11 @@
 
 module GQShell.Application.TUI.Activities.Main where
 
-import Brick (fill, hLimit, hLimitPercent, joinBorders, padLeft, padRight, vBox)
+import Brick (fill, hLimit, hLimitPercent, joinBorders, padLeft, padRight, txt, vBox, withAttr)
 import Brick.Types
 import Brick.Widgets.Core (hBox, vLimit)
 import Control.Exception.Safe (MonadThrow)
-import GQShell.Application.Config (EndpointConfig)
+import GQShell.Application.Config.Types (EndpointConfig)
 import GQShell.Application.TUI.Activities.Main.EndpointMenu
 import qualified GQShell.Application.TUI.Activities.Main.EndpointMenu as EndpointMenu
 import GQShell.Application.TUI.Activities.Main.StatusBar (StatusBarModel)
@@ -14,10 +14,11 @@ import qualified GQShell.Application.TUI.Activities.Main.StatusBar as StatusBar
 import GQShell.Application.TUI.Activities.Main.Tabs (TabModel)
 import qualified GQShell.Application.TUI.Activities.Main.Tabs as Tabs
 import GQShell.Application.TUI.Shared
+import GQShell.Application.TUI.Style (keyMapHelpDesc, keyMapHelpKey)
 import Hubble.Hubbles.Log (LogModel)
 import qualified Hubble.Hubbles.Log as Logs
 import Hubble.Internal.Types
-import Hubble.KeyMap (matches)
+import Hubble.KeyMap (Binding, Help, bindingHelp, helpDescription, helpKey, matches)
 import Hubble.Program (cont, exit, logError)
 import Lens.Micro.Platform (makeLenses, (^.))
 import Relude
@@ -86,13 +87,32 @@ toggleMenuAndDetails mainState =
 
 mainView :: MainState -> Widget ()
 mainView mainState
-  | isVisible (_msLogs mainState) = vBox [vLimit 3 $ fill ' ', contentView mainState, viewTile' (_msLogs mainState), viewTile' (mainState ^. msStatusBar)]
+  | isVisible (_msLogs mainState) =
+    vBox
+      [ vLimit 3 $ fill ' ',
+        contentView mainState,
+        viewTile' (_msLogs mainState),
+        viewTile' (mainState ^. msStatusBar),
+        contextHelpView mainState
+      ]
   | otherwise =
     vBox
       [ vLimit 3 $ fill ' ',
         contentView mainState,
-        viewTile' (mainState ^. msStatusBar)
+        viewTile' (mainState ^. msStatusBar),
+        contextHelpView mainState
       ]
+
+focusedKeyBindings :: MainState -> [Binding]
+focusedKeyBindings mainState
+  | hasFocus (mainState ^. msSections) = Tabs.keyBindings (mainState ^. msSections . tData)
+  | hasFocus (mainState ^. msEndpointMenu) = EndpointMenu.keyBindings (mainState ^. msEndpointMenu . tData)
+  | otherwise = []
+
+globalKeyBindings :: MainState -> [Binding]
+globalKeyBindings s = fmap (\f -> f keyMap) [_pkQuit, _pkToggleLogs, _pkToggleEndpointMenu]
+  where
+    keyMap = s ^. msKeyMap
 
 contentView :: MainState -> Widget ()
 contentView mainState = hBox [menuWidget, tabWidget]
@@ -106,3 +126,29 @@ endpointListView mainState =
     padLeft (Pad 2) $
       padRight (Pad 2) $
         viewTile' (_msEndpointMenu mainState)
+
+contextHelpView :: MainState -> Widget ()
+contextHelpView mainState =
+  vLimit 2 $
+    vBox
+      [ hBox
+          [ globalContextHelp,
+            fill ' ',
+            focusedContextHelp
+          ],
+        fill ' '
+      ]
+  where
+    globalContextHelp = padLeft (Pad 1) $ contextualHelp (globalKeyBindings mainState)
+    focusedContextHelp = padRight (Pad 1) $ contextualHelp (focusedKeyBindings mainState)
+
+contextualHelp :: [Binding] -> Widget ()
+contextualHelp bindings = hBox $ contextHelpEntry <$> helpInfos
+  where
+    helpInfos = mapMaybe (^. bindingHelp) bindings
+
+contextHelpEntry :: Help -> Widget ()
+contextHelpEntry help = padRight (Pad 2) $ hBox [bindingKey, bindingDescription]
+  where
+    bindingKey = withAttr keyMapHelpKey $ padRight (Pad 1) $ txt $ help ^. helpKey
+    bindingDescription = withAttr keyMapHelpDesc $ txt $ help ^. helpDescription

@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 {-
 Types and functions to handle key events conveniently
 
@@ -30,13 +32,23 @@ Examples:
 
 module Hubble.KeyMap where
 
+import Brick (BorderSegment (bsAccept))
 import Control.Exception.Safe (MonadThrow, throwString)
 import qualified Data.Text as T
 import qualified Graphics.Vty as Vty
+import Lens.Micro.Platform (makeLenses)
 import Relude
 import Relude.Unsafe as Unsafe
 
 data BindingState = Enabled | Disabled deriving (Eq, Show)
+
+newtype Key = Key (Vty.Key, [Vty.Modifier]) deriving (Eq, Show)
+
+type KeyChord = Text
+
+type KeyName = Text
+
+type KeyDescription = Text
 
 data Binding = Binding
   { _bindingHelp :: Maybe Help,
@@ -52,18 +64,13 @@ data Help = Help
   }
   deriving (Eq, Show)
 
-newtype Key = Key (Vty.Key, [Vty.Modifier]) deriving (Eq, Show)
-
-type KeyChord = Text
-
-type KeyName = Text
-
-type KeyDescription = Text
+makeLenses ''Help
+makeLenses ''Binding
 
 mkBinding :: (MonadThrow m) => BindingState -> [KeyChord] -> Maybe Help -> m Binding
-mkBinding bindingState chords help = do
+mkBinding bs chords help = do
   parsedKeys <- traverse parseKeyChord chords
-  pure $ Binding help (Key <$> parsedKeys) bindingState
+  pure $ Binding help (Key <$> parsedKeys) bs
 
 withHelp :: KeyName -> KeyDescription -> Maybe Help
 withHelp name descr = Just (Help name descr)

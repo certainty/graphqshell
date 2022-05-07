@@ -13,7 +13,7 @@ import GQShell.Application.Config
 import GQShell.Application.TUI.Shared (AppCommand (ConnectEndpoint), Command', Focus, Focusable (focusL, hasFocus), Message', Model')
 import qualified GQShell.Application.TUI.Style as Style
 import Hubble.KeyMap
-import Hubble.Program (Message (KeyMsg), UpdateM, cont, logInfo, mkModel, performBatch)
+import Hubble.Program (Message (KeyMsg), UpdateM, cont, logInfo, mState, mkModel, performBatch)
 import Lens.Micro.Platform hiding (view)
 import qualified Lens.Micro.Platform as Lens
 import Relude
@@ -83,6 +83,11 @@ makeEndpoint cfg =
   Endpoint
     (cfg ^. endpointName)
     cfg
+
+keyBindings :: EndpointMenuModel -> [Binding]
+keyBindings model = [menuKeys ^. mkUp, menuKeys ^. mkDown, menuKeys ^. mkAccept]
+  where
+    menuKeys = model ^. mState . emsKeyMap
 
 update :: EndpointMenuState -> Message' -> UpdateM (EndpointMenuState, [Command'])
 update s (KeyMsg k)

@@ -33,6 +33,8 @@ attrMap =
       (logLevel, withStyle defAttr bold),
       (logInfo, defAttr),
       (logError, fg $ ISOColor 230),
+      (keyMapHelpKey, withStyle (withStyle defAttr dim) bold),
+      (keyMapHelpDesc, withStyle defAttr dim),
       (logWarning, fg $ rgbs "#EEF739"),
       (tableTitle, withStyle defAttr bold)
     ]
@@ -68,6 +70,16 @@ activeBorder = _border <> _active
 
 inactiveBorder :: AttrName
 inactiveBorder = _border <> _inactive
+
+-- Keymap Help
+keyMapHelp :: AttrName
+keyMapHelp = attrName "keymapHelp"
+
+keyMapHelpKey :: AttrName
+keyMapHelpKey = keyMapHelp <> attrName "key"
+
+keyMapHelpDesc :: AttrName
+keyMapHelpDesc = keyMapHelp <> attrName "desc"
 
 -- Menu
 
