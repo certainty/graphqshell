@@ -89,17 +89,15 @@ mainView :: MainState -> Widget ()
 mainView mainState
   | isVisible (_msLogs mainState) =
     vBox
-      [ vLimit 3 $ fill ' ',
+      [ viewTile' (mainState ^. msStatusBar),
         contentView mainState,
         viewTile' (_msLogs mainState),
-        viewTile' (mainState ^. msStatusBar),
         contextHelpView mainState
       ]
   | otherwise =
     vBox
-      [ vLimit 3 $ fill ' ',
+      [ viewTile' (mainState ^. msStatusBar),
         contentView mainState,
-        viewTile' (mainState ^. msStatusBar),
         contextHelpView mainState
       ]
 
@@ -129,10 +127,11 @@ endpointListView mainState =
 
 contextHelpView :: MainState -> Widget ()
 contextHelpView mainState =
-  vLimit 2 $
+  vLimit 3 $
     vBox
-      [ hBox
-          [ globalContextHelp,
+      [ hBox [fill ' '],
+        hBox
+          [ padLeft (Pad 1) globalContextHelp,
             fill ' ',
             focusedContextHelp
           ],

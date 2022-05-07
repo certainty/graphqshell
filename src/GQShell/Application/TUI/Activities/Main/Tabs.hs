@@ -5,7 +5,7 @@ module GQShell.Application.TUI.Activities.Main.Tabs where
 import Brick (Widget, fill, hBox, hLimit, joinBorders, overrideAttr, padAll, vBox, vLimit, withAttr, withBorderStyle)
 import Brick.AttrMap (AttrName)
 import Brick.Widgets.Border (borderAttr, borderElem, hBorder, vBorder)
-import Brick.Widgets.Border.Style (BorderStyle (bsCornerBL, bsCornerBR, bsCornerTR), bsCornerTL, unicode)
+import Brick.Widgets.Border.Style (BorderStyle (bsCornerBL, bsCornerBR, bsCornerTR), bsCornerTL, unicode, unicodeRounded)
 import Brick.Widgets.Center
 import Brick.Widgets.Core (txt)
 import qualified Data.List
@@ -160,5 +160,9 @@ viewTabContent s =
     wrapView :: Widget () -> Widget ()
     wrapView w =
       overrideAttr borderAttr (if hasFocus s then Style.activeBorder else Style.inactiveBorder) $
-        withBorderStyle unicode $
-          hBox [vBorder, padAll 2 w]
+        joinBorders $
+          withBorderStyle unicodeRounded $
+            vBox
+              [ hBox [vBorder, padAll 2 w],
+                hBox [borderElem bsCornerBL, hBorder]
+              ]
