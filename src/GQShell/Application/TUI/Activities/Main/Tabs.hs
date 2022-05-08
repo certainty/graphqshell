@@ -8,9 +8,10 @@ import Brick.Widgets.Border (borderAttr, borderElem, hBorder, vBorder)
 import Brick.Widgets.Border.Style (BorderStyle (bsCornerBL, bsCornerBR, bsCornerTR), bsCornerTL, unicode, unicodeRounded)
 import Brick.Widgets.Center
 import Brick.Widgets.Core (txt)
+import Control.Exception.Safe (MonadThrow)
 import qualified Data.List
 import qualified Data.Text as T
-import Data.Vector (Vector)
+import Data.Vector (Vector, foldl)
 import GQShell.Application.TUI.Activities.Introspector (IntrospectorModel)
 import qualified GQShell.Application.TUI.Activities.Introspector as Intro
 import GQShell.Application.TUI.Activities.Query (QueryModel)
@@ -19,8 +20,8 @@ import GQShell.Application.TUI.Activities.Summary (SummaryModel)
 import qualified GQShell.Application.TUI.Activities.Summary as Summary
 import GQShell.Application.TUI.Shared (AppMessage (EndpointChange), Command', EndpointState (Connected), Focus (Focus, Unfocus), Focusable (..), Message', Model', Tile, hasFocus, makeTile, updateTile, viewTile)
 import qualified GQShell.Application.TUI.Style as Style
-import Hubble.KeyMap (Binding)
-import Hubble.Program (Message (AppMsg), UpdateM, logInfo, mState, mkModel)
+import Hubble.KeyMap (Binding, BindingState (Enabled), matches, mkBinding, withHelp)
+import Hubble.Program (Message (AppMsg, KeyMsg), UpdateM, cont, logInfo, logWarning, mState, mkModel)
 import Lens.Micro.Platform (ix, makeLenses, (.~), (^.))
 import Relude hiding (First, Last)
 
@@ -33,12 +34,27 @@ data TabLabel = TabLabel
   }
   deriving (Eq, Show)
 
+data TabKeys = TabKeys
+  { _tkNextTab :: Binding,
+    _tkPrevTab :: Binding
+  }
+  deriving (Eq, Show)
+
+makeLenses ''TabKeys
+
+mkTabKeys :: (MonadThrow m) => m TabKeys
+mkTabKeys =
+  TabKeys
+    <$> mkBinding Enabled ["<tab>"] (withHelp "<tab>" "Next tab")
+    <*> mkBinding Enabled ["S-<tab>"] (withHelp "S-<tab>" "Previous tab")
+
 data TabState = TabState
   { _tsSummary :: Tile SummaryModel,
     _tsIntrospector :: Tile IntrospectorModel,
     _tsQuery :: Tile QueryModel,
     _tsLabels :: Vector TabLabel,
-    _tsFocus :: Focus
+    _tsFocus :: Focus,
+    _tsKeyMap :: TabKeys
   }
 
 makeLenses ''TabState
@@ -53,8 +69,13 @@ instance Focusable TabLabel where
 
 type TabModel = Model' TabState
 
-newModel :: TabModel
-newModel = mkModel (TabState (makeTile sm) (makeTile im) (makeTile qm) labels Unfocus) mempty update view
+tabKeyBindings :: TabKeys -> [Binding]
+tabKeyBindings tk = [tk ^. tkNextTab, tk ^. tkPrevTab]
+
+newModel :: (MonadThrow m) => m TabModel
+newModel = do
+  keys <- mkTabKeys
+  pure $ mkModel (TabState (makeTile sm) (makeTile im) (makeTile qm) labels Unfocus keys) mempty update view
   where
     labels = fromList [TabLabel "Summary" Unfocus First, TabLabel "Introspector" Unfocus Middle, TabLabel "Query" Unfocus Last]
     sm = Summary.newModel Focus
@@ -63,17 +84,24 @@ newModel = mkModel (TabState (makeTile sm) (makeTile im) (makeTile qm) labels Un
 
 keyBindings :: TabModel -> [Binding]
 keyBindings tabModel
-  | hasFocus (tabState ^. tsSummary) = []
-  | hasFocus (tabState ^. tsQuery) = []
-  | hasFocus (tabState ^. tsIntrospector) = []
-  | otherwise = []
+  | hasFocus (tabState ^. tsSummary) = tabKeys <> []
+  | hasFocus (tabState ^. tsQuery) = tabKeys <> []
+  | hasFocus (tabState ^. tsIntrospector) = tabKeys <> []
+  | otherwise = tabKeys
   where
     tabState = tabModel ^. mState
+    tabKeys = tabKeyBindings $ tabState ^. tsKeyMap
 
 update :: TabState -> Message' -> UpdateM (TabState, [Command'])
 update s msg@(AppMsg (EndpointChange (Connected _ _))) = do
   let s' = switchToSummary s
   relayUpdate s' msg
+update s keyMsg@(KeyMsg k)
+  | _tkNextTab keyMap `matches` k = logWarning ("Next tab" <> show (s ^. tsLabels)) >> cont (focusNextTab s)
+  | _tkPrevTab keyMap `matches` k = logWarning "Prev tab" >> cont (focusPrevTab s)
+  | otherwise = relayUpdate s keyMsg
+  where
+    keyMap = s ^. tsKeyMap
 update s msg = relayUpdate s msg
 
 relayUpdate :: TabState -> Message' -> UpdateM (TabState, [Command'])
@@ -83,10 +111,23 @@ relayUpdate s msg = do
   (qm', qmCmds) <- updateTile (_tsQuery s) msg
   pure (s {_tsSummary = sm', _tsIntrospector = im', _tsQuery = qm'}, smCmds <> imCmds <> qmCmds)
 
+focusNextTab :: TabState -> TabState
+focusNextTab s
+  | hasFocus (s ^. tsSummary) = switchToIntrospector s
+  | hasFocus (s ^. tsIntrospector) = switchToQuery s
+  | otherwise = switchToSummary s
+
+focusPrevTab :: TabState -> TabState
+focusPrevTab s
+  | hasFocus (s ^. tsSummary) = switchToQuery s
+  | hasFocus (s ^. tsQuery) = switchToIntrospector s
+  | otherwise = switchToSummary s
+
 switchToSummary :: TabState -> TabState
 switchToSummary s =
-  let s' = s & tsLabels . ix 0 . tlFocus .~ Focus
-   in s'
+  let s' = unfocusAllLabels s
+      s'' = s & tsLabels . ix 0 . tlFocus .~ Focus
+   in s''
         { _tsSummary = focusOn (s' ^. tsSummary),
           _tsIntrospector = focusOff (s' ^. tsIntrospector),
           _tsQuery = focusOff (s' ^. tsQuery)
@@ -94,8 +135,9 @@ switchToSummary s =
 
 switchToIntrospector :: TabState -> TabState
 switchToIntrospector s =
-  let s' = s & tsLabels . ix 1 . tlFocus .~ Focus
-   in s'
+  let s' = unfocusAllLabels s
+      s'' = s & tsLabels . ix 1 . tlFocus .~ Focus
+   in s''
         { _tsSummary = focusOff (s' ^. tsSummary),
           _tsIntrospector = focusOn (s' ^. tsIntrospector),
           _tsQuery = focusOff (s' ^. tsQuery)
@@ -103,12 +145,19 @@ switchToIntrospector s =
 
 switchToQuery :: TabState -> TabState
 switchToQuery s =
-  let s' = s & tsLabels . ix 2 . tlFocus .~ Focus
-   in s'
+  let s' = unfocusAllLabels s
+      s'' = s' & tsLabels . ix 2 . tlFocus .~ Focus
+   in s''
         { _tsSummary = focusOff (s' ^. tsSummary),
           _tsIntrospector = focusOff (s' ^. tsIntrospector),
           _tsQuery = focusOn (s' ^. tsQuery)
         }
+
+unfocusAllLabels :: TabState -> TabState
+unfocusAllLabels s = s {_tsLabels = fmap unfocus labels}
+  where
+    labels = s ^. tsLabels
+    unfocus l = l & tlFocus .~ Unfocus
 
 view :: TabState -> Widget ()
 view s = vBox [viewTabLabels s, viewTabContent s]

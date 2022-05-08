@@ -38,9 +38,9 @@ makeLenses ''MainState
 newModel :: (MonadThrow m) => [EndpointConfig] -> ProgramKeys -> m (Model' MainState)
 newModel endpoints km = do
   menuModel <- EndpointMenu.newModel Focus endpoints
+  tabTile <- makeTile <$> Tabs.newModel
   pure $ mkModel (MainState km (makeTile menuModel) logTile tabTile statusBarTile Disconnected) [] mainUpdate mainView
   where
-    tabTile = makeTile Tabs.newModel
     logTile = setInvisible $ makeTile (Logs.newModel 10 Warning)
     statusBarTile = makeTile (StatusBar.newModel Disconnected)
 
