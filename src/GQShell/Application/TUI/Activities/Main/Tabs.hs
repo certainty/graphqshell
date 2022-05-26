@@ -97,7 +97,7 @@ update s msg@(AppMsg (EndpointChange (Connected _ _))) = do
   let s' = switchToSummary s
   relayUpdate s' msg
 update s keyMsg@(KeyMsg k)
-  | _tkNextTab keyMap `matches` k = logWarning ("Next tab" <> show (s ^. tsLabels)) >> cont (focusNextTab s)
+  | _tkNextTab keyMap `matches` k = logWarning ("Next tab") >> cont (focusNextTab s)
   | _tkPrevTab keyMap `matches` k = logWarning "Prev tab" >> cont (focusPrevTab s)
   | otherwise = relayUpdate s keyMsg
   where
@@ -111,53 +111,50 @@ relayUpdate s msg = do
   (qm', qmCmds) <- updateTile (_tsQuery s) msg
   pure (s {_tsSummary = sm', _tsIntrospector = im', _tsQuery = qm'}, smCmds <> imCmds <> qmCmds)
 
+unfocusAllTabs :: TabState -> TabState
+unfocusAllTabs tabState = tabState {_tsSummary = summary', _tsIntrospector = introspector', _tsQuery = query', _tsLabels = labels'}
+  where
+    summary' = focusOff tabState ^. tsSummary
+    introspector' = focusOff tabState ^. tsIntrospector
+    query' = focusOff tabState ^. tsQuery
+    labels' = fmap unfocusLabel (tabState ^. tsLabels)
+    unfocusLabel l = l & tlFocus .~ Unfocus
+
 focusNextTab :: TabState -> TabState
 focusNextTab s
-  | hasFocus (s ^. tsSummary) = switchToIntrospector s
-  | hasFocus (s ^. tsIntrospector) = switchToQuery s
-  | otherwise = switchToSummary s
+  | hasFocus (s ^. tsSummary) = switchToIntrospector (unfocusAllTabs s) 
+  | hasFocus (s ^. tsIntrospector) = switchToQuery (unfocusAllTabs s) 
+  | otherwise = switchToSummary (unfocusAllTabs s) 
 
 focusPrevTab :: TabState -> TabState
 focusPrevTab s
-  | hasFocus (s ^. tsSummary) = switchToQuery s
-  | hasFocus (s ^. tsQuery) = switchToIntrospector s
-  | otherwise = switchToSummary s
+  | hasFocus (s ^. tsSummary) = switchToQuery (unfocusAllTabs s)
+  | hasFocus (s ^. tsQuery) = switchToIntrospector (unfocusAllTabs s)
+  | otherwise = switchToSummary (unfocusAllTabs s)
 
 switchToSummary :: TabState -> TabState
-switchToSummary s =
-  let s' = unfocusAllLabels s
-      s'' = s & tsLabels . ix 0 . tlFocus .~ Focus
-   in s''
-        { _tsSummary = focusOn (s' ^. tsSummary),
-          _tsIntrospector = focusOff (s' ^. tsIntrospector),
-          _tsQuery = focusOff (s' ^. tsQuery)
-        }
+switchToSummary s = s { _tsSummary = summary', _tsLabels = labels' } 
+  where 
+    summary' = over (s ^. tsSummary) focusOn
+    labels'  = (s ^. tsLabels)  ^. ix 0 . tlFocus .~ Focus  
 
 switchToIntrospector :: TabState -> TabState
 switchToIntrospector s =
-  let s' = unfocusAllLabels s
-      s'' = s & tsLabels . ix 1 . tlFocus .~ Focus
+  let s' = unfocusAllTabs s
+      s'' = s' & tsLabels . ix 1 . tlFocus .~ Focus
    in s''
-        { _tsSummary = focusOff (s' ^. tsSummary),
-          _tsIntrospector = focusOn (s' ^. tsIntrospector),
-          _tsQuery = focusOff (s' ^. tsQuery)
+        { 
+          _tsIntrospector = focusOn (s' ^. tsIntrospector)
         }
 
 switchToQuery :: TabState -> TabState
 switchToQuery s =
-  let s' = unfocusAllLabels s
+  let s' = unfocusAllTabs s 
       s'' = s' & tsLabels . ix 2 . tlFocus .~ Focus
    in s''
-        { _tsSummary = focusOff (s' ^. tsSummary),
-          _tsIntrospector = focusOff (s' ^. tsIntrospector),
-          _tsQuery = focusOn (s' ^. tsQuery)
+        { 
+          _tsQuery  = focusOn (s' ^. tsQuery)
         }
-
-unfocusAllLabels :: TabState -> TabState
-unfocusAllLabels s = s {_tsLabels = fmap unfocus labels}
-  where
-    labels = s ^. tsLabels
-    unfocus l = l & tlFocus .~ Unfocus
 
 view :: TabState -> Widget ()
 view s = vBox [viewTabLabels s, viewTabContent s]
@@ -180,16 +177,13 @@ viewLabels tabState =
     tabGap = vLimit 3 $ vBox [fill ' ', fill ' ', hBorder]
 
 viewTabLabel' :: TabLabel -> Widget ()
-viewTabLabel' (TabLabel caption focus First) = joinBorders $ vLimit 3 $ vBox [top, middle, bottom]
+viewTabLabel' (TabLabel caption focus pos) = joinBorders $ vLimit 3 $ vBox [top, middle, bottom]
   where
     top = hBox [borderElem bsCornerTL, hBorder, borderElem bsCornerTR]
     middle = hBox [vBorder, hCenter $ withAttr (focusToAttrName focus) $ txt caption, vBorder]
-    bottom = hBox [vBorder, fill ' ', borderElem bsCornerBR]
-viewTabLabel' (TabLabel caption focus _) = joinBorders $ vLimit 3 $ vBox [top, middle, bottom]
-  where
-    top = hBox [borderElem bsCornerTL, hBorder, borderElem bsCornerTR]
-    middle = hBox [vBorder, hCenter $ withAttr (focusToAttrName focus) $ txt caption, vBorder]
-    bottom = hBox [borderElem bsCornerBL, if focus == Unfocus then hBorder else fill ' ', borderElem bsCornerBR]
+    bottom 
+     | pos == First = hBox [vBorder, fill ' ', borderElem bsCornerBR]
+     | otherwise = hBox [borderElem bsCornerBL, if focus == Unfocus then hBorder else fill ' ', borderElem bsCornerBR]
 
 focusToAttrName :: Focus -> AttrName
 focusToAttrName Focus = Style.activeTabCaption
